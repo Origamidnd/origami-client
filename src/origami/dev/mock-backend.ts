@@ -85,7 +85,7 @@ const profiles = {
       type: 'remote',
       name: 'OrigamiVPN',
       url: 'https://sub.origamivpn.pro/example',
-      updated: Math.floor(Date.now() / 1000),
+      updated: Math.floor(Date.now() / 1000) - 3 * 3600,
       extra: {
         upload: 1.2e9,
         download: 13.1e9,
@@ -122,6 +122,11 @@ const handlers: Record<string, (args: any) => unknown> = {
     return null
   },
   get_profiles: () => profiles,
+  update_profile: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    profiles.items[0].updated = Math.floor(Date.now() / 1000)
+    return null
+  },
   get_runtime_state: () => runState,
   get_sys_proxy: () => sysproxy,
   get_auto_proxy: () => ({ enable: false, url: '' }),

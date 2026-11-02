@@ -277,6 +277,13 @@ export interface TranslationResources {
           off: string
           on: string
         }
+        server: {
+          none: string
+          ping: string
+          timeout: string
+          title: string
+          via: string
+        }
         speed: {
           down: string
           up: string
@@ -297,11 +304,14 @@ export interface TranslationResources {
           }
           empty: string
           noExpire: string
+          refresh: string
+          refreshed: string
           renew: string
           title: string
           traffic: string
           unlimited: string
           until: string
+          updated: string
         }
       }
       nav: {

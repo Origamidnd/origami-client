@@ -1,5 +1,6 @@
-import { PowerSettingsNewRounded } from '@mui/icons-material'
-import { Button } from '@mui/material'
+import { PowerSettingsNewRounded, RefreshRounded } from '@mui/icons-material'
+import { Button, IconButton } from '@mui/material'
+import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -10,12 +11,17 @@ import { CurrentProxyCard } from '@/components/home/current-proxy-card'
 import { useProfiles } from '@/hooks/use-profiles'
 import { useTrafficData } from '@/hooks/use-traffic-data'
 import { useVisibility } from '@/hooks/use-visibility'
+import { useAppRefreshers } from '@/providers/app-data-context'
+import { updateProfile } from '@/services/cmds'
+import { mutate } from '@/services/mutate'
 import { showNotice } from '@/services/notice-service'
 import { openExternalUrl } from '@/utils/open-external-url'
 import parseTraffic from '@/utils/parse-traffic'
 
+import { useExpertMode } from '../expert-mode'
 import { ORIGAMI_LINKS } from '../links'
 
+import { ServerPlate } from './server-plate'
 import { type ConnectMode, useConnection } from './use-connection'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -100,8 +106,28 @@ const pluralDays = (
 const SubscriptionPlate = () => {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
-  const { current } = useProfiles()
+  const { current, mutateProfiles } = useProfiles()
+  const { refreshAll } = useAppRefreshers()
   const [now] = useState(() => Date.now())
+  const [updating, setUpdating] = useState(false)
+
+  const refresh = useLockFn(async () => {
+    if (!current?.uid) return
+    setUpdating(true)
+    try {
+      await mutate(() => updateProfile(current.uid, current.option), {
+        id: `update-profile:${current.uid}`,
+        errorNotice: false,
+      })
+      await mutateProfiles()
+      await refreshAll()
+      showNotice.success('origami.home.subscription.refreshed')
+    } catch (error) {
+      showNotice.error(error)
+    } finally {
+      setUpdating(false)
+    }
+  })
 
   if (!current || current.type !== 'remote') {
     return (
@@ -130,7 +156,26 @@ const SubscriptionPlate = () => {
 
   return (
     <section className="o-plate o-sub">
-      <div className="o-label">{t('origami.home.subscription.title')}</div>
+      <div className="o-sub__head">
+        <div className="o-label">{t('origami.home.subscription.title')}</div>
+        {current.updated ? (
+          <span className="o-hint">
+            {t('origami.home.subscription.updated', {
+              time: dayjs(current.updated * 1000).fromNow(),
+            })}
+          </span>
+        ) : null}
+        <IconButton
+          size="small"
+          className={updating ? 'o-spin' : undefined}
+          disabled={updating}
+          aria-label={t('origami.home.subscription.refresh')}
+          title={t('origami.home.subscription.refresh')}
+          onClick={refresh}
+        >
+          <RefreshRounded fontSize="small" />
+        </IconButton>
+      </div>
       <div className="o-big">
         {daysLeft === null
           ? t('origami.home.subscription.noExpire')
@@ -194,6 +239,7 @@ const SpeedPlate = () => {
 
 const OrigamiHomePage = () => {
   const { t } = useTranslation()
+  const expert = useExpertMode()
 
   return (
     <BasePage title={t('layout.components.navigation.tabs.home')}>
@@ -205,9 +251,12 @@ const OrigamiHomePage = () => {
             <SpeedPlate />
           </div>
         </div>
-        <div className="o-home__server">
-          <CurrentProxyCard />
-        </div>
+        <ServerPlate />
+        {expert && (
+          <div className="o-home__server">
+            <CurrentProxyCard />
+          </div>
+        )}
       </div>
     </BasePage>
   )

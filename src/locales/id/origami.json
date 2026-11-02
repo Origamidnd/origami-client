@@ -37,11 +37,21 @@
       "until": "until {{date}}",
       "traffic": "{{used}} of {{total}}",
       "unlimited": "Unlimited traffic, {{used}} used",
-      "renew": "Renew"
+      "renew": "Renew",
+      "updated": "updated {{time}}",
+      "refresh": "Update subscription",
+      "refreshed": "Subscription updated"
     },
     "speed": {
       "down": "Download",
       "up": "Upload"
+    },
+    "server": {
+      "title": "Server",
+      "none": "Servers are not loaded yet",
+      "via": "Auto select: {{group}}",
+      "ping": "{{ms}} ms",
+      "timeout": "no response"
     }
   }
 }

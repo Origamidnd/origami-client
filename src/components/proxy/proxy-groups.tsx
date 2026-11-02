@@ -22,6 +22,7 @@ import {
 import { useProfiles } from '@/hooks/use-profiles'
 import { useProxySelection } from '@/hooks/use-proxy-selection'
 import { useVerge } from '@/hooks/use-verge'
+import { useFocusGroup } from '@/origami/use-focus-group'
 import { useProxiesData, useSystemData } from '@/providers/app-data-context'
 import { syncTrayProxySelection } from '@/services/cmds'
 import delayManager from '@/services/delay'
@@ -520,6 +521,8 @@ function NormalProxyGroups(props: { mode: string }) {
       .map((item) => item.group!.name)
     return Array.from(new Set(names))
   }, [renderList])
+
+  useFocusGroup(proxyGroupNames, onHeadState, handleGroupLocationByName)
 
   const handleGroupToggle = useCallback(
     async (group: ProxyGroupView) => {
