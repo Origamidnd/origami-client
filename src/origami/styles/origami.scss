@@ -647,3 +647,285 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     }
   }
 }
+
+// Servers (simple mode)
+.o-srv {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 4px 16px;
+  color: var(--o-ink);
+
+  &__check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .MuiButton-root {
+      color: var(--o-ink);
+      border-color: var(--o-line);
+    }
+  }
+
+  &__lead {
+    margin: 0;
+    font-size: 13px;
+    color: var(--o-muted);
+
+    b {
+      color: var(--o-ink);
+      font-weight: 500;
+    }
+  }
+
+  &__cols {
+    display: grid;
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+
+    @media (max-width: 820px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  &__services {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  &__service {
+    display: block;
+    width: 100%;
+    padding: 9px 14px;
+    border: 0;
+    background: transparent;
+    color: var(--o-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    & + & {
+      border-top: 1.5px dashed var(--o-crease);
+    }
+
+    b {
+      display: block;
+      font-weight: 500;
+      font-size: 14px;
+    }
+
+    &:hover {
+      background: var(--o-chip);
+    }
+
+    &.is-on {
+      background: var(--o-pale);
+      box-shadow: inset 3px 0 0 var(--o-action);
+    }
+  }
+
+  &__pick {
+    padding: 4px 0 12px;
+  }
+
+  &__label {
+    padding: 12px 16px 2px;
+    font-family: $mono;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--o-accent);
+  }
+
+  &__block-hint {
+    margin: 0;
+    padding: 0 16px 4px;
+    font-size: 12px;
+    color: var(--o-muted);
+  }
+
+  &__opt,
+  &__country {
+    width: calc(100% - 28px);
+    margin: 6px 14px;
+    border: 1.5px solid var(--o-crease);
+    border-radius: 8px;
+    color: var(--o-ink);
+
+    &:hover {
+      border-color: var(--o-line);
+    }
+
+    &.is-on {
+      border-color: var(--o-action);
+      background: var(--o-pale);
+    }
+  }
+
+  &__opt {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__opt-text {
+    flex: 1;
+
+    small {
+      display: block;
+      font-size: 12px;
+      color: var(--o-muted);
+    }
+  }
+
+  &__tip {
+    margin: 8px 16px 2px;
+    font-size: 13px;
+
+    b {
+      font-weight: 500;
+    }
+  }
+
+  &__country {
+    &.is-off {
+      opacity: 0.55;
+    }
+  }
+
+  &__country-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    border: 0;
+    background: transparent;
+    color: var(--o-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  &__country-name {
+    flex: 1;
+    font-size: 14px;
+  }
+
+  &__variants {
+    padding: 0 12px 10px;
+  }
+
+  &__variants-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--o-muted);
+  }
+
+  &__q {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 1.5px solid var(--o-accent);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--o-accent);
+    font: 500 12px/16px Onest, system-ui, sans-serif;
+    cursor: pointer;
+  }
+
+  &__help {
+    margin: 6px 0 0;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--o-chip);
+    font-size: 12px;
+    color: var(--o-muted);
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  &__chip {
+    padding: 4px 9px;
+    border: 1.5px solid var(--o-crease);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--o-ink);
+    font: 400 12px Onest, system-ui, sans-serif;
+    cursor: pointer;
+
+    .o-srv__ping {
+      margin-left: 4px;
+    }
+
+    &:hover {
+      border-color: var(--o-line);
+    }
+
+    &.is-on {
+      border-color: var(--o-action);
+      background: var(--o-action);
+      color: var(--o-on-action);
+      font-weight: 500;
+
+      .o-srv__ping {
+        color: var(--o-on-action);
+      }
+    }
+  }
+
+  &__ping {
+    font-family: $mono;
+    font-size: 12px;
+
+    &.is-fast {
+      color: var(--o-ok);
+    }
+
+    &.is-mid {
+      color: var(--o-warn);
+    }
+
+    &.is-slow,
+    &.is-dead {
+      color: var(--o-danger);
+    }
+
+    &.is-wait {
+      color: var(--o-muted);
+    }
+  }
+
+  &__legend {
+    margin: 10px 16px 0;
+  }
+
+  &__foot {
+    margin: 12px 16px 0;
+    padding-top: 10px;
+    border-top: 1.5px dashed var(--o-crease);
+    font-size: 13px;
+  }
+
+  &__link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--o-accent);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+}

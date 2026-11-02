@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next'
 import { BaseDialog, BasePage, TooltipIcon } from '@/components/base'
 import { ProviderButton } from '@/components/proxy/provider-button'
 import { ProxyGroups } from '@/components/proxy/proxy-groups'
+import { useExpertMode } from '@/origami/expert-mode'
+import { OrigamiServers } from '@/origami/servers/origami-servers'
 import {
   useAppRefreshers,
   useClashConfigData,
@@ -226,4 +228,7 @@ const ProxyPage = () => {
   )
 }
 
-export default ProxyPage
+// OrigamiVPN: people get the simple Servers tab, expert mode keeps the stock one.
+const ServersPage = () => (useExpertMode() ? <ProxyPage /> : <OrigamiServers />)
+
+export default ServersPage

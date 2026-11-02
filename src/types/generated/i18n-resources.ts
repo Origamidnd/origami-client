@@ -357,6 +357,46 @@ export interface TranslationResources {
         soon: string
         title: string
       }
+      servers: {
+        auto: string
+        autoHint: string
+        autoNow: string
+        autoShort: string
+        autoTitle: string
+        blocks: {
+          extra: string
+          extraHint: string
+          games: string
+          main: string
+          mainHint: string
+          other: string
+          otherHint: string
+        }
+        check: string
+        checkedAll: string
+        checkedAt: string
+        checkedSome: string
+        checking: string
+        chosen: string
+        direct: string
+        directHint: string
+        fast: string
+        foot: string
+        lead: string
+        leadExample: string
+        legend: string
+        mid: string
+        noAnswer: string
+        services: string
+        slow: string
+        support: string
+        tipAuto: string
+        tipVariant: string
+        title: string
+        variant: string
+        variantHelp: string
+        variantHelpLabel: string
+      }
       settings: {
         autoLaunch: {
           hint: string

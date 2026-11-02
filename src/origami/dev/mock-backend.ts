@@ -29,10 +29,86 @@ const servers = [
   ['Эстония', 52],
 ] as const
 
+interface GroupsFixture {
+  nodes: [string, string][]
+  groups: { name: string; type: string; hidden: boolean; members: string[] }[]
+}
+
+// `?real=1` previews the real group layout from fixtures/subscription-groups.json: names only,
+// generated locally from a subscription and kept out of git.
+const fixtures = import.meta.glob<{ default: GroupsFixture }>(
+  './fixtures/subscription-groups.json',
+  { eager: true },
+)
+const realGroups =
+  params.get('real') === '1' ? Object.values(fixtures)[0]?.default : undefined
+
+const GROUP_TYPES: Record<string, string> = {
+  select: 'Selector',
+  'url-test': 'URLTest',
+  fallback: 'Fallback',
+  'load-balance': 'LoadBalance',
+}
+
+const groupNow: Record<string, string> = {}
+
+const realProxyView = (fixture: GroupsFixture) => {
+  const groupNames = new Set(fixture.groups.map((g) => g.name))
+  const recordIds = new Map(fixture.nodes.map(([name], i) => [name, `r${i}`]))
+  const records = Object.fromEntries(
+    fixture.nodes.map(([name, type], i) => [
+      `r${i}`,
+      {
+        ...caps,
+        recordId: `r${i}`,
+        name,
+        type:
+          type === 'direct'
+            ? 'Direct'
+            : type === 'hysteria2'
+              ? 'Hysteria2'
+              : 'Vless',
+        alive: true,
+        history: type === 'direct' ? [] : history(20 + ((i * 37) % 140)),
+        source: { kind: 'core', proxyName: name },
+      },
+    ]),
+  )
+  return {
+    schemaVersion: 1,
+    orderSource: 'runtime',
+    providerState: 'ready',
+    global: null,
+    direct: 'DIRECT',
+    groups: fixture.groups.map((g) => ({
+      ...caps,
+      name: g.name,
+      type: GROUP_TYPES[g.type] ?? 'Selector',
+      alive: true,
+      hidden: g.hidden,
+      now: groupNow[g.name] ?? g.members[0],
+      history: [],
+      members: g.members.map((name) =>
+        groupNames.has(name)
+          ? { kind: 'group' as const, name }
+          : {
+              kind: 'node' as const,
+              name,
+              recordId: recordIds.get(name) ?? name,
+            },
+      ),
+    })),
+    records,
+    standalone: [],
+    providers: [],
+  }
+}
+
 const history = (delay: number) => [{ time: new Date().toISOString(), delay }]
 const caps = { udp: true, xudp: false, tfo: false, mptcp: false, smux: false }
 
 const proxyView = () => {
+  if (realGroups) return realProxyView(realGroups)
   const records = Object.fromEntries(
     servers.map(([name, delay], i) => [
       `n${i}`,
@@ -178,8 +254,20 @@ const handlers: Record<string, (args: any) => unknown> = {
     system_name: 'Windows',
     system_version: '11 (26100)',
   }),
+  // Delay check from the Servers tab: about one in eight servers does not answer.
+  'plugin:mihomo|delay_proxy_by_name': async ({ proxyName }) => {
+    await new Promise((resolve) =>
+      setTimeout(resolve, 200 + Math.random() * 500),
+    )
+    const hash = [...String(proxyName)].reduce(
+      (sum, ch) => sum + ch.charCodeAt(0),
+      0,
+    )
+    return hash % 8 === 0 ? { delay: 0 } : { delay: 20 + ((hash * 7) % 160) }
+  },
   'plugin:mihomo|select_node_for_group': ({ groupName, node }) => {
     if (groupName === 'OrigamiVPN') selected = node
+    groupNow[groupName] = node
     return null
   },
   'plugin:mihomo|get_base_config': () => ({
