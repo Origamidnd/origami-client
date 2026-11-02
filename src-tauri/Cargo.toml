@@ -2,9 +2,9 @@
 name = "clash-verge"
 version = "0.1.0"
 description = "OrigamiVPN"
-authors = ["zzzgydi", "Tunglies", "wonfen", "MystiPanda"]
+authors = ["OrigamiVPN"]
 license = "GPL-3.0-only"
-repository = "https://github.com/clash-verge-rev/clash-verge-rev.git"
+repository = "https://github.com/Origamidnd/origami-client.git"
 default-run = "clash-verge"
 build = "build.rs"
 edition = "2024"

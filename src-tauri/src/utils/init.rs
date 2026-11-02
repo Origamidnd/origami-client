@@ -568,7 +568,8 @@ pub fn init_scheme() -> Result<()> {
 }
 #[cfg(target_os = "linux")]
 pub fn init_scheme() -> Result<()> {
-    const DESKTOP_FILE: &str = "origamivpn.desktop";
+    // Tauri names the packaged desktop entry after the product name.
+    const DESKTOP_FILE: &str = "OrigamiVPN.desktop";
 
     for scheme in DEEP_LINK_SCHEMES {
         let handler = format!("x-scheme-handler/{scheme}");
