@@ -336,7 +336,7 @@ pub(super) async fn init_dns_config() -> Result<()> {
     let dns_config = serde_yaml_ng::Mapping::from_iter([
         ("enable".into(), Value::Bool(true)),
         // Must match the frontend default used for authoritative `dns.ipv6`.
-        ("ipv6".into(), Value::Bool(true)),
+        ("ipv6".into(), Value::Bool(false)),
         ("listen".into(), Value::String(":53".into())),
         ("enhanced-mode".into(), Value::String("fake-ip".into())),
         ("fake-ip-range".into(), Value::String("198.18.0.1/16".into())),

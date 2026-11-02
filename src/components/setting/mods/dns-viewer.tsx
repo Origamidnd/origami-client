@@ -152,7 +152,7 @@ const DEFAULT_DNS_CONFIG = {
   'respect-rules': false,
   'use-hosts': false,
   'use-system-hosts': false,
-  ipv6: true,
+  ipv6: false,
   'fake-ip-filter': [
     '*.lan',
     '*.local',
