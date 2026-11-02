@@ -263,6 +263,53 @@ export interface TranslationResources {
         title: string
       }
     }
+    origami: {
+      home: {
+        mode: {
+          label: string
+          proxy: string
+          proxyHint: string
+          tun: string
+          tunHint: string
+          tunServiceHint: string
+        }
+        power: {
+          off: string
+          on: string
+        }
+        speed: {
+          down: string
+          up: string
+        }
+        status: {
+          off: string
+          on: string
+        }
+        subscription: {
+          add: string
+          days: {
+            few: string
+            many: string
+            one: string
+            other: string
+            two: string
+            zero: string
+          }
+          empty: string
+          noExpire: string
+          renew: string
+          title: string
+          traffic: string
+          unlimited: string
+          until: string
+        }
+      }
+      nav: {
+        cabinet: string
+        expert: string
+        support: string
+      }
+    }
     profiles: {
       components: {
         card: {

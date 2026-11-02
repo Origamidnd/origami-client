@@ -1,0 +1,5 @@
+Fonts in this directory are licensed under the SIL Open Font License 1.1 (https://openfontlicense.org).
+
+Sofia Sans Extra Condensed - Copyright 2019 The Sofia Sans Project Authors (https://github.com/lettersoup/Sofia-Sans)
+Onest - Copyright 2021 The Onest Project Authors (https://github.com/googlefonts/onest)
+IBM Plex Mono - Copyright 2017 IBM Corp. (https://github.com/IBM/plex)

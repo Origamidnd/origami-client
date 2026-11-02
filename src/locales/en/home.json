@@ -89,7 +89,7 @@
       }
     },
     "currentProxy": {
-      "title": "Current Node",
+      "title": "Server",
       "actions": {
         "refreshDelay": "Delay check"
       },

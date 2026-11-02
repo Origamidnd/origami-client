@@ -89,7 +89,7 @@
       }
     },
     "currentProxy": {
-      "title": "Текущий прокси",
+      "title": "Сервер",
       "actions": {
         "refreshDelay": "Проверить задержку"
       },

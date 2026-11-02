@@ -3,8 +3,8 @@
     "navigation": {
       "tabs": {
         "home": "Home",
-        "proxies": "Proxies",
-        "profiles": "Profiles",
+        "proxies": "Servers",
+        "profiles": "Subscriptions",
         "connections": "Connections",
         "rules": "Rules",
         "logs": "Logs",

@@ -7,6 +7,8 @@ import { Theme as TauriOsTheme } from '@tauri-apps/api/window'
 import { useEffect, useMemo } from 'react'
 
 import { useVerge } from '@/hooks/use-verge'
+import { paperComponents } from '@/origami/theme/components'
+import { applyPaperCssVars, paperTokens } from '@/origami/theme/tokens'
 import { defaultDarkTheme, defaultTheme } from '@/pages/_theme'
 import { useSetThemeMode, useThemeMode } from '@/services/states'
 
@@ -168,6 +170,7 @@ export const useCustomTheme = () => {
             default: dt.background_color,
           },
         },
+        components: paperComponents(mode),
         shadows: Array(25).fill('none') as Shadows,
         typography: {
           fontFamily: setting.font_family
@@ -201,7 +204,8 @@ export const useCustomTheme = () => {
 
     const rootEle = document.documentElement
     if (rootEle) {
-      const backgroundColor = mode === 'light' ? '#ECECEC' : dt.background_color
+      applyPaperCssVars(mode)
+      const backgroundColor = paperTokens[mode].bg
       const selectColor = mode === 'light' ? '#f5f5f5' : '#3E3E3E'
       const scrollColor = mode === 'light' ? '#90939980' : '#555555'
       const dividerColor =
@@ -297,7 +301,7 @@ export const useCustomTheme = () => {
 
         /* 确保模态框和对话框也使用暗色主题 */
         .MuiDialog-paper {
-          background-color: ${mode === 'light' ? '#ffffff' : '#2E303D'} !important;
+          background-color: ${paperTokens[mode].plate} !important;
         }
 
         /* 移除可能的白色点或线条 */

@@ -7,6 +7,8 @@ import iconDark from '@/assets/image/icon_dark.svg?react'
 import iconLight from '@/assets/image/icon_light.svg?react'
 import LogoSvg from '@/assets/image/logo.svg?react'
 import { useVerge } from '@/hooks/use-verge'
+import { filterNavPaths, useExpertMode } from '@/origami/expert-mode'
+import { OrigamiSidebarFooter } from '@/origami/sidebar-footer'
 import { useNavMenuOrder } from '@/pages/_layout/hooks'
 import { navItems } from '@/pages/_navigation'
 
@@ -95,8 +97,13 @@ export const LayoutSidebar = (props: LayoutSidebarProps) => {
     void patchVerge({ collapse_navbar: !isCollapsed })
   }, [isCollapsed, patchVerge])
 
+  const expertMode = useExpertMode()
+
   // Navigation menu items
-  const navMenuItems = menuOrder.map((path, index) => {
+  const navMenuItems = filterNavPaths(
+    menuOrder,
+    expertMode || menuUnlocked,
+  ).map((path, index) => {
     const item = navItemMap.get(path)
     if (!item) return null
 
@@ -221,6 +228,8 @@ export const LayoutSidebar = (props: LayoutSidebarProps) => {
           {t('layout.components.navigation.menu.restoreDefaultOrder')}
         </MenuItem>
       </Menu>
+
+      <OrigamiSidebarFooter />
 
       {/* Traffic */}
       <div className="the-traffic">

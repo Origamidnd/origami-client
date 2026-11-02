@@ -16,10 +16,10 @@ import ProxiesSvg from '@/assets/image/itemicon/proxies.svg?react'
 import RulesSvg from '@/assets/image/itemicon/rules.svg?react'
 import SettingsSvg from '@/assets/image/itemicon/settings.svg?react'
 import UnlockSvg from '@/assets/image/itemicon/unlock.svg?react'
+import OrigamiHomePage from '@/origami/home/origami-home'
 
 import { navigationItems } from './_navigation-meta'
 import ConnectionsPage from './connections'
-import HomePage from './home'
 import LogsPage from './logs'
 import ProfilePage from './profiles'
 import ProxyPage from './proxies'
@@ -38,7 +38,7 @@ export const navItems: NavigationItem[] = [
   {
     ...navigationItems.home,
     icon: [<HomeOutlinedIcon key="mui" />, <HomeSvg key="svg" />],
-    Component: HomePage,
+    Component: OrigamiHomePage,
   },
   {
     ...navigationItems.proxies,

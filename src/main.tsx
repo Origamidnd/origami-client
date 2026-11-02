@@ -1,4 +1,5 @@
 import './assets/styles/index.scss'
+import './origami/styles/origami.scss'
 
 import { ResizeObserver } from '@juggle/resize-observer'
 import { ComposeContextProvider } from 'foxact/compose-context-provider'
