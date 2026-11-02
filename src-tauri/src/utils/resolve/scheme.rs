@@ -158,3 +158,26 @@ async fn refresh_core_config() {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::extract_subscription_info;
+    use tauri::Url;
+
+    #[test]
+    fn parses_cabinet_deep_link() {
+        let link = Url::parse(
+            "origamivpn://install-config?name=OrigamiVPN&url=https%3A%2F%2Fsub.origamivpn.pro%2FAbC%3Fx%3D1%26y%3D2",
+        )
+        .expect("valid deep link");
+        let (url, name) = extract_subscription_info(&link).expect("subscription info");
+        assert_eq!(url, "https://sub.origamivpn.pro/AbC?x=1&y=2");
+        assert_eq!(name.as_deref(), Some("OrigamiVPN"));
+    }
+
+    #[test]
+    fn ignores_foreign_schemes() {
+        let link = Url::parse("clash://install-config?url=https%3A%2F%2Fexample.test").expect("valid url");
+        assert!(extract_subscription_info(&link).is_none());
+    }
+}
