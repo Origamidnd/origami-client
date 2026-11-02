@@ -32,9 +32,10 @@ export const buildDiagnostics = (input: DiagnosticsInput): string => {
     }`,
   ]
   if (input.system) {
-    lines.push(
-      `Система: ${input.system.name} ${input.system.version} (${input.system.arch})`,
-    )
+    const { name, version, arch } = input.system
+    // Linux distributions repeat the name inside the version string.
+    const os = version.includes(name) ? version : `${name} ${version}`
+    lines.push(`Система: ${os} (${arch})`)
   }
   lines.push(
     `Режим: ${input.mode === 'tun' ? 'весь компьютер (TUN)' : 'браузер и программы (прокси)'}, подключено: ${

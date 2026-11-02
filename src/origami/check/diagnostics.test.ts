@@ -25,6 +25,23 @@ describe('buildDiagnostics', () => {
     expect(text).toContain('Ошибок ядра нет')
   })
 
+  it('does not repeat the distribution name', () => {
+    const linux = buildDiagnostics({
+      ...base,
+      system: {
+        name: 'CachyOS Linux',
+        version: 'Linux (CachyOS Linux rolling)',
+        arch: 'x86_64',
+      },
+    })
+    expect(linux).toContain('Система: Linux (CachyOS Linux rolling) (x86_64)')
+    const windows = buildDiagnostics({
+      ...base,
+      system: { name: 'Windows', version: '11 (26100)', arch: 'x86_64' },
+    })
+    expect(windows).toContain('Система: Windows 11 (26100) (x86_64)')
+  })
+
   it('keeps only the latest core errors', () => {
     const errors = Array.from({ length: 30 }, (_, i) => `error ${i}`)
     const text = buildDiagnostics({ ...base, coreErrors: errors })
