@@ -98,6 +98,19 @@ mod app_init {
         });
     }
 
+    /// Imports the link the app was launched with: the plugin reports it before `on_open_url` is attached.
+    pub fn resolve_launch_deep_link() {
+        static HANDLED: std::sync::Once = std::sync::Once::new();
+        HANDLED.call_once(|| {
+            let Some(url) = std::env::args().nth(1).filter(|arg| arg.starts_with("origamivpn:")) else {
+                return;
+            };
+            AsyncHandler::spawn(move || async move {
+                resolve::resolve_scheme(&url).await;
+            });
+        });
+    }
+
     /// Setup autostart plugin
     pub fn setup_autostart(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(target_os = "macos")]
@@ -359,6 +372,7 @@ pub fn run() -> std::process::ExitCode {
 
             logging!(info, Type::System, "应用就绪");
             crate::utils::server::set_commands_ready();
+            super::app_init::resolve_launch_deep_link();
 
             #[cfg(target_os = "macos")]
             if let Some(window) = _app_handle.get_webview_window("main") {
