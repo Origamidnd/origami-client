@@ -244,9 +244,7 @@ const HomePage = () => {
 
   // 文档链接函数
   const toGithubDoc = useLockFn(() =>
-    openExternalUrl('https://clash-verge-rev.github.io/index.html').catch(
-      showNotice.error,
-    ),
+    openExternalUrl('https://origamivpn.pro').catch(showNotice.error),
   )
 
   // 新增：打开设置弹窗

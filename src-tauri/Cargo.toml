@@ -1,7 +1,7 @@
 [package]
 name = "clash-verge"
-version = "2.5.8"
-description = "clash verge"
+version = "0.1.0"
+description = "OrigamiVPN"
 authors = ["zzzgydi", "Tunglies", "wonfen", "MystiPanda"]
 license = "GPL-3.0-only"
 repository = "https://github.com/clash-verge-rev/clash-verge-rev.git"
@@ -26,7 +26,7 @@ clippy = ["tauri/test"]
 perf-harness = ["dep:tauri-plugin-wdio-webdriver"]
 
 [package.metadata.bundle]
-identifier = "io.github.clash-verge-rev.clash-verge-rev"
+identifier = "pro.origamivpn.client"
 
 [build-dependencies]
 tauri-build = { version = "2.7.1", features = [] }

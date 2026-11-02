@@ -20,19 +20,17 @@ const SettingPage = () => {
   }
 
   const toGithubRepo = useLockFn(() =>
-    openExternalUrl('https://github.com/clash-verge-rev/clash-verge-rev').catch(
+    openExternalUrl('https://github.com/Origamidnd/origami-client').catch(
       onError,
     ),
   )
 
   const toGithubDoc = useLockFn(() =>
-    openExternalUrl('https://clash-verge-rev.github.io/index.html').catch(
-      onError,
-    ),
+    openExternalUrl('https://origamivpn.pro').catch(onError),
   )
 
   const toTelegramChannel = useLockFn(() =>
-    openExternalUrl('https://t.me/clash_verge_re').catch(onError),
+    openExternalUrl('https://t.me/origamivpn').catch(onError),
   )
 
   const mode = useThemeMode()

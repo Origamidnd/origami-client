@@ -1,9 +1,9 @@
 {
-  "version": "2.5.8",
+  "version": "0.1.0",
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "bundle": {
     "active": true,
-    "longDescription": "Clash Verge Rev",
+    "longDescription": "OrigamiVPN desktop client (based on Clash Verge Rev)",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -13,11 +13,11 @@
       "icons/Assets.car"
     ],
     "resources": ["resources"],
-    "publisher": "Clash Verge Rev",
+    "publisher": "OrigamiVPN",
     "externalBin": ["sidecar/verge-mihomo", "sidecar/verge-mihomo-alpha"],
     "copyright": "GNU General Public License v3.0",
-    "category": "DeveloperTool",
-    "shortDescription": "Clash Verge Rev",
+    "category": "Network",
+    "shortDescription": "OrigamiVPN",
     "createUpdaterArtifacts": true
   },
   "build": {
@@ -27,15 +27,13 @@
     "devUrl": "http://localhost:3000/",
     "removeUnusedCommands": true
   },
-  "productName": "Clash Verge",
-  "identifier": "io.github.clash-verge-rev.clash-verge-rev",
+  "productName": "OrigamiVPN",
+  "identifier": "pro.origamivpn.client",
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyOEMyRjBCQkVGOUJEREYKUldUZnZmbStDeStNMHU5Mmo1N24xQXZwSVRYbXA2NUpzZE5oVzlqeS9Bc0t6RVV4MmtwVjBZaHgK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU1NjAzOTk4QkE0MzVEOEIKUldTTFhVTzZtRGxnNWZuSEFBSW5Dcm45YXlaOVoxcjFwRFVYK05rVWk1RkxzYmlISUt1SlpFYkQK",
       "endpoints": [
-        "https://update.hwdns.net/https://github.com/clash-verge-rev/clash-verge-rev/releases/download/updater/update-proxy.json",
-        "https://gh-proxy.org/https://github.com/clash-verge-rev/clash-verge-rev/releases/download/updater/update-proxy.json",
-        "https://github.com/clash-verge-rev/clash-verge-rev/releases/download/updater/update.json"
+        "https://github.com/Origamidnd/origami-client/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"
@@ -43,7 +41,7 @@
     },
     "deep-link": {
       "desktop": {
-        "schemes": ["clash", "clash-verge"]
+        "schemes": ["origamivpn"]
       }
     }
   },
@@ -59,5 +57,6 @@
       },
       "csp": null
     }
-  }
+  },
+  "mainBinaryName": "origamivpn"
 }

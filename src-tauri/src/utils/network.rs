@@ -10,6 +10,10 @@ use std::{sync::Arc, time::Duration};
 use sysproxy::Sysproxy;
 use tauri::Url;
 
+// Subscription servers pick the Mihomo format by a User-Agent that starts with `clash-verge/`.
+// Bump together with upstream merges.
+const UPSTREAM_VERSION: &str = "2.5.8";
+
 #[derive(Debug)]
 pub struct HttpResponse {
     status: StatusCode,
@@ -249,7 +253,10 @@ impl NetworkManager {
         } else {
             headers.insert(
                 USER_AGENT,
-                HeaderValue::from_str(&format!("clash-verge/v{}", env!("CARGO_PKG_VERSION")))?,
+                HeaderValue::from_str(&format!(
+                    "clash-verge/v{UPSTREAM_VERSION} OrigamiVPN/{}",
+                    env!("CARGO_PKG_VERSION")
+                ))?,
             );
         }
 

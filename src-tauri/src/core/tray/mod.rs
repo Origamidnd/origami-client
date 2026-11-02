@@ -39,7 +39,7 @@ use menu_def::{MenuIds, MenuTexts};
 type ProxyMenuItem = (Option<Submenu<Wry>>, Vec<Box<dyn IsMenuItem<Wry>>>);
 
 const TRAY_CLICK_DEBOUNCE_MS: u64 = 300;
-pub const TRAY_ID: &str = "clash-verge-rev-tray";
+pub const TRAY_ID: &str = "origamivpn-tray";
 
 #[derive(Clone, Copy)]
 struct TrayMenuOptions {
@@ -441,7 +441,7 @@ impl Tray {
         );
 
         let tooltip = format!(
-            "Clash Verge {}\n{}: {}\n{}: {}\n{}: {}",
+            "OrigamiVPN {}\n{}: {}\n{}: {}\n{}: {}",
             reassembled_version,
             sys_proxy_text,
             switch_str(system_proxy),

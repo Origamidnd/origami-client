@@ -339,7 +339,7 @@ export function ProfileViewer({ onChange, ref }: ProfileViewerProps) {
               <TextField
                 {...text}
                 {...field}
-                placeholder={`clash-verge/v${version}`}
+                placeholder={`clash-verge/v2.5.8 OrigamiVPN/${version}`}
                 label={t('profiles.modals.profileForm.fields.userAgent')}
               />
             )}
