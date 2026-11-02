@@ -24,6 +24,7 @@ import { ORIGAMI_LINKS } from '../links'
 import { AnnouncePlate } from './announce-plate'
 import { ServerPlate } from './server-plate'
 import { type ConnectMode, useConnection } from './use-connection'
+import { Welcome } from './welcome'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -252,25 +253,33 @@ const SpeedPlate = () => {
 const OrigamiHomePage = () => {
   const { t } = useTranslation()
   const expert = useExpertMode()
+  const { profiles, current } = useProfiles()
+  const needsSubscription = !!profiles && current?.type !== 'remote'
 
   return (
     <BasePage title={t('layout.components.navigation.tabs.home')}>
-      <div className="o-home">
-        <AnnouncePlate />
-        <div className="o-home__grid">
-          <ConnectPlate />
-          <div className="o-home__side">
-            <SubscriptionPlate />
-            <SpeedPlate />
-          </div>
+      {needsSubscription ? (
+        <div className="o-home">
+          <Welcome />
         </div>
-        <ServerPlate />
-        {expert && (
-          <div className="o-home__server">
-            <CurrentProxyCard />
+      ) : (
+        <div className="o-home">
+          <AnnouncePlate />
+          <div className="o-home__grid">
+            <ConnectPlate />
+            <div className="o-home__side">
+              <SubscriptionPlate />
+              <SpeedPlate />
+            </div>
           </div>
-        )}
-      </div>
+          <ServerPlate />
+          {expert && (
+            <div className="o-home__server">
+              <CurrentProxyCard />
+            </div>
+          )}
+        </div>
+      )}
     </BasePage>
   )
 }

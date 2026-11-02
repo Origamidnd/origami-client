@@ -389,3 +389,42 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     color: var(--o-ink);
   }
 }
+
+.o-welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 520px;
+  margin: 24px auto 0;
+  padding: 24px;
+
+  .o-big {
+    font-size: 40px;
+  }
+
+  &__divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+    color: var(--o-muted);
+    font-size: 12px;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      border-top: 1.5px dashed var(--o-crease);
+    }
+  }
+
+  &__link {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    .MuiButton-root {
+      height: 40px;
+    }
+  }
+}

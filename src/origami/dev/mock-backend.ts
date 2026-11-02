@@ -124,7 +124,8 @@ const handlers: Record<string, (args: any) => unknown> = {
     }
     return null
   },
-  get_profiles: () => profiles,
+  get_profiles: () =>
+    params.get('empty') ? { current: null, items: [] } : profiles,
   update_profile: async () => {
     await new Promise((resolve) => setTimeout(resolve, 800))
     profiles.items[0].updated = Math.floor(Date.now() / 1000)
@@ -163,6 +164,8 @@ const handlers: Record<string, (args: any) => unknown> = {
   'plugin:event|listen': () => Math.floor(Math.random() * 1e6),
   'plugin:event|unlisten': () => null,
   'plugin:window|theme': () => theme,
+  'plugin:clipboard-manager|read_text': () =>
+    'https://sub.origamivpn.pro/AbCdEf123456',
 }
 
 const seen = new Set<string>()

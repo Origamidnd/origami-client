@@ -58,5 +58,20 @@
       "support": "Contact support",
       "dismiss": "Hide message"
     }
+  },
+  "welcome": {
+    "title": "Welcome",
+    "lead": "Add your OrigamiVPN subscription to connect.",
+    "login": "Sign in with Telegram or email",
+    "loginHint": "Your account page opens. After you sign in, the subscription is added to the app automatically.",
+    "or": "or",
+    "linkLabel": "Subscription link",
+    "fromClipboard": "Found a link in the clipboard",
+    "add": "Add",
+    "noSubscription": "No subscription yet?",
+    "openBot": "Get one in the bot",
+    "invalidLink": "This does not look like a subscription link",
+    "added": "Subscription added",
+    "addFailed": "Could not add the subscription"
   }
 }

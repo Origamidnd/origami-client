@@ -324,6 +324,21 @@ export interface TranslationResources {
         expert: string
         support: string
       }
+      welcome: {
+        add: string
+        added: string
+        addFailed: string
+        fromClipboard: string
+        invalidLink: string
+        lead: string
+        linkLabel: string
+        login: string
+        loginHint: string
+        noSubscription: string
+        openBot: string
+        or: string
+        title: string
+      }
     }
     profiles: {
       components: {
