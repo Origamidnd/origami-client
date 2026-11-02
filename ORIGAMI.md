@@ -8,7 +8,7 @@
 - имя OrigamiVPN, идентификатор `pro.origamivpn.client`, своя папка конфигов, иконки приложения и трея (исходники в `branding/`);
 - свои обновления: ключ подписи OrigamiVPN, адрес `releases/latest/download/latest.json` этого репозитория;
 - схема ссылок `origamivpn://install-config?url=...` вместо `clash://`;
-- User-Agent подписки `clash-verge/v<upstream> OrigamiVPN/<версия>`: начало `clash-verge/` нужно, чтобы панель отдавала Mihomo-конфиг;
+- User-Agent подписки `OrigamiVPN/<версия> (<ОС>)`: Mihomo-конфиг панель отдаёт по своему правилу «OrigamiVPN» (origami-infra `tools/panel/add-origamivpn-rule.py`); при запросе подписки клиент также шлёт `x-hwid`, `x-device-os`, `x-ver-os`, `x-device-model`;
 - ссылки «Справка», «Канал», «GitHub» ведут на OrigamiVPN;
 - установщик Windows не трогает автозапуск, ярлыки и ключи реестра оригинального Clash Verge;
 - задачи автозапуска Windows называются `OrigamiVPN`.
@@ -25,7 +25,6 @@ git fetch upstream --tags
 git merge v<версия>
 pnpm i && pnpm typecheck && pnpm lint && pnpm test
 ```
-После слияния обновить `UPSTREAM_VERSION` в `src-tauri/src/utils/network.rs` и подсказку User-Agent в `src/components/profile/profile-viewer.tsx`.
 Версии приложения (`package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`) остаются нашими.
 
 ## Сборка и релиз
