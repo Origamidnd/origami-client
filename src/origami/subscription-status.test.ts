@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { daysLeft, expiryStage, reminderKey } from './subscription-status'
+import {
+  daysLeft,
+  expiryStage,
+  needsRenew,
+  reminderKey,
+} from './subscription-status'
 
 const NOW = Date.UTC(2026, 10, 2, 12, 0, 0)
 const inDays = (days: number) => Math.floor(NOW / 1000) + days * 24 * 3600
@@ -29,5 +34,21 @@ describe('expiryStage', () => {
     expect(reminderKey('R1', 100, 'soon')).not.toBe(
       reminderKey('R1', 200, 'soon'),
     )
+  })
+})
+
+describe('needsRenew', () => {
+  const now = NOW
+  it('offers renewal only with a week or less left', () => {
+    expect(needsRenew(inDays(30), now)).toBe(false)
+    expect(needsRenew(inDays(365), now)).toBe(false)
+    expect(needsRenew(inDays(7), now)).toBe(true)
+    expect(needsRenew(inDays(1), now)).toBe(true)
+    expect(needsRenew(inDays(-1), now)).toBe(true)
+  })
+
+  it('never offers it for an endless subscription', () => {
+    expect(needsRenew(undefined, now)).toBe(false)
+    expect(needsRenew(0, now)).toBe(false)
   })
 })

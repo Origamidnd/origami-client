@@ -19,6 +19,12 @@ export const expiryStage = (
   return null
 }
 
+export const RENEW_DAYS = 7
+
+/** «Продлить» shows only near the end: a year-long or endless subscription does not need it. */
+export const needsRenew = (expire: number | undefined, now: number) =>
+  !!expire && daysLeft(expire, now) <= RENEW_DAYS
+
 /** One reminder per stage for each paid period; renewing changes `expire` and resets it. */
 export const reminderKey = (uid: string, expire: number, stage: ExpiryStage) =>
   `${uid}:${expire}:${stage}`

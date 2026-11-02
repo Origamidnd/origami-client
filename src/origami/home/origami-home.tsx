@@ -22,7 +22,7 @@ import parseTraffic from '@/utils/parse-traffic'
 import { explainSubscriptionError } from '../errors'
 import { useExpertMode } from '../expert-mode'
 import { ORIGAMI_LINKS } from '../links'
-import { expiryStage } from '../subscription-status'
+import { expiryStage, needsRenew } from '../subscription-status'
 
 import { AnnouncePlate } from './announce-plate'
 import { CheckPlate } from './check-plate'
@@ -240,13 +240,15 @@ const SubscriptionPlate = () => {
               used: formatBytes(used),
             })}
       </div>
-      <Button
-        variant="contained"
-        fullWidth
-        onClick={() => void openExternalUrl(ORIGAMI_LINKS.cabinet)}
-      >
-        {t('origami.home.subscription.renew')}
-      </Button>
+      {needsRenew(extra?.expire, now) && (
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={() => void openExternalUrl(ORIGAMI_LINKS.cabinet)}
+        >
+          {t('origami.home.subscription.renew')}
+        </Button>
+      )}
     </section>
   )
 }
