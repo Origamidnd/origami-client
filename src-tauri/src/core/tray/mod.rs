@@ -596,6 +596,37 @@ async fn create_tray_menu(
     let current_proxy_mode = mode.unwrap_or("");
 
     let mut verge_settings = Config::verge().await.latest_arc();
+
+    // OrigamiVPN: outside expert mode the tray offers only what the home screen does.
+    if !verge_settings.origami_expert_mode.unwrap_or(false) {
+        let texts = MenuTexts::new();
+        let hotkeys = create_hotkeys(&verge_settings.hotkeys);
+        let connected = system_proxy_enabled || (tun_mode_enabled && tun_mode_available);
+        let open = &MenuItem::with_id(
+            app_handle,
+            MenuIds::ORIGAMI_OPEN,
+            &texts.origami_open,
+            true,
+            hotkeys.get("open_or_close_dashboard").copied(),
+        )?;
+        let (connection_id, connection_text) = if connected {
+            (MenuIds::ORIGAMI_DISCONNECT, &texts.origami_disconnect)
+        } else {
+            (MenuIds::ORIGAMI_CONNECT, &texts.origami_connect)
+        };
+        let connection = &MenuItem::with_id(app_handle, connection_id, connection_text, true, None::<&str>)?;
+        let quit = &MenuItem::with_id(
+            app_handle,
+            MenuIds::EXIT,
+            &texts.exit,
+            true,
+            hotkeys.get("quit").copied(),
+        )?;
+        let separator = &PredefinedMenuItem::separator(app_handle)?;
+        return Ok(tauri::menu::MenuBuilder::new(app_handle)
+            .items(&[open, separator, connection, separator, quit])
+            .build()?);
+    }
     let fetch_proxy_groups =
         options.include_proxy_groups && verge_settings.tray_proxy_groups_display_mode.as_deref() != Some("disable");
 
@@ -915,6 +946,32 @@ fn on_tray_icon_event(_tray_icon: &TrayIcon, tray_event: TrayIconEvent) {
     }
 }
 
+/// OrigamiVPN: the home screen's connect button. Off turns both switches off; on uses the mode
+/// picked on the home screen, TUN unless it is the system proxy. Without the service TUN cannot
+/// start, so the window opens and asks to install it.
+async fn origami_toggle_connection() {
+    let verge = Config::verge().await.latest_arc();
+    let tun_on = verge.enable_tun_mode.unwrap_or(false);
+    let proxy_on = verge.enable_system_proxy.unwrap_or(false);
+    let proxy_mode = verge.origami_connect_mode.as_deref() == Some("proxy");
+    let tun_capable = crate::core::runstate::RUN_STATE.state().tun_capable();
+
+    if (tun_on && tun_capable) || proxy_on {
+        if tun_on {
+            feat::toggle_tun_mode(None).await;
+        }
+        if proxy_on {
+            let _ = feat::toggle_system_proxy().await;
+        }
+    } else if proxy_mode {
+        let _ = feat::toggle_system_proxy().await;
+    } else if tun_capable {
+        feat::toggle_tun_mode(None).await;
+    } else if !lightweight::exit_lightweight_mode().await {
+        WindowManager::show_main_window().await;
+    }
+}
+
 fn on_menu_event(_: &AppHandle, event: MenuEvent) {
     if !Tray::global().should_handle_tray_click() {
         return;
@@ -930,12 +987,13 @@ fn on_menu_event(_: &AppHandle, event: MenuEvent) {
                     let _ = feat::change_clash_mode(final_mode.into()).await;
                 }
             }
-            MenuIds::DASHBOARD => {
+            MenuIds::DASHBOARD | MenuIds::ORIGAMI_OPEN => {
                 logging!(info, Type::Tray, "托盘菜单点击: 打开窗口");
                 if !lightweight::exit_lightweight_mode().await {
                     WindowManager::show_main_window().await;
                 };
             }
+            MenuIds::ORIGAMI_CONNECT | MenuIds::ORIGAMI_DISCONNECT => origami_toggle_connection().await,
             MenuIds::SYSTEM_PROXY => {
                 let _ = feat::toggle_system_proxy().await;
             }

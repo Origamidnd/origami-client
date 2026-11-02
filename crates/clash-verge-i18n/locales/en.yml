@@ -34,6 +34,9 @@ notifications:
     body: A new version (v{version}) has been downloaded and is ready to install.
     installNow: Install Now
     later: Later
+  updateInstalling:
+    title: Installing the update
+    body: Version {version}. OrigamiVPN will open again by itself, you don't need to click anything.
 service:
   adminInstallPrompt: Installing the OrigamiVPN service requires administrator privileges.
   adminUninstallPrompt: Uninstalling the OrigamiVPN service requires administrator privileges.
@@ -90,3 +93,6 @@ tray:
     systemProxy: System Proxy
     tun: TUN
     profile: Profile
+  origamiOpen: Open OrigamiVPN
+  origamiConnect: Connect
+  origamiDisconnect: Disconnect

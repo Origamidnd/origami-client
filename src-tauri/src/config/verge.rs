@@ -213,6 +213,14 @@ pub struct IVerge {
     pub tray_proxy_groups_display_mode: Option<String>,
     pub tray_inline_outbound_modes: Option<bool>,
 
+    /// OrigamiVPN: copy of the UI's expert mode; outside it the tray shows the short menu.
+    pub origami_expert_mode: Option<bool>,
+
+    /// OrigamiVPN: connect mode picked on the home screen, "tun" or "proxy", for the tray.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[specta(type = Option<std::string::String>)]
+    pub origami_connect_mode: Option<String>,
+
     pub enable_auto_light_weight_mode: Option<bool>,
 
     /// 自动进入轻量模式的延迟（分钟）
@@ -519,6 +527,8 @@ impl IVerge {
         patch!(enable_tray_speed);
         patch!(tray_proxy_groups_display_mode);
         patch!(tray_inline_outbound_modes);
+        patch!(origami_expert_mode);
+        patch!(origami_connect_mode);
         patch!(enable_auto_light_weight_mode);
         patch!(auto_light_weight_minutes);
         patch!(enable_dns_settings);

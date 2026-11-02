@@ -34,6 +34,9 @@ notifications:
     body: 新版本 (v{version}) 已下载完成，是否立即安装？
     installNow: 立即安装
     later: 稍后
+  updateInstalling:
+    title: 正在安装更新
+    body: 版本 {version}。OrigamiVPN 会自动重新打开，无需任何操作。
 service:
   adminInstallPrompt: 安装 OrigamiVPN 服务需要管理员权限
   adminUninstallPrompt: 卸载 OrigamiVPN 服务需要管理员权限
@@ -90,3 +93,6 @@ tray:
     systemProxy: 系统代理
     tun: TUN
     profile: 订阅
+  origamiOpen: 打开 OrigamiVPN
+  origamiConnect: 连接
+  origamiDisconnect: 断开连接

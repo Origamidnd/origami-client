@@ -48,6 +48,9 @@ define_menu! {
     verge_version => VERGE_VERSION, "tray_verge_version", "tray.vergeVersion",
     more => MORE, "tray_more", "tray.more",
     exit => EXIT, "tray_exit", "tray.exit",
+    origami_open => ORIGAMI_OPEN, "tray_origami_open", "tray.origamiOpen",
+    origami_connect => ORIGAMI_CONNECT, "tray_origami_connect", "tray.origamiConnect",
+    origami_disconnect => ORIGAMI_DISCONNECT, "tray_origami_disconnect", "tray.origamiDisconnect",
 }
 
 #[derive(Debug, Clone, Copy)]

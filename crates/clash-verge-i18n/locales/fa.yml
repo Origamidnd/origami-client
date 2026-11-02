@@ -34,6 +34,9 @@ notifications:
     body: A new version (v{version}) has been downloaded and is ready to install.
     installNow: Install Now
     later: Later
+  updateInstalling:
+    title: در حال نصب به‌روزرسانی
+    body: نسخه {version}. OrigamiVPN خودش دوباره باز می‌شود، لازم نیست روی چیزی کلیک کنید.
 service:
   adminInstallPrompt: نصب سرویس OrigamiVPN به دسترسی مدیر نیاز دارد.
   adminUninstallPrompt: حذف سرویس OrigamiVPN به دسترسی مدیر نیاز دارد.
@@ -90,3 +93,6 @@ tray:
     systemProxy: پروکسی سیستم
     tun: TUN
     profile: پروفایل
+  origamiOpen: باز کردن OrigamiVPN
+  origamiConnect: اتصال
+  origamiDisconnect: قطع اتصال

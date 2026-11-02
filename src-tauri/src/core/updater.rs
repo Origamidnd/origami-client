@@ -406,6 +406,10 @@ impl SilentUpdater {
             return false;
         }
 
+        // OrigamiVPN: shown right after the click, so the check and the UAC prompt do not look
+        // like nothing happened.
+        Self::show_update_splash(app_handle, cached_version);
+
         let update = match Self::check(app_handle).await {
             Ok(Some(u)) => u,
             Ok(None) => {
@@ -415,6 +419,7 @@ impl SilentUpdater {
                     "No update available from server, cache may be stale, cleaning up"
                 );
                 Self::delete_cache();
+                Self::close_update_splash(app_handle);
                 return false;
             }
             Err(e) => {
@@ -423,18 +428,18 @@ impl SilentUpdater {
                     Type::System,
                     "Failed to check for update at startup: {e:#}, will retry next launch"
                 );
+                Self::close_update_splash(app_handle);
                 return false; // Keep cache for next attempt
             }
         };
 
         let Some(bytes) = Self::verified_cache(app_handle, &update) else {
+            Self::close_update_splash(app_handle);
             return false;
         };
 
         let version = update.version.clone();
         logging!(info, Type::System, "Installing cached update v{version} at startup...");
-
-        Self::show_update_splash(app_handle, &version);
 
         // `install()` may hang (#2558); on Windows NSIS can take over without returning.
         let install = tokio::time::timeout(std::time::Duration::from_secs(30), Self::install(update, bytes));
@@ -553,12 +558,17 @@ impl SilentUpdater {
 
 impl SilentUpdater {
     /// Uses injected HTML so the splash has no bundled-file dependency.
+    /// OrigamiVPN: paper look of the app, the crane inline, text in the app language.
     fn show_update_splash(app_handle: &tauri::AppHandle, version: &str) {
+        use base64::Engine as _;
         use tauri::{WebviewUrl, WebviewWindowBuilder};
 
+        let title = clash_verge_i18n::t!("notifications.updateInstalling.title");
+        let body = clash_verge_i18n::t!("notifications.updateInstalling.body").replace("{version}", version);
+
         let window = match WebviewWindowBuilder::new(app_handle, "update-splash", WebviewUrl::App("index.html".into()))
-            .title("OrigamiVPN - Updating")
-            .inner_size(300.0, 180.0)
+            .title(title.as_ref())
+            .inner_size(360.0, 220.0)
             .resizable(false)
             .maximizable(false)
             .minimizable(false)
@@ -576,36 +586,35 @@ impl SilentUpdater {
             }
         };
 
+        let crane = base64::engine::general_purpose::STANDARD.encode(include_bytes!("../../icons/128x128@2x.png"));
         let js = format!(
             r#"
             document.documentElement.innerHTML = `
             <head><meta charset="utf-8"/><style>
               *{{margin:0;padding:0;box-sizing:border-box}}
               html,body{{height:100%;overflow:hidden;user-select:none;-webkit-user-select:none;
-                font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}}
-              body{{display:flex;flex-direction:column;align-items:center;justify-content:center;
-                background:#1e1e2e;color:#cdd6f4}}
-              @media(prefers-color-scheme:light){{
-                body{{background:#eff1f5;color:#4c4f69}}
-                .bar{{background:#dce0e8}}.fill{{background:#1e66f5}}.sub{{color:#6c6f85}}
+                font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif}}
+              body{{background:#F2F2EF;color:#16203C;padding:10px}}
+              .sheet{{height:100%;border:1.5px dashed #A9ABB3;border-radius:14px;display:flex;flex-direction:column;
+                align-items:center;justify-content:center;text-align:center;padding:0 24px}}
+              .crane{{width:72px;height:72px;margin-bottom:12px;animation:float 2.4s ease-in-out infinite}}
+              .title{{font-size:17px;font-weight:700;margin-bottom:6px}}
+              .sub{{font-size:12.5px;line-height:1.4;color:#5B6078;margin-bottom:16px}}
+              .bar{{width:180px;height:4px;background:#ECECE8;border-radius:2px;overflow:hidden}}
+              .fill{{height:100%;width:30%;background:#EE7C34;border-radius:2px;animation:ind 1.5s ease-in-out infinite}}
+              @media(prefers-color-scheme:dark){{
+                body{{background:#0E1530;color:#F2F2EF}}.sheet{{border-color:#4A5379}}
+                .sub{{color:#9EA4BF}}.bar{{background:#222C4D}}
               }}
-              .icon{{width:48px;height:48px;margin-bottom:16px;animation:pulse 2s ease-in-out infinite}}
-              .title{{font-size:16px;font-weight:600;margin-bottom:6px}}
-              .sub{{font-size:13px;color:#a6adc8;margin-bottom:20px}}
-              .bar{{width:200px;height:4px;background:#313244;border-radius:2px;overflow:hidden}}
-              .fill{{height:100%;width:30%;background:#89b4fa;border-radius:2px;animation:ind 1.5s ease-in-out infinite}}
               @keyframes ind{{0%{{width:0;margin-left:0}}50%{{width:40%;margin-left:30%}}100%{{width:0;margin-left:100%}}}}
-              @keyframes pulse{{0%,100%{{opacity:1}}50%{{opacity:.6}}}}
+              @keyframes float{{0%,100%{{transform:translateY(0)}}50%{{transform:translateY(-4px)}}}}
             </style></head>
-            <body>
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-              </svg>
-              <div class="title">Installing Update...</div>
-              <div class="sub">v{version}</div>
+            <body><div class="sheet">
+              <img class="crane" src="data:image/png;base64,{crane}" alt=""/>
+              <div class="title">{title}</div>
+              <div class="sub">{body}</div>
               <div class="bar"><div class="fill"></div></div>
-            </body>`;
+            </div></body>`;
             "#
         );
 

@@ -34,6 +34,9 @@ notifications:
     body: Yeni bir sürüm (v{version}) indirildi ve kurulmaya hazır.
     installNow: Şimdi Kur
     later: Daha Sonra
+  updateInstalling:
+    title: Güncelleme yükleniyor
+    body: Sürüm {version}. OrigamiVPN kendiliğinden yeniden açılacak, hiçbir şeye tıklamanız gerekmiyor.
 service:
   adminInstallPrompt: OrigamiVPN hizmetini kurmak için yönetici ayrıcalıkları gerekir.
   adminUninstallPrompt: OrigamiVPN hizmetini kaldırmak için yönetici ayrıcalıkları gerekir.
@@ -90,3 +93,6 @@ tray:
     systemProxy: Sistem Vekil'i
     tun: TUN
     profile: Profil
+  origamiOpen: OrigamiVPN'i aç
+  origamiConnect: Bağlan
+  origamiDisconnect: Bağlantıyı kes

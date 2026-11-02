@@ -34,6 +34,9 @@ notifications:
     body: A new version (v{version}) has been downloaded and is ready to install.
     installNow: Install Now
     later: Later
+  updateInstalling:
+    title: Яңарту урнаштырыла
+    body: "{version} версиясе. Программа үзе ачылачак, бернәрсә дә басарга кирәкми."
 service:
   adminInstallPrompt: OrigamiVPN хезмәтен урнаштыру өчен администратор хокуклары кирәк.
   adminUninstallPrompt: OrigamiVPN хезмәтен бетерү өчен администратор хокуклары кирәк.
@@ -90,3 +93,6 @@ tray:
     systemProxy: Системалы прокси
     tun: TUN
     profile: Профиль
+  origamiOpen: OrigamiVPN ачу
+  origamiConnect: Тоташтыру
+  origamiDisconnect: Өзү

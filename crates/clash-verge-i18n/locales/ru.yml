@@ -34,6 +34,9 @@ notifications:
     body: Новая версия (v{version}) скачана и готова к установке.
     installNow: Установить сейчас
     later: Позже
+  updateInstalling:
+    title: Устанавливается обновление
+    body: Версия {version}. Программа откроется сама, ничего нажимать не нужно.
 service:
   adminInstallPrompt: Для установки службы OrigamiVPN требуются права администратора.
   adminUninstallPrompt: Для удаления службы OrigamiVPN требуются права администратора.
@@ -90,3 +93,6 @@ tray:
     systemProxy: Системный прокси
     tun: TUN
     profile: Профиль
+  origamiOpen: Открыть OrigamiVPN
+  origamiConnect: Подключить
+  origamiDisconnect: Отключить

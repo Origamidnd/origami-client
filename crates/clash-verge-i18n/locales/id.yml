@@ -34,6 +34,9 @@ notifications:
     body: A new version (v{version}) has been downloaded and is ready to install.
     installNow: Install Now
     later: Later
+  updateInstalling:
+    title: Memasang pembaruan
+    body: Versi {version}. OrigamiVPN akan terbuka lagi dengan sendirinya, tidak perlu mengeklik apa pun.
 service:
   adminInstallPrompt: Menginstal layanan OrigamiVPN memerlukan hak administrator.
   adminUninstallPrompt: Menghapus instalasi layanan OrigamiVPN memerlukan hak administrator.
@@ -90,3 +93,6 @@ tray:
     systemProxy: Proksi Sistem
     tun: TUN
     profile: Profil
+  origamiOpen: Buka OrigamiVPN
+  origamiConnect: Hubungkan
+  origamiDisconnect: Putuskan

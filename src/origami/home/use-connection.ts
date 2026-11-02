@@ -5,6 +5,8 @@ import { useSystemState } from '@/hooks/use-system-state'
 import { useVerge } from '@/hooks/use-verge'
 import { requestService } from '@/services/service-request'
 
+import { syncToTray } from '../tray-sync'
+
 export type ConnectMode = 'proxy' | 'tun'
 
 // Most people need the whole computer behind the VPN, so TUN is the default.
@@ -20,6 +22,7 @@ const readMode = (): ConnectMode => {
 }
 
 let preferredMode = readMode()
+syncToTray({ origami_connect_mode: preferredMode })
 
 const setPreferredMode = (mode: ConnectMode) => {
   preferredMode = mode
@@ -28,6 +31,7 @@ const setPreferredMode = (mode: ConnectMode) => {
   } catch {
     // Without storage the choice lasts for this session only.
   }
+  syncToTray({ origami_connect_mode: mode })
   listeners.forEach((listener) => listener())
 }
 

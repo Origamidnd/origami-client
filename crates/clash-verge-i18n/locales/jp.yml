@@ -34,6 +34,9 @@ notifications:
     body: A new version (v{version}) has been downloaded and is ready to install.
     installNow: Install Now
     later: Later
+  updateInstalling:
+    title: アップデートをインストールしています
+    body: バージョン {version}。OrigamiVPN は自動で再び開きます。操作は不要です。
 service:
   adminInstallPrompt: OrigamiVPN サービスのインストールには管理者権限が必要です。
   adminUninstallPrompt: OrigamiVPN サービスのアンインストールには管理者権限が必要です。
@@ -90,3 +93,6 @@ tray:
     systemProxy: システムプロキシ
     tun: TUN
     profile: プロファイル
+  origamiOpen: OrigamiVPN を開く
+  origamiConnect: 接続
+  origamiDisconnect: 切断

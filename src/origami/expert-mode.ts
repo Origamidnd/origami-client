@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from 'react'
 
+import { syncToTray } from './tray-sync'
+
 const STORAGE_KEY = 'origami.expertMode'
 
 // Pages shown only in expert mode; the rest of the navigation is always visible.
@@ -21,6 +23,7 @@ const read = () => {
 }
 
 let current = read()
+syncToTray({ origami_expert_mode: current })
 
 export const setExpertMode = (value: boolean) => {
   current = value
@@ -29,6 +32,7 @@ export const setExpertMode = (value: boolean) => {
   } catch {
     // Storage can be unavailable; the choice then lasts for this session only.
   }
+  syncToTray({ origami_expert_mode: value })
   listeners.forEach((listener) => listener())
 }
 
