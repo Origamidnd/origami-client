@@ -16,7 +16,7 @@
     "publisher": "OrigamiVPN",
     "externalBin": ["sidecar/verge-mihomo", "sidecar/verge-mihomo-alpha"],
     "copyright": "GNU General Public License v3.0",
-    "category": "Network",
+    "category": "Utility",
     "shortDescription": "OrigamiVPN",
     "createUpdaterArtifacts": true
   },
