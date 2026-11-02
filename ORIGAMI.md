@@ -25,7 +25,7 @@ git fetch upstream --tags
 git merge v<версия>
 pnpm i && pnpm typecheck && pnpm lint && pnpm test
 ```
-Версии приложения (`package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`) остаются нашими.
+Версии приложения (`package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`) и `README.md` (страница OrigamiVPN, скриншоты в `docs/origami/`) остаются нашими.
 
 ### Слежение за апстримом
 Workflow `origami-upstream-check` по понедельникам сверяет последние версии Mihomo и Clash Verge Rev с `.github/origami-upstream.json`. Если вышло новое, запуск завершается с ошибкой: GitHub присылает письмо «Run failed», в сводке запуска написано, что вышло.
