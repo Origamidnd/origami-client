@@ -97,23 +97,26 @@ const profiles = {
       },
       home: 'https://lk.origamivpn.pro',
       announce:
-        'Плановые работы на сервере Нидерланды 5 ноября с 03:00 до 04:00 МСК. Остальные серверы работают как обычно.',
+        'Здесь появляются сообщения от OrigamiVPN: плановые работы, новые серверы, важные новости.',
       support: 'https://t.me/Origami_Dragons',
       selected: [{ name: 'OrigamiVPN', now: servers[0][0] }],
     },
   ],
 }
 
+// `?service=1` previews a machine with the OrigamiVPN service installed.
+const withService = params.get('service') === '1'
+
 const runState = {
-  mode: 'Sidecar',
-  service: 'notInstalled',
+  mode: withService ? 'Service' : 'Sidecar',
+  service: withService ? 'ready' : 'notInstalled',
   serviceUnavailableReason: null,
   pendingAction: null,
   sidecarAllowed: true,
   isAdmin: false,
   opInFlight: false,
-  serviceUsable: false,
-  tunCapable: false,
+  serviceUsable: withService,
+  tunCapable: withService,
   serviceNeedsAttention: false,
 }
 
@@ -163,7 +166,8 @@ const handlers: Record<string, (args: any) => unknown> = {
     await new Promise((resolve) =>
       setTimeout(resolve, 300 + Math.random() * 600),
     )
-    return url.includes('instagram')
+    // `?fail=1` shows a blocked service in the connection check.
+    return params.get('fail') === '1' && url.includes('instagram')
       ? 10000
       : Math.round(80 + Math.random() * 250)
   },
