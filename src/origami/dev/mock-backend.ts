@@ -250,6 +250,8 @@ const handlers: Record<string, (args: any) => unknown> = {
   get_clash_logs: () => [
     'time="2026-11-02T06:40:00Z" level=warning msg="[TCP] dial OrigamiVPN error: i/o timeout"',
   ],
+  // `?pm=pacman` previews an Arch install that pacman updates.
+  get_package_manager: () => params.get('pm'),
   get_system_info: () => ({
     system_name: 'Windows',
     system_version: '11 (26100)',

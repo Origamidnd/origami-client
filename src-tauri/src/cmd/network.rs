@@ -48,6 +48,13 @@ pub fn get_embedded_server_port() -> CmdResult<u16> {
     crate::utils::server::embedded_server_port().stringify_err()
 }
 
+/// OrigamiVPN: package manager that updates this install (Arch), or `None` for built-in updates.
+#[tauri::command]
+#[specta::specta]
+pub fn get_package_manager() -> Option<String> {
+    crate::utils::package::system_package_manager()
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn get_system_hostname() -> String {

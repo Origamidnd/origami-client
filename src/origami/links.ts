@@ -6,4 +6,5 @@ export const ORIGAMI_LINKS = {
   bot: 'https://t.me/origamivpn_app_bot',
   support: 'https://t.me/Origami_Dragons',
   channel: 'https://t.me/origamivpn',
+  releases: 'https://github.com/Origamidnd/origami-client/releases/latest',
 } as const

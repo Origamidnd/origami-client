@@ -446,9 +446,11 @@ export interface TranslationResources {
         updates: {
           auto: string
           autoHint: string
+          byManager: string
           check: string
           checked: string
           latest: string
+          newPackage: string
           version: string
         }
       }

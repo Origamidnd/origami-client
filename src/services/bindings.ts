@@ -22,6 +22,8 @@ export const commands = {
   getNetworkInterfaces: () =>
     __TAURI_INVOKE<string[]>('get_network_interfaces'),
   getSystemHostname: () => __TAURI_INVOKE<string>('get_system_hostname'),
+  /**  OrigamiVPN: package manager that updates this install (Arch), or `None` for built-in updates. */
+  getPackageManager: () => __TAURI_INVOKE<string | null>('get_package_manager'),
   restartApp: () => __TAURI_INVOKE<null>('restart_app'),
   installUpdate: (version: string, onEvent: Channel<DownloadEvent>) =>
     __TAURI_INVOKE<boolean>('install_update', { version, onEvent }),

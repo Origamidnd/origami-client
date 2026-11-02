@@ -260,6 +260,8 @@ export const translationKeys = [
   'origami.settings.updates.latest',
   'origami.settings.updates.auto',
   'origami.settings.updates.autoHint',
+  'origami.settings.updates.byManager',
+  'origami.settings.updates.newPackage',
   'origami.settings.help.diagnostics',
   'origami.settings.help.diagnosticsHint',
   'origami.settings.help.diagnosticsButton',

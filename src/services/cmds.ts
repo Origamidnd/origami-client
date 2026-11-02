@@ -350,6 +350,11 @@ export async function getSystemInfo() {
   return commands.getSystemInfo()
 }
 
+/** OrigamiVPN: package manager that updates this install (Arch), or null for built-in updates. */
+export async function getPackageManager() {
+  return commands.getPackageManager()
+}
+
 export async function copyIconFile(
   path: string,
   name: 'common' | 'sysproxy' | 'tun',

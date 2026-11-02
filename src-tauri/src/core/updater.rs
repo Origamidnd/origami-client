@@ -345,6 +345,15 @@ impl SilentUpdater {
 
     /// Installs a newer cached update before normal startup, if the user confirms.
     pub async fn try_install_on_startup(&self, app_handle: &tauri::AppHandle) -> bool {
+        if let Some(manager) = crate::utils::package::system_package_manager() {
+            logging!(
+                info,
+                Type::System,
+                "Updates come from {manager}, skipping the built-in updater"
+            );
+            Self::delete_cache();
+            return false;
+        }
         if !Config::verge().await.latest_arc().auto_check_update.unwrap_or(true) {
             Self::delete_cache();
             return false;
@@ -624,7 +633,8 @@ impl SilentUpdater {
         // Registered before reading the switch, so `discard_pending` either cancels it or ran first.
         let cancel = CancellationToken::new();
         *self.background_cancel.lock() = Some(cancel.clone());
-        let auto_check = Config::verge().await.latest_arc().auto_check_update.unwrap_or(true);
+        let auto_check = Config::verge().await.latest_arc().auto_check_update.unwrap_or(true)
+            && crate::utils::package::system_package_manager().is_none();
         if !auto_check {
             logging!(debug, Type::System, "Silent update skipped: auto_check_update is false");
             return Ok(());

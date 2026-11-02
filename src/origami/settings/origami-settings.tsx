@@ -26,6 +26,7 @@ import { version } from '@root/package.json'
 import { useCopyDiagnostics } from '../check/use-copy-diagnostics'
 import { setExpertMode, useExpertMode } from '../expert-mode'
 import { ORIGAMI_LINKS } from '../links'
+import { usePackageManager } from '../use-package-manager'
 
 // Native names, so people find their language whatever the current one is.
 const LANGUAGE_NAMES: Record<string, string> = {
@@ -84,6 +85,7 @@ export const OrigamiSettings = () => {
   const expert = useExpertMode()
   const copyDiagnostics = useCopyDiagnostics()
   const updateRef = useRef<DialogRef>(null)
+  const packageManager = usePackageManager()
 
   const patch = (value: Partial<IVergeConfig>) =>
     patchVerge(value).catch((err) => showNotice.error(err))
@@ -123,7 +125,13 @@ export const OrigamiSettings = () => {
     try {
       const info = await checkUpdateSafe()
       updateLastCheckTime()
-      if (info?.available) {
+      if (info?.available && packageManager) {
+        // The built-in updater cannot install over a pacman package: send people to the release.
+        showNotice.info('origami.settings.updates.newPackage', {
+          version: info.version,
+        })
+        void openExternalUrl(ORIGAMI_LINKS.releases)
+      } else if (info?.available) {
         updateRef.current?.open()
       } else {
         showNotice.success('origami.settings.updates.latest')
@@ -219,33 +227,54 @@ export const OrigamiSettings = () => {
       </Section>
 
       <Section label={t('origami.settings.sections.updates')}>
-        <Row
-          title={t('origami.settings.updates.version', { version })}
-          hint={
-            lastCheck
-              ? t('origami.settings.updates.checked', {
-                  time: dayjs(lastCheck).format('DD.MM HH:mm'),
-                })
-              : undefined
-          }
-        >
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => void checkUpdate()}
+        {packageManager ? (
+          <Row
+            title={t('origami.settings.updates.version', { version })}
+            hint={t('origami.settings.updates.byManager', {
+              manager: packageManager,
+            })}
           >
-            {t('origami.settings.updates.check')}
-          </Button>
-        </Row>
-        <Row
-          title={t('origami.settings.updates.auto')}
-          hint={t('origami.settings.updates.autoHint')}
-        >
-          <Switch
-            checked={verge?.auto_check_update ?? true}
-            onChange={(_, value) => void patch({ auto_check_update: value })}
-          />
-        </Row>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => void checkUpdate()}
+            >
+              {t('origami.settings.updates.check')}
+            </Button>
+          </Row>
+        ) : (
+          <>
+            <Row
+              title={t('origami.settings.updates.version', { version })}
+              hint={
+                lastCheck
+                  ? t('origami.settings.updates.checked', {
+                      time: dayjs(lastCheck).format('DD.MM HH:mm'),
+                    })
+                  : undefined
+              }
+            >
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => void checkUpdate()}
+              >
+                {t('origami.settings.updates.check')}
+              </Button>
+            </Row>
+            <Row
+              title={t('origami.settings.updates.auto')}
+              hint={t('origami.settings.updates.autoHint')}
+            >
+              <Switch
+                checked={verge?.auto_check_update ?? true}
+                onChange={(_, value) =>
+                  void patch({ auto_check_update: value })
+                }
+              />
+            </Row>
+          </>
+        )}
       </Section>
 
       <Section label={t('origami.settings.sections.help')}>

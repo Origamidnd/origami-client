@@ -1,0 +1,22 @@
+# OrigamiVPN for Arch Linux and derivatives (CachyOS, EndeavourOS, Manjaro): repackages the release .deb.
+# CI builds it next to the .deb; locally: put OrigamiVPN_<version>_amd64.deb here and run
+# ORIGAMI_VERSION=<version> makepkg
+pkgname=origamivpn
+pkgver=${ORIGAMI_VERSION:-0.0.0}
+pkgrel=1
+pkgdesc='Приложение OrigamiVPN'
+arch=('x86_64')
+url='https://github.com/Origamidnd/origami-client'
+license=('GPL-3.0-only')
+depends=('webkit2gtk-4.1' 'gtk3' 'libayatana-appindicator' 'openssl')
+conflicts=('clash-verge' 'clash-verge-rev' 'clash-verge-rev-bin' 'clash-verge-rev-alpha-bin')
+install=origamivpn.install
+options=('!strip' '!debug')
+source=("OrigamiVPN_${pkgver}_amd64.deb")
+sha256sums=('SKIP')
+
+package() {
+    bsdtar -xf data.tar.* -C "$pkgdir"
+    # The app leaves updates to pacman when this marker exists (the built-in updater installs only .deb/.rpm).
+    install -Dm644 /dev/stdin "$pkgdir/usr/share/origamivpn/package-manager" <<<'pacman'
+}

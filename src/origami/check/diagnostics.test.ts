@@ -44,10 +44,17 @@ describe('buildDiagnostics', () => {
   it('shows why the service refused to run', () => {
     const text = buildDiagnostics({
       ...base,
-      service: { state: 'Unavailable', reason: 'core path "C:\\" has an untrusted write ACE' },
+      service: {
+        state: 'Unavailable',
+        reason: 'core path "C:\\" has an untrusted write ACE',
+      },
     })
-    expect(text).toContain('Служба: Unavailable, причина: core path "C:\\" has an untrusted write ACE')
-    expect(buildDiagnostics({ ...base, service: { state: 'Running' } })).toContain('Служба: Running\n')
+    expect(text).toContain(
+      'Служба: Unavailable, причина: core path "C:\\" has an untrusted write ACE',
+    )
+    expect(
+      buildDiagnostics({ ...base, service: { state: 'Running' } }),
+    ).toContain('Служба: Running\n')
   })
 
   it('keeps only the latest core errors', () => {

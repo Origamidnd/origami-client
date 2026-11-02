@@ -144,7 +144,9 @@
       "check": "Check",
       "latest": "You have the latest version",
       "auto": "Update automatically",
-      "autoHint": "Downloads in the background, installs on the next start"
+      "autoHint": "Downloads in the background, installs on the next start",
+      "byManager": "Installed with {{manager}}. Download a new version from the releases page and install it: sudo pacman -U <file>",
+      "newPackage": "Version {{version}} is out. Download the Arch package (.pkg.tar.zst) from the releases page"
     },
     "help": {
       "diagnostics": "Something not working?",

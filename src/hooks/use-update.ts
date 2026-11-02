@@ -1,3 +1,4 @@
+import { usePackageManager } from '@/origami/use-package-manager'
 import { fetchCacheData, setCacheData, useQuery } from '@/services/query-client'
 import { checkUpdateSafe } from '@/services/update'
 
@@ -23,7 +24,10 @@ export const useUpdate = (enabled: boolean = true) => {
   const { verge } = useVerge()
   const { auto_check_update } = verge || {}
 
-  const shouldCheck = enabled && auto_check_update !== false
+  // OrigamiVPN: installs updated by a package manager (Arch) skip the built-in updater.
+  const packageManager = usePackageManager()
+  const shouldCheck =
+    enabled && auto_check_update !== false && packageManager === null
 
   const fetchUpdate = async () => {
     const result = await checkUpdateSafe()
