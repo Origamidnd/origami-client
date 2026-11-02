@@ -134,6 +134,8 @@ VIAddVersionKey "ProductVersion" "${VERSION}"
 ; Installer icon
 !if "${INSTALLERICON}" != ""
   !define MUI_ICON "${INSTALLERICON}"
+  ; OrigamiVPN: the uninstaller wears the app icon too, not the stock NSIS one.
+  !define MUI_UNICON "${INSTALLERICON}"
 !endif
 
 ; Installer sidebar image
@@ -392,7 +394,21 @@ Var AppStartMenuFolder
 !insertmacro MUI_PAGE_STARTMENU Application $AppStartMenuFolder
 
 ; 7. Installation page
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW OrigamiShowInstFiles
 !insertmacro MUI_PAGE_INSTFILES
+
+; OrigamiVPN: an update runs passive right after the app quits, and Windows keeps a window that
+; did not get the focus behind the others, so the progress stayed hidden. Keep it on top and say
+; what is going on.
+Function OrigamiShowInstFiles
+  ${If} $PassiveMode = 1
+    System::Call 'user32::SetWindowPos(p $HWNDPARENT, p -1, i 0, i 0, i 0, i 0, i 0x43)'
+    BringToFront
+  ${EndIf}
+  ${If} $UpdateMode = 1
+    !insertmacro MUI_HEADER_TEXT "Обновление ${PRODUCTNAME}" "Устанавливается версия ${VERSION}. Программа откроется сама, ничего нажимать не нужно."
+  ${EndIf}
+FunctionEnd
 
 ; 8. Finish page
 ;
@@ -468,12 +484,8 @@ FunctionEnd
 {{/each}}
 
 ; OrigamiVPN shares the TUN service name with Clash Verge, so the two cannot be installed together.
-LangString OrigamiRemoveClashVerge ${LANG_ENGLISH} "Clash Verge is installed on this computer. It conflicts with OrigamiVPN because both use the same system service.$\r$\n$\r$\nUninstall Clash Verge now?"
 LangString OrigamiRemoveClashVerge ${LANG_RUSSIAN} "На компьютере установлен Clash Verge. Он мешает работе OrigamiVPN: у них общая системная служба.$\r$\n$\r$\nУдалить Clash Verge сейчас?"
-LangString OrigamiRemoveClashVerge ${LANG_SIMPCHINESE} "Clash Verge is installed on this computer. It conflicts with OrigamiVPN because both use the same system service.$\r$\n$\r$\nUninstall Clash Verge now?"
-LangString OrigamiKeepClashVerge ${LANG_ENGLISH} "OrigamiVPN will be installed, but its service will not work until Clash Verge is uninstalled."
 LangString OrigamiKeepClashVerge ${LANG_RUSSIAN} "OrigamiVPN будет установлен, но его служба не заработает, пока не удалён Clash Verge."
-LangString OrigamiKeepClashVerge ${LANG_SIMPCHINESE} "OrigamiVPN will be installed, but its service will not work until Clash Verge is uninstalled."
 
 ; Sets $R9 to the uninstall command and $R7/$R6 to the root/subkey of an installed Clash Verge.
 !macro OrigamiScanUninstall ROOT
@@ -533,7 +545,7 @@ Function OrigamiRemoveClashVerge
   Return
 
   origami_remove:
-  DetailPrint "Uninstalling Clash Verge: $R9"
+  DetailPrint "Удаление Clash Verge: $R9"
   ExecWait $R9
 
   ; NSIS uninstallers re-launch from a temp copy, so wait until the uninstall entry is gone.
@@ -650,7 +662,7 @@ FunctionEnd
   !endif
   Pop $R0
   ${If} $R0 = 0
-    DetailPrint "Kill clash-verge-service.exe..."
+    DetailPrint "Завершение процесса clash-verge-service.exe..."
     !if "${INSTALLMODE}" == "currentUser"
       nsis_tauri_utils::KillProcessCurrentUser "clash-verge-service.exe"
     !else
@@ -666,7 +678,7 @@ FunctionEnd
   !endif
   Pop $R0
   ${If} $R0 = 0
-    DetailPrint "Kill verge-mihomo-alpha.exe..."
+    DetailPrint "Завершение процесса verge-mihomo-alpha.exe..."
     !if "${INSTALLMODE}" == "currentUser"
       nsis_tauri_utils::KillProcessCurrentUser "verge-mihomo-alpha.exe"
     !else
@@ -682,7 +694,7 @@ FunctionEnd
   !endif
   Pop $R0
   ${If} $R0 = 0
-    DetailPrint "Kill verge-mihomo.exe..."
+    DetailPrint "Завершение процесса verge-mihomo.exe..."
     !if "${INSTALLMODE}" == "currentUser"
       nsis_tauri_utils::KillProcessCurrentUser "verge-mihomo.exe"
     !else
@@ -698,7 +710,7 @@ FunctionEnd
   !endif
   Pop $R0
   ${If} $R0 = 0
-    DetailPrint "Kill clash-meta-alpha.exe..."
+    DetailPrint "Завершение процесса clash-meta-alpha.exe..."
     !if "${INSTALLMODE}" == "currentUser"
       nsis_tauri_utils::KillProcessCurrentUser "clash-meta-alpha.exe"
     !else
@@ -714,7 +726,7 @@ FunctionEnd
   !endif
   Pop $R0
   ${If} $R0 = 0
-    DetailPrint "Kill clash-meta.exe..."
+    DetailPrint "Завершение процесса clash-meta.exe..."
     !if "${INSTALLMODE}" == "currentUser"
       nsis_tauri_utils::KillProcessCurrentUser "clash-meta.exe"
     !else
@@ -737,14 +749,14 @@ FunctionEnd
     ${If} $0 == 0
       Push $0
       ${If} $1 == 0
-        DetailPrint "Restart ${PRODUCTNAME} Service..."
+        DetailPrint "Перезапуск службы ${PRODUCTNAME}..."
         SimpleSC::StartService "clash_verge_service" "" 30
       ${EndIf}
     ${ElseIf} $0 != 0
       Push $0
       SimpleSC::GetErrorMessage
       Pop $0
-      MessageBox MB_OK|MB_ICONSTOP "Check Service Status Error ($0)"
+      MessageBox MB_OK|MB_ICONSTOP "Не удалось проверить состояние службы ${PRODUCTNAME} (код $0)."
     ${EndIf}
   ${EndIf}
 !macroend
@@ -763,27 +775,27 @@ FunctionEnd
     ${If} $0 == 0
       Push $0
       ${If} $1 == 1
-        DetailPrint "Stop ${PRODUCTNAME} Service..."
+        DetailPrint "Остановка службы ${PRODUCTNAME}..."
         SimpleSC::StopService "clash_verge_service" 1 30
         Pop $0 ; returns an errorcode (<>0) otherwise success (0)
         ${If} $0 == 0
-          DetailPrint "Removing ${PRODUCTNAME} Service..."
+          DetailPrint "Удаление службы ${PRODUCTNAME}..."
           SimpleSC::RemoveService "clash_verge_service"
         ${ElseIf} $0 != 0
           Push $0
           SimpleSC::GetErrorMessage
           Pop $0
-          MessageBox MB_OK|MB_ICONSTOP "${PRODUCTNAME} Service Stop Error ($0)"
+          MessageBox MB_OK|MB_ICONSTOP "Не удалось остановить службу ${PRODUCTNAME} (код $0)."
         ${EndIf}
       ${ElseIf} $1 == 0
-        DetailPrint "Removing ${PRODUCTNAME} Service..."
+        DetailPrint "Удаление службы ${PRODUCTNAME}..."
         SimpleSC::RemoveService "clash_verge_service"
       ${EndIf}
     ${ElseIf} $0 != 0
       Push $0
       SimpleSC::GetErrorMessage
       Pop $0
-      MessageBox MB_OK|MB_ICONSTOP "Check Service Status Error ($0)"
+      MessageBox MB_OK|MB_ICONSTOP "Не удалось проверить состояние службы ${PRODUCTNAME} (код $0)."
     ${EndIf}
   ${EndIf}
 !macroend
@@ -869,24 +881,24 @@ Section CheckAndInstallVSRuntime
   ${EndIf}
 
   ${If} $VC_RUNTIME_NEEDED != "1"
-    DetailPrint "已检测到匹配的 Visual C++ Redistributable，跳过安装"
+    DetailPrint "Нужная версия Visual C++ Redistributable уже установлена"
     Goto done_vc
   ${EndIf}
 
-  DetailPrint "正在下载 Visual C++ Redistributable..."
+  DetailPrint "Загрузка Visual C++ Redistributable..."
   nsisdl::download "$VC_REDIST_URL" "$TEMP\$VC_REDIST_EXE"
   Pop $0
   ${If} $0 == "success"
-    DetailPrint "正在安装 Visual C++ Redistributable..."
+    DetailPrint "Установка Visual C++ Redistributable..."
     ExecWait '"$TEMP\$VC_REDIST_EXE" /quiet /norestart' $0
     ${If} $0 == 0
-      DetailPrint "Visual C++ Redistributable 安装成功"
+      DetailPrint "Visual C++ Redistributable установлен"
     ${Else}
-      DetailPrint "Visual C++ Redistributable 安装失败"
+      DetailPrint "Не удалось установить Visual C++ Redistributable"
     ${EndIf}
     Delete "$TEMP\$VC_REDIST_EXE"
   ${Else}
-    DetailPrint "Visual C++ Redistributable 下载失败"
+    DetailPrint "Не удалось загрузить Visual C++ Redistributable"
   ${EndIf}
 
   done_vc:
@@ -1002,15 +1014,15 @@ Section Install
 
   ; Ensure startup folders exist
   CreateDirectory "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
-  DetailPrint "Ensured system startup folder exists"
+  DetailPrint "Проверена общая папка автозагрузки"
 
   SetShellVarContext current
   StrCpy $0 "$SMPROGRAMS\Startup"
   CreateDirectory "$0"
-  DetailPrint "Ensured user startup folder exists: $0"
+  DetailPrint "Проверена папка автозагрузки пользователя: $0"
 
   ; Remove stale window-state files
-  DetailPrint "Removing window-state.json / .window-state.json"
+  DetailPrint "Сброс сохранённого размера и положения окна"
   Delete "$APPDATA\${BUNDLEID}\window-state.json"
   Delete "$APPDATA\${BUNDLEID}\.window-state.json"
 
@@ -1040,16 +1052,16 @@ Section Install
   ; exactly the bytes this installer unpacked: a core swapped on disk is refused, not published.
   ; Not fatal on failure; a later elevated service install can stage the cores again.
   !ifdef MIHOMO_SHA256
-    DetailPrint "Staging verge-mihomo for ${PRODUCTNAME} Service..."
+    DetailPrint "Подготовка ядра verge-mihomo для службы ${PRODUCTNAME}..."
     nsExec::ExecToLog '"$INSTDIR\resources\clash-verge-service-install.exe" --install-core "$INSTDIR\verge-mihomo.exe" --sha256 "${MIHOMO_SHA256}"'
     Pop $0
-    ${IfThen} $0 != 0 ${|} DetailPrint "Staging verge-mihomo returned $0" ${|}
+    ${IfThen} $0 != 0 ${|} DetailPrint "Подготовка ядра verge-mihomo завершилась с кодом $0" ${|}
   !endif
   !ifdef MIHOMO_ALPHA_SHA256
-    DetailPrint "Staging verge-mihomo-alpha for ${PRODUCTNAME} Service..."
+    DetailPrint "Подготовка ядра verge-mihomo-alpha для службы ${PRODUCTNAME}..."
     nsExec::ExecToLog '"$INSTDIR\resources\clash-verge-service-install.exe" --install-core "$INSTDIR\verge-mihomo-alpha.exe" --sha256 "${MIHOMO_ALPHA_SHA256}"'
     Pop $0
-    ${IfThen} $0 != 0 ${|} DetailPrint "Staging verge-mihomo-alpha returned $0" ${|}
+    ${IfThen} $0 != 0 ${|} DetailPrint "Подготовка ядра verge-mihomo-alpha завершилась с кодом $0" ${|}
   !endif
 
   !insertmacro StartVergeService
@@ -1059,10 +1071,10 @@ Section Install
   ; up-to-date registration and only starts it. Not fatal: the app can still install it later.
   !ifdef MIHOMO_SHA256
   !ifdef MIHOMO_ALPHA_SHA256
-    DetailPrint "Installing ${PRODUCTNAME} Service..."
+    DetailPrint "Установка службы ${PRODUCTNAME}..."
     nsExec::ExecToLog '"$INSTDIR\resources\clash-verge-service-install.exe" --ensure-service --install-core "$INSTDIR\verge-mihomo.exe" --sha256 "${MIHOMO_SHA256}" --install-core "$INSTDIR\verge-mihomo-alpha.exe" --sha256 "${MIHOMO_ALPHA_SHA256}"'
     Pop $0
-    ${IfThen} $0 != 0 ${|} DetailPrint "Service install returned $0" ${|}
+    ${IfThen} $0 != 0 ${|} DetailPrint "Установка службы завершилась с кодом $0" ${|}
   !endif
   !endif
 
@@ -1190,7 +1202,7 @@ Section Uninstall
   !insertmacro RemoveVergeService
 
   ; Remove cached window state files
-  DetailPrint "Removing window-state.json / .window-state.json"
+  DetailPrint "Сброс сохранённого размера и положения окна"
   SetShellVarContext current
   Delete "$APPDATA\${BUNDLEID}\window-state.json"
   Delete "$APPDATA\${BUNDLEID}\.window-state.json"

@@ -12,9 +12,10 @@
         "silent": true
       },
       "nsis": {
-        "displayLanguageSelector": true,
+        "displayLanguageSelector": false,
         "installerIcon": "icons/icon.ico",
-        "languages": ["SimpChinese", "English", "Russian"],
+        "sidebarImage": "packages/windows/sidebar.bmp",
+        "languages": ["Russian"],
         "installMode": "perMachine",
         "installerHooks": "./packages/windows/core-hashes.nsh",
         "template": "./packages/windows/installer.nsi"
