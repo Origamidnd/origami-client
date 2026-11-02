@@ -3,9 +3,11 @@ import { CHECK_TARGETS, isReachable } from './targets'
 export interface DiagnosticsInput {
   time: string
   appVersion: string
-  system?: { name: string; version: string; arch: string }
+  system?: { name: string; version: string }
   coreMode?: string
   isAdmin?: boolean
+  /** Service health and, when it refuses to run, the reason it gives. */
+  service?: { state: string; reason?: string | null }
   mode: 'tun' | 'proxy'
   connected: boolean
   server?: string
@@ -32,10 +34,14 @@ export const buildDiagnostics = (input: DiagnosticsInput): string => {
     }`,
   ]
   if (input.system) {
-    const { name, version, arch } = input.system
+    const { name, version } = input.system
     // Linux distributions repeat the name inside the version string.
     const os = version.includes(name) ? version : `${name} ${version}`
-    lines.push(`Система: ${os} (${arch})`)
+    lines.push(`Система: ${os}`)
+  }
+  if (input.service) {
+    const { state, reason } = input.service
+    lines.push(`Служба: ${state}${reason ? `, причина: ${reason}` : ''}`)
   }
   lines.push(
     `Режим: ${input.mode === 'tun' ? 'весь компьютер (TUN)' : 'браузер и программы (прокси)'}, подключено: ${

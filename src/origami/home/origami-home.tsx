@@ -143,11 +143,12 @@ const SubscriptionPlate = () => {
   const [updating, setUpdating] = useState(false)
 
   const refresh = useLockFn(async () => {
-    if (!current?.uid) return
+    const uid = current?.uid
+    if (!uid) return
     setUpdating(true)
     try {
-      await mutate(() => updateProfile(current.uid, current.option), {
-        id: `update-profile:${current.uid}`,
+      await mutate(() => updateProfile(uid, current.option ?? undefined), {
+        id: `update-profile:${uid}`,
         errorNotice: false,
       })
       await mutateProfiles()

@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core'
+import { sendNotification } from '@tauri-apps/plugin-notification'
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -66,9 +66,11 @@ export const useExpiryReminder = () => {
       const body = t(bodyKey[stage] as never, { days }) as string
 
       showNotice.info(body, 10000)
-      invoke('plugin:notification|notify', { options: { title, body } }).catch(
-        () => {},
-      )
+      try {
+        sendNotification({ title, body })
+      } catch {
+        // The in-app notice above is enough when system notifications are off.
+      }
     }
 
     check()

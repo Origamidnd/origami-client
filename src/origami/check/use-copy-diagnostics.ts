@@ -3,10 +3,12 @@ import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
 
 import { useProfiles } from '@/hooks/use-profiles'
+import { useSystemState } from '@/hooks/use-system-state'
 import { useProxiesData } from '@/providers/app-data-context'
 import { getClashLogs, getSystemInfo } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
 import { openExternalUrl } from '@/utils/open-external-url'
+import { version } from '@root/package.json'
 
 import { resolveCurrent } from '../current-server'
 import { useConnection } from '../home/use-connection'
@@ -14,6 +16,15 @@ import { ORIGAMI_LINKS } from '../links'
 import { daysLeft } from '../subscription-status'
 
 import { buildDiagnostics } from './diagnostics'
+
+// Plain words for support; the raw kind is kept in brackets for searching upstream issues.
+const SERVICE_STATES: Record<string, string> = {
+  ready: 'работает',
+  notInstalled: 'не установлена',
+  versionMismatch: 'другая версия, нужна переустановка',
+  unavailable: 'не запускается',
+  unknown: 'неизвестно',
+}
 
 export interface CheckResults {
   delays: Record<string, number | undefined>
@@ -25,6 +36,7 @@ export const useCopyDiagnostics = () => {
   const { connected, mode } = useConnection()
   const { current } = useProfiles()
   const { proxyView } = useProxiesData()
+  const { runState } = useSystemState()
 
   return useLockFn(async (results: CheckResults = { delays: {} }) => {
     const [system, logs] = await Promise.all([
@@ -35,16 +47,19 @@ export const useCopyDiagnostics = () => {
     const expire = current?.extra?.expire
     const text = buildDiagnostics({
       time: dayjs().format('DD.MM.YYYY HH:mm Z'),
-      appVersion: system?.app_version ?? '',
+      appVersion: version,
       system: system
         ? {
             name: system.system_name,
             version: system.system_version,
-            arch: system.system_arch,
           }
         : undefined,
-      coreMode: system?.app_core_mode,
-      isAdmin: system?.app_is_admin,
+      coreMode: runState.mode,
+      isAdmin: runState.isAdmin,
+      service: {
+        state: `${SERVICE_STATES[runState.service] ?? runState.service} (${runState.service})`,
+        reason: runState.serviceUnavailableReason,
+      },
       mode,
       connected,
       server: server
