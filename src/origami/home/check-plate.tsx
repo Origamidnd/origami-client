@@ -4,24 +4,15 @@ import {
   HighlightOffRounded,
 } from '@mui/icons-material'
 import { Button } from '@mui/material'
-import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 import { useLockFn } from 'ahooks'
-import dayjs from 'dayjs'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { useProfiles } from '@/hooks/use-profiles'
-import { useProxiesData } from '@/providers/app-data-context'
 import { getIpInfo } from '@/services/api'
-import { cmdTestDelay, getClashLogs, getSystemInfo } from '@/services/cmds'
-import { showNotice } from '@/services/notice-service'
-import { openExternalUrl } from '@/utils/open-external-url'
+import { cmdTestDelay } from '@/services/cmds'
 
-import { buildDiagnostics } from '../check/diagnostics'
 import { CHECK_TARGETS, isReachable } from '../check/targets'
-import { resolveCurrent } from '../current-server'
-import { ORIGAMI_LINKS } from '../links'
-import { daysLeft } from '../subscription-status'
+import { useCopyDiagnostics } from '../check/use-copy-diagnostics'
 
 import { useConnection } from './use-connection'
 
@@ -35,9 +26,7 @@ const AUTO_CHECK_DELAY_MS = 2000
 /** «VPN работает?»: checks popular services through the core and shows the exit country. */
 export const CheckPlate = () => {
   const { t } = useTranslation()
-  const { connected, mode } = useConnection()
-  const { current } = useProfiles()
-  const { proxyView } = useProxiesData()
+  const { connected } = useConnection()
   const [running, setRunning] = useState(false)
   const [delays, setDelays] = useState<Record<string, number | undefined>>({})
   const [exit, setExit] = useState<ExitInfo | null>(null)
@@ -88,50 +77,7 @@ export const CheckPlate = () => {
     return () => window.clearTimeout(timer)
   }, [connected])
 
-  const copyDiagnostics = useLockFn(async () => {
-    const [system, logs] = await Promise.all([
-      getSystemInfo().catch(() => undefined),
-      getClashLogs().catch(() => [] as ILogItem[]),
-    ])
-    const server = proxyView ? resolveCurrent(proxyView) : null
-    const expire = current?.extra?.expire
-    const text = buildDiagnostics({
-      time: dayjs().format('DD.MM.YYYY HH:mm Z'),
-      appVersion: system?.app_version ?? '',
-      system: system
-        ? {
-            name: system.system_name,
-            version: system.system_version,
-            arch: system.system_arch,
-          }
-        : undefined,
-      coreMode: system?.app_core_mode,
-      isAdmin: system?.app_is_admin,
-      mode,
-      connected,
-      server: server
-        ? [server.name, server.via ? `через ${server.via}` : '']
-            .filter(Boolean)
-            .join(', ')
-        : undefined,
-      subscription: current
-        ? {
-            daysLeft: expire ? daysLeft(expire, Date.now()) : null,
-            updated: current.updated
-              ? dayjs(current.updated * 1000).format('DD.MM HH:mm')
-              : undefined,
-          }
-        : undefined,
-      delays,
-      exit: exit ?? undefined,
-      coreErrors: logs
-        .filter((log) => log.type === 'error' || log.type === 'warning')
-        .map((log) => `${log.time ?? ''} ${log.payload}`.trim()),
-    })
-    await writeText(text)
-    showNotice.success('origami.check.copied')
-    void openExternalUrl(current?.support ?? ORIGAMI_LINKS.support)
-  })
+  const copyDiagnostics = useCopyDiagnostics()
 
   const checked = Object.keys(delays).length > 0
   const failed = CHECK_TARGETS.filter(
@@ -210,7 +156,9 @@ export const CheckPlate = () => {
           <Button
             size="small"
             startIcon={<ContentCopyRounded fontSize="small" />}
-            onClick={() => void copyDiagnostics()}
+            onClick={() =>
+              void copyDiagnostics({ delays, exit: exit ?? undefined })
+            }
           >
             {t('origami.check.diagnostics')}
           </Button>

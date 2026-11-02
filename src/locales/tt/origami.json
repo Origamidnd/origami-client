@@ -106,5 +106,60 @@
     "tryOther": "Try another server. If that does not help, send the diagnostics to support.",
     "diagnostics": "Copy diagnostics for support",
     "copied": "Diagnostics copied. Paste them into the support chat"
+  },
+  "settings": {
+    "sections": {
+      "connection": "CONNECTION",
+      "look": "APPEARANCE",
+      "updates": "UPDATES",
+      "help": "HELP"
+    },
+    "service": {
+      "title": "OrigamiVPN service",
+      "hint": "Needed to send all of the computer's traffic through the VPN",
+      "ok": "Running",
+      "missing": "Not installed",
+      "install": "Install",
+      "reinstall": "Reinstall",
+      "reinstalled": "Service reinstalled"
+    },
+    "autoLaunch": {
+      "title": "Start with the computer",
+      "hint": "OrigamiVPN opens on its own when the computer starts"
+    },
+    "silentStart": {
+      "title": "Start minimized",
+      "hint": "Straight to the tray, no window"
+    },
+    "theme": {
+      "title": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": "Language",
+    "updates": {
+      "version": "Version {{version}}",
+      "checked": "Checked {{time}}",
+      "check": "Check",
+      "latest": "You have the latest version",
+      "auto": "Update automatically",
+      "autoHint": "Downloads in the background, installs on the next start"
+    },
+    "help": {
+      "diagnostics": "Something not working?",
+      "diagnosticsHint": "Copies a diagnostics report and opens the support chat",
+      "diagnosticsButton": "Diagnostics",
+      "links": "Channel and site",
+      "linksHint": "News, server status, guides",
+      "channel": "Channel",
+      "site": "Site"
+    },
+    "expert": {
+      "title": "Expert mode",
+      "hint": "Shows the connection mode, rules, logs, connections and all Mihomo core settings"
+    },
+    "footer": "OrigamiVPN {{version}} · Mihomo core",
+    "exit": "Quit OrigamiVPN"
   }
 }

@@ -357,6 +357,61 @@ export interface TranslationResources {
         soon: string
         title: string
       }
+      settings: {
+        autoLaunch: {
+          hint: string
+          title: string
+        }
+        exit: string
+        expert: {
+          hint: string
+          title: string
+        }
+        footer: string
+        help: {
+          channel: string
+          diagnostics: string
+          diagnosticsButton: string
+          diagnosticsHint: string
+          links: string
+          linksHint: string
+          site: string
+        }
+        language: string
+        sections: {
+          connection: string
+          help: string
+          look: string
+          updates: string
+        }
+        service: {
+          hint: string
+          install: string
+          missing: string
+          ok: string
+          reinstall: string
+          reinstalled: string
+          title: string
+        }
+        silentStart: {
+          hint: string
+          title: string
+        }
+        theme: {
+          dark: string
+          light: string
+          system: string
+          title: string
+        }
+        updates: {
+          auto: string
+          autoHint: string
+          check: string
+          checked: string
+          latest: string
+          version: string
+        }
+      }
       welcome: {
         add: string
         added: string

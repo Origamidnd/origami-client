@@ -539,3 +539,111 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     color: var(--o-ink);
   }
 }
+
+// Settings
+.o-set {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 760px;
+  padding: 4px 4px 16px;
+  color: var(--o-ink);
+
+  &__plate {
+    padding: 4px 0;
+  }
+
+  &__label {
+    padding: 10px 16px 2px;
+    font-family: $mono;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--o-accent);
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+
+    & + & {
+      border-top: 1.5px dashed var(--o-crease);
+    }
+
+    @media (max-width: 560px) {
+      flex-wrap: wrap;
+    }
+  }
+
+  &__text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  &__control {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+
+    .MuiButton-root {
+      color: var(--o-ink);
+      border-color: var(--o-line);
+    }
+
+    .MuiButton-colorError {
+      color: var(--o-danger);
+    }
+  }
+
+  &__seg {
+    width: auto;
+
+    button {
+      flex: none;
+      padding: 6px 12px;
+    }
+  }
+
+  &__badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+
+    &.is-ok {
+      color: var(--o-ok-text);
+      background: var(--o-ok-bg);
+    }
+
+    &.is-bad {
+      color: var(--o-danger);
+      border: 1px solid var(--o-danger);
+    }
+  }
+
+  &__expert {
+    border-color: var(--o-accent);
+    background: var(--o-pale);
+  }
+
+  &__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 4px;
+
+    .MuiButton-root {
+      color: var(--o-danger);
+      border-color: var(--o-danger);
+    }
+  }
+}
