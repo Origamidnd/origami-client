@@ -18,8 +18,10 @@ import { showNotice } from '@/services/notice-service'
 import { openExternalUrl } from '@/utils/open-external-url'
 import parseTraffic from '@/utils/parse-traffic'
 
+import { explainSubscriptionError } from '../errors'
 import { useExpertMode } from '../expert-mode'
 import { ORIGAMI_LINKS } from '../links'
+import { expiryStage } from '../subscription-status'
 
 import { AnnouncePlate } from './announce-plate'
 import { ServerPlate } from './server-plate'
@@ -136,7 +138,9 @@ const SubscriptionPlate = () => {
       await refreshAll()
       showNotice.success('origami.home.subscription.refreshed')
     } catch (error) {
-      showNotice.error(error)
+      const reason = explainSubscriptionError(error)
+      if (reason) showNotice.error(reason)
+      else showNotice.error(error)
     } finally {
       setUpdating(false)
     }
@@ -166,9 +170,10 @@ const SubscriptionPlate = () => {
   const used = (extra?.upload ?? 0) + (extra?.download ?? 0)
   const total = extra?.total ?? 0
   const share = total > 0 ? Math.min(100, (used / total) * 100) : null
+  const stage = expiryStage(extra?.expire, now)
 
   return (
-    <section className="o-plate o-sub">
+    <section className={`o-plate o-sub${stage ? ` o-sub--${stage}` : ''}`}>
       <div className="o-sub__head">
         <div className="o-label">{t('origami.home.subscription.title')}</div>
         {current.updated ? (
@@ -190,9 +195,11 @@ const SubscriptionPlate = () => {
         </IconButton>
       </div>
       <div className="o-big">
-        {daysLeft === null
-          ? t('origami.home.subscription.noExpire')
-          : pluralDays(daysLeft, i18n.language, t as never)}
+        {stage === 'expired'
+          ? t('origami.home.subscription.expired')
+          : daysLeft === null
+            ? t('origami.home.subscription.noExpire')
+            : pluralDays(daysLeft, i18n.language, t as never)}
       </div>
       {expire && (
         <div className="o-hint">

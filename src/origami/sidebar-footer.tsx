@@ -10,10 +10,13 @@ import { openExternalUrl } from '@/utils/open-external-url'
 
 import { setExpertMode, useExpertMode } from './expert-mode'
 import { ORIGAMI_LINKS } from './links'
+import { useExpiryReminder } from './use-expiry-reminder'
 
 export const OrigamiSidebarFooter = () => {
   const { t } = useTranslation()
   const expert = useExpertMode()
+  // The sidebar is always mounted while the window is open, so it hosts background reminders.
+  useExpiryReminder()
   const { current } = useProfiles()
   const supportUrl = current?.support ?? ORIGAMI_LINKS.support
 

@@ -41,7 +41,8 @@
       "renew": "Renew",
       "updated": "updated {{time}}",
       "refresh": "Update subscription",
-      "refreshed": "Subscription updated"
+      "refreshed": "Subscription updated",
+      "expired": "Ended"
     },
     "speed": {
       "down": "Download",
@@ -73,5 +74,19 @@
     "invalidLink": "This does not look like a subscription link",
     "added": "Subscription added",
     "addFailed": "Could not add the subscription"
+  },
+  "reminder": {
+    "title": "OrigamiVPN subscription",
+    "soon": "Your subscription ends in {{days}}. Renew it in your account so the VPN keeps working.",
+    "lastDay": "Your subscription ends today or tomorrow. Renew it in your account so the VPN keeps working.",
+    "expired": "Your subscription has ended. Renew it in your account to get the VPN back."
+  },
+  "errors": {
+    "notFound": "Subscription not found. Check the link or get a new one in your account.",
+    "forbidden": "The server refused the subscription. It may have ended or the device is blocked; contact support.",
+    "tooMany": "Too many requests. Try again in a minute.",
+    "server": "The subscription server is temporarily unavailable. Try again later.",
+    "badFormat": "The server returned the subscription in an unsupported format. Update the app or contact support.",
+    "network": "No connection to the subscription server. Check your internet and try again."
   }
 }

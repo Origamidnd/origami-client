@@ -13,6 +13,7 @@ import { showNotice } from '@/services/notice-service'
 import { isValidUrl } from '@/utils/network'
 import { openExternalUrl } from '@/utils/open-external-url'
 
+import { explainSubscriptionError } from '../errors'
 import { ORIGAMI_LINKS } from '../links'
 
 const looksLikeSubscription = (text: string) =>
@@ -61,7 +62,9 @@ export const Welcome = () => {
       await refreshAll()
       showNotice.success('origami.welcome.added')
     } catch (error) {
-      showNotice.error('origami.welcome.addFailed', error)
+      const reason = explainSubscriptionError(error)
+      if (reason) showNotice.error(reason)
+      else showNotice.error('origami.welcome.addFailed', error)
     } finally {
       setLoading(false)
     }

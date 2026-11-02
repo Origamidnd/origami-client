@@ -90,7 +90,10 @@ const profiles = {
         upload: 1.2e9,
         download: 13.1e9,
         total: 0,
-        expire: Math.floor(Date.now() / 1000) + 23 * DAY - 3600,
+        expire:
+          Math.floor(Date.now() / 1000 / DAY) * DAY +
+          Number(params.get('days') ?? 23) * DAY -
+          3600,
       },
       home: 'https://lk.origamivpn.pro',
       announce:
@@ -121,6 +124,13 @@ const handlers: Record<string, (args: any) => unknown> = {
     if ('enable_system_proxy' in payload) {
       sysproxy.enable = !!payload.enable_system_proxy
       sysproxy.server = sysproxy.enable ? '127.0.0.1:7897' : ''
+    }
+    return null
+  },
+  import_profile: ({ url }) => {
+    const status = /status=(\d{3})/.exec(url)?.[1]
+    if (status) {
+      throw `failed to fetch remote profile with status ${status}`
     }
     return null
   },
@@ -164,6 +174,10 @@ const handlers: Record<string, (args: any) => unknown> = {
   'plugin:event|listen': () => Math.floor(Math.random() * 1e6),
   'plugin:event|unlisten': () => null,
   'plugin:window|theme': () => theme,
+  'plugin:notification|notify': ({ options }) => {
+    console.info('[mock] system notification', options.title, options.body)
+    return null
+  },
   'plugin:clipboard-manager|read_text': () =>
     'https://sub.origamivpn.pro/AbCdEf123456',
 }

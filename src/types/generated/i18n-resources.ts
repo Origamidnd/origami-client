@@ -264,6 +264,14 @@ export interface TranslationResources {
       }
     }
     origami: {
+      errors: {
+        badFormat: string
+        forbidden: string
+        network: string
+        notFound: string
+        server: string
+        tooMany: string
+      }
       home: {
         announce: {
           dismiss: string
@@ -308,6 +316,7 @@ export interface TranslationResources {
             zero: string
           }
           empty: string
+          expired: string
           noExpire: string
           refresh: string
           refreshed: string
@@ -323,6 +332,12 @@ export interface TranslationResources {
         cabinet: string
         expert: string
         support: string
+      }
+      reminder: {
+        expired: string
+        lastDay: string
+        soon: string
+        title: string
       }
       welcome: {
         add: string

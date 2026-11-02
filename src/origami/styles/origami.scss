@@ -428,3 +428,20 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     }
   }
 }
+
+.o-sub--soon,
+.o-sub--lastDay {
+  border-color: var(--o-warn);
+
+  .o-big {
+    color: var(--o-warn);
+  }
+}
+
+.o-sub--expired {
+  border-color: var(--o-danger);
+
+  .o-big {
+    color: var(--o-danger);
+  }
+}
