@@ -177,11 +177,6 @@ const handlers: Record<string, (args: any) => unknown> = {
   get_system_info: () => ({
     system_name: 'Windows',
     system_version: '11 (26100)',
-    system_kernel_version: '10.0.26100',
-    system_arch: 'x86_64',
-    app_version: '0.1.0',
-    app_core_mode: 'Service',
-    app_is_admin: false,
   }),
   'plugin:mihomo|select_node_for_group': ({ groupName, node }) => {
     if (groupName === 'OrigamiVPN') selected = node

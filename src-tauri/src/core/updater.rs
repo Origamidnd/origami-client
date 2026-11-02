@@ -34,7 +34,7 @@ impl SilentUpdater {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, specta::Type)]
 struct UpdateCacheMeta {
     version: String,
     downloaded_at: String,
@@ -81,6 +81,20 @@ impl SilentUpdater {
         let meta_path = Self::cache_dir()?.join("pending_update.json");
         let content = std::fs::read_to_string(meta_path)?;
         Ok(serde_json::from_str(&content)?)
+    }
+
+    fn skipped_version() -> Option<String> {
+        let path = Self::cache_dir().ok()?.join("skipped_version");
+        std::fs::read_to_string(path).ok().map(|v| v.trim().to_owned())
+    }
+
+    fn remember_skipped(version: &str) {
+        let Ok(cache_dir) = Self::cache_dir() else {
+            return;
+        };
+        if let Err(e) = std::fs::write(cache_dir.join("skipped_version"), version) {
+            logging!(warn, Type::System, "Failed to remember the postponed update: {e}");
+        }
     }
 
     fn delete_cache() {
@@ -214,7 +228,7 @@ fn nsis_language_id(app_language: &str) -> &'static str {
 }
 
 /// Same wire shape as the updater plugin's JS `DownloadEvent`.
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, specta::Type)]
 #[serde(tag = "event", content = "data")]
 pub enum DownloadEvent {
     #[serde(rename_all = "camelCase")]
@@ -365,9 +379,21 @@ impl SilentUpdater {
             current_version
         );
 
-        // Preserve the cache when skipped so the next launch asks again.
+        // OrigamiVPN: "Later" postpones this version for good; a newer download asks again,
+        // and Settings can still install it.
+        if Self::skipped_version().as_deref() == Some(cached_version.as_str()) {
+            logging!(
+                info,
+                Type::System,
+                "Update v{cached_version} was postponed, not asking again"
+            );
+            return false;
+        }
+
+        // Preserve the cache when skipped so Settings can install it without downloading again.
         if !Self::ask_user_to_install(app_handle, cached_version).await {
             logging!(info, Type::System, "User skipped update install, starting normally");
+            Self::remember_skipped(cached_version);
             return false;
         }
 

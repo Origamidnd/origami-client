@@ -31,15 +31,23 @@ describe('buildDiagnostics', () => {
       system: {
         name: 'CachyOS Linux',
         version: 'Linux (CachyOS Linux rolling)',
-        arch: 'x86_64',
       },
     })
-    expect(linux).toContain('Система: Linux (CachyOS Linux rolling) (x86_64)')
+    expect(linux).toContain('Система: Linux (CachyOS Linux rolling)')
     const windows = buildDiagnostics({
       ...base,
-      system: { name: 'Windows', version: '11 (26100)', arch: 'x86_64' },
+      system: { name: 'Windows', version: '11 (26100)' },
     })
-    expect(windows).toContain('Система: Windows 11 (26100) (x86_64)')
+    expect(windows).toContain('Система: Windows 11 (26100)')
+  })
+
+  it('shows why the service refused to run', () => {
+    const text = buildDiagnostics({
+      ...base,
+      service: { state: 'Unavailable', reason: 'core path "C:\\" has an untrusted write ACE' },
+    })
+    expect(text).toContain('Служба: Unavailable, причина: core path "C:\\" has an untrusted write ACE')
+    expect(buildDiagnostics({ ...base, service: { state: 'Running' } })).toContain('Служба: Running\n')
   })
 
   it('keeps only the latest core errors', () => {
