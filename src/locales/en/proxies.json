@@ -84,7 +84,7 @@
       "directMode": "Direct Mode"
     },
     "title": {
-      "default": "Proxy Groups",
+      "default": "Servers",
       "chainMode": "Proxy Chain Mode"
     }
   },

@@ -5,7 +5,7 @@ export const ProfileBox = styled(Box)(
     const { mode, primary, text } = theme.palette
     const key = `${mode}-${!!selected}`
 
-    const backgroundColor = mode === 'light' ? '#ffffff' : '#282A36'
+    const backgroundColor = 'var(--o-plate)'
 
     const color = {
       'light-true': text.secondary,
@@ -48,8 +48,9 @@ export const ProfileBox = styled(Box)(
       padding: '8px 16px',
       boxSizing: 'border-box',
       backgroundColor,
+      border: '1.5px solid var(--o-line)',
       ...borderSelect,
-      borderRadius: '8px',
+      borderRadius: '10px',
       color,
       '& h2': { color: h2color },
     }

@@ -58,7 +58,7 @@
         "forceRefreshStaleData": "Profile data is unavailable; click to force a refresh"
       }
     },
-    "title": "Profiles"
+    "title": "Subscriptions"
   },
   "components": {
     "card": {

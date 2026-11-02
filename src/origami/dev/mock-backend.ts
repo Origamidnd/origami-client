@@ -158,6 +158,7 @@ const handlers: Record<string, (args: any) => unknown> = {
   get_system_hostname: () => 'origami-pc',
   get_network_interfaces: () => [],
   get_pending_failures: () => [],
+  get_runtime_logs: () => ({}),
   test_delay: async ({ url }) => {
     await new Promise((resolve) =>
       setTimeout(resolve, 300 + Math.random() * 600),

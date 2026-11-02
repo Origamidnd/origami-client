@@ -9,7 +9,6 @@ import SettingSystem from '@/components/setting/setting-system'
 import SettingVergeAdvanced from '@/components/setting/setting-verge-advanced'
 import SettingVergeBasic from '@/components/setting/setting-verge-basic'
 import { showNotice } from '@/services/notice-service'
-import { useThemeMode } from '@/services/states'
 import { openExternalUrl } from '@/utils/open-external-url'
 
 const SettingPage = () => {
@@ -32,9 +31,6 @@ const SettingPage = () => {
   const toTelegramChannel = useLockFn(() =>
     openExternalUrl('https://t.me/origamivpn').catch(onError),
   )
-
-  const mode = useThemeMode()
-  const isDark = mode === 'light' ? false : true
 
   return (
     <BasePage
@@ -78,7 +74,8 @@ const SettingPage = () => {
             sx={{
               borderRadius: 2,
               marginBottom: 1.5,
-              backgroundColor: isDark ? '#282a36' : '#ffffff',
+              backgroundColor: 'var(--o-plate)',
+              border: '1.5px solid var(--o-line)',
             }}
           >
             <SettingSystem onError={onError} />
@@ -86,7 +83,8 @@ const SettingPage = () => {
           <Box
             sx={{
               borderRadius: 2,
-              backgroundColor: isDark ? '#282a36' : '#ffffff',
+              backgroundColor: 'var(--o-plate)',
+              border: '1.5px solid var(--o-line)',
             }}
           >
             <SettingClash onError={onError} />
@@ -97,7 +95,8 @@ const SettingPage = () => {
             sx={{
               borderRadius: 2,
               marginBottom: 1.5,
-              backgroundColor: isDark ? '#282a36' : '#ffffff',
+              backgroundColor: 'var(--o-plate)',
+              border: '1.5px solid var(--o-line)',
             }}
           >
             <SettingVergeBasic onError={onError} />
@@ -105,7 +104,8 @@ const SettingPage = () => {
           <Box
             sx={{
               borderRadius: 2,
-              backgroundColor: isDark ? '#282a36' : '#ffffff',
+              backgroundColor: 'var(--o-plate)',
+              border: '1.5px solid var(--o-line)',
             }}
           >
             <SettingVergeAdvanced onError={onError} />
