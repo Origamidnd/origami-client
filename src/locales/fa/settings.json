@@ -157,7 +157,7 @@
   "components": {
     "verge": {
       "basic": {
-        "title": "تنظیمات پایه Verge",
+        "title": "تنظیمات پایه",
         "actions": {
           "browse": "مرور کردن"
         },
@@ -180,7 +180,7 @@
         }
       },
       "advanced": {
-        "title": "تنظیمات پیشرفته Verge",
+        "title": "تنظیمات پیشرفته",
         "tooltips": {
           "backupInfo": "از فایل های پیکربندی پشتیبان WebDAV پشتیبانی می کند",
           "openConfDir": "اگر نرم‌افزار به‌طور غیرعادی اجرا می‌شود، از تمام فایل‌های موجود در این پوشه نسخه پشتیبان تهیه و پاک کنید تا نرم‌افزار را مجدداً راه‌اندازی کنید",
@@ -204,7 +204,7 @@
           "liteModeSettings": "LightWeight Mode Settings",
           "exit": "خروج",
           "exportDiagnostics": "Export Diagnostic Info",
-          "vergeVersion": "نسخه Verge"
+          "vergeVersion": "نسخه OrigamiVPN"
         }
       },
       "theme": {

@@ -157,7 +157,7 @@
   "components": {
     "verge": {
       "basic": {
-        "title": "Verge 基礎設定",
+        "title": "基礎設定",
         "actions": {
           "browse": "瀏覽"
         },
@@ -180,7 +180,7 @@
         }
       },
       "advanced": {
-        "title": "Verge 進階設定",
+        "title": "進階設定",
         "tooltips": {
           "backupInfo": "支援本機或 WebDAV 方式備份配置檔案",
           "openConfDir": "如果軟體執行異常，!備份!並刪除此資料夾下的所有檔案，重新啟動軟體",
@@ -204,7 +204,7 @@
           "liteModeSettings": "輕量模式設定",
           "exit": "離開",
           "exportDiagnostics": "匯出診斷資訊",
-          "vergeVersion": "Verge 版本"
+          "vergeVersion": "OrigamiVPN 版本"
         }
       },
       "theme": {

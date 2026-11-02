@@ -228,7 +228,8 @@ pub enum DownloadEvent {
     Finished,
 }
 
-const MIRRORS: [&str; 2] = ["https://update.hwdns.net/", "https://gh-proxy.org/"];
+// OrigamiVPN downloads updates from GitHub only: the upstream mirrors are third-party proxies.
+const MIRRORS: [&str; 0] = [];
 /// A source delivering less than this per window is dropped for the next one.
 const MIN_PROGRESS: u64 = 1024 * 1024;
 const PROGRESS_WINDOW: Duration = Duration::from_secs(30);

@@ -157,7 +157,7 @@
   "components": {
     "verge": {
       "basic": {
-        "title": "Configurações Básicas do Verge",
+        "title": "Configurações Básicas",
         "actions": {
           "browse": "Procurar"
         },
@@ -180,7 +180,7 @@
         }
       },
       "advanced": {
-        "title": "Configurações Avançadas do Verge",
+        "title": "Configurações Avançadas",
         "tooltips": {
           "backupInfo": "Suporta backup local ou via WebDAV dos arquivos de configuração",
           "openConfDir": "Se o software funcionar de forma anormal, FAÇA BACKUP e exclua todos os arquivos desta pasta e reinicie o software",
@@ -204,7 +204,7 @@
           "liteModeSettings": "Configurações do Modo Leve",
           "exit": "Sair",
           "exportDiagnostics": "Exportar Informações de Diagnóstico",
-          "vergeVersion": "Versão do Verge"
+          "vergeVersion": "Versão do OrigamiVPN"
         }
       },
       "theme": {

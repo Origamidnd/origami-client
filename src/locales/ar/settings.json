@@ -157,7 +157,7 @@
   "components": {
     "verge": {
       "basic": {
-        "title": "الإعدادات الأساسية  Verge",
+        "title": "الإعدادات الأساسية",
         "actions": {
           "browse": "استعراض"
         },
@@ -180,7 +180,7 @@
         }
       },
       "advanced": {
-        "title": "الإعدادات الأساسية  Verge",
+        "title": "الإعدادات الأساسية",
         "tooltips": {
           "backupInfo": "Support local or WebDAV backup of configuration files",
           "openConfDir": "إذا عمل البرنامج بشكل غير طبيعي، قم بالنسخ الاحتياطي ثم حذف جميع الملفات في هذا المجلد ثم أعد تشغيل البرنامج",
@@ -204,7 +204,7 @@
           "liteModeSettings": "LightWeight Mode Settings",
           "exit": "خروج",
           "exportDiagnostics": "Export Diagnostic Info",
-          "vergeVersion": "إصدار Verge"
+          "vergeVersion": "إصدار OrigamiVPN"
         }
       },
       "theme": {
