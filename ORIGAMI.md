@@ -27,6 +27,12 @@ pnpm i && pnpm typecheck && pnpm lint && pnpm test
 ```
 Версии приложения (`package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`) остаются нашими.
 
+### Слежение за апстримом
+Workflow `origami-upstream-check` по понедельникам сверяет последние версии Mihomo и Clash Verge Rev с `.github/origami-upstream.json`. Если вышло новое, запуск завершается с ошибкой: GitHub присылает письмо «Run failed», в сводке запуска написано, что вышло.
+- Новый Mihomo: код не трогаем, каждая сборка сама берёт последнее стабильное ядро (`scripts/prebuild.mjs`), достаточно выпустить новую версию.
+- Новый Clash Verge Rev: слить тег апстрима по шагам выше, проверить наши изменения, выпустить версию.
+После выпуска нашей версии с этими обновлениями поднимаем версии в `.github/origami-upstream.json`, и проверка снова зелёная.
+
 ## Сборка и релиз
 Workflow `origami-build` собирает Windows x64 (NSIS) и Linux x64 (deb, rpm).
 - Ручной запуск (Actions → OrigamiVPN build → Run workflow) - только артефакты.
