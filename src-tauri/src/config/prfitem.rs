@@ -42,7 +42,12 @@ pub(super) fn decode_announce(raw: &str) -> Option<String> {
     if text.is_empty() {
         return None;
     }
-    Some(text.chars().take(ANNOUNCE_MAX_CHARS).collect::<std::string::String>().into())
+    Some(
+        text.chars()
+            .take(ANNOUNCE_MAX_CHARS)
+            .collect::<std::string::String>()
+            .into(),
+    )
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
@@ -296,6 +301,7 @@ impl PrfItem {
         let url = fix_dirty_url(url)?;
 
         let resp = match NetworkManager::new()
+            .with_device_headers()
             .get(
                 url.as_str(),
                 proxy_type,

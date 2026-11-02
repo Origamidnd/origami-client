@@ -52,11 +52,19 @@ enum TlsRootMode {
     StaticWebpkiRoots,
 }
 
-pub struct NetworkManager;
+pub struct NetworkManager {
+    device_headers: bool,
+}
 
 impl NetworkManager {
     pub const fn new() -> Self {
-        Self
+        Self { device_headers: false }
+    }
+
+    /// Adds the device identity headers; only for requests to the subscription server.
+    pub const fn with_device_headers(mut self) -> Self {
+        self.device_headers = true;
+        self
     }
 
     fn build_client(
@@ -185,6 +193,12 @@ impl NetworkManager {
 
         parsed.set_username("").ok();
         parsed.set_password(None).ok();
+
+        if self.device_headers {
+            for (name, value) in crate::utils::device::device_headers() {
+                extra_headers.insert(name, HeaderValue::from_str(&value)?);
+            }
+        }
 
         // 创建请求
         let client = self

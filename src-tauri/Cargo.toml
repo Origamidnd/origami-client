@@ -90,6 +90,7 @@ sha2 = "0.11"
 getrandom = "0.4.3"
 futures = "0.3.34"
 gethostname = "1.1.0"
+sysinfo = { version = "0.39.6", features = ["system"] }
 scopeguard = "1.2.0"
 tauri-plugin-notification = "2.5.1"
 tokio-stream = "0.1.19"

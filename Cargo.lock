@@ -1135,6 +1135,7 @@ dependencies = [
  "sha2 0.11.0",
  "smartstring",
  "socket2",
+ "sysinfo",
  "sysproxy",
  "tauri",
  "tauri-build",
