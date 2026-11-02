@@ -37,5 +37,6 @@ Workflow `origami-upstream-check` по понедельникам сверяет
 Workflow `origami-build` собирает Windows x64 (NSIS) и Linux x64 (deb, rpm).
 - Ручной запуск (Actions → OrigamiVPN build → Run workflow) - только артефакты.
 - Тег `v*` - черновик релиза с установщиками и `latest.json`. Обновление приходит пользователям, когда черновик опубликован как обычный (не pre-release) релиз.
+- В конце сборки по тегу шаг «Fix update links» (`scripts/origami-fix-latest-json.sh`) переписывает ссылки в `latest.json` на `releases/download/<тег>/<файл>`: tauri-action оставляет там ссылки черновика, по которым опубликованный релиз программа не скачает. Перед публикацией стоит открыть `latest.json` в черновике и проверить ссылки.
 
 Секреты репозитория: `TAURI_PRIVATE_KEY`, `TAURI_KEY_PASSWORD` (ключ подписи обновлений).
