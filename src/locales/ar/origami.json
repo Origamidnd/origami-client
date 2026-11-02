@@ -88,5 +88,20 @@
     "server": "The subscription server is temporarily unavailable. Try again later.",
     "badFormat": "The server returned the subscription in an unsupported format. Update the app or contact support.",
     "network": "No connection to the subscription server. Check your internet and try again."
+  },
+  "check": {
+    "title": "Connection check",
+    "idle": "Check whether Telegram, YouTube, Instagram and ChatGPT open",
+    "connectFirst": "Connect and the check runs by itself",
+    "running": "Checking…",
+    "allGood": "Everything works",
+    "someFailed": "Some services do not open",
+    "exit": "Your internet exit country: {{country}}",
+    "run": "Check",
+    "again": "Again",
+    "unreachable": "does not open",
+    "tryOther": "Try another server. If that does not help, send the diagnostics to support.",
+    "diagnostics": "Copy diagnostics for support",
+    "copied": "Diagnostics copied. Paste them into the support chat"
   }
 }

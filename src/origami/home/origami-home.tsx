@@ -24,6 +24,7 @@ import { ORIGAMI_LINKS } from '../links'
 import { expiryStage } from '../subscription-status'
 
 import { AnnouncePlate } from './announce-plate'
+import { CheckPlate } from './check-plate'
 import { ServerPlate } from './server-plate'
 import { type ConnectMode, useConnection } from './use-connection'
 import { Welcome } from './welcome'
@@ -280,6 +281,7 @@ const OrigamiHomePage = () => {
             </div>
           </div>
           <ServerPlate />
+          <CheckPlate />
           {expert && (
             <div className="o-home__server">
               <CurrentProxyCard />

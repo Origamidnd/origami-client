@@ -445,3 +445,77 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     color: var(--o-danger);
   }
 }
+
+.o-check {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__summary {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  &__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 6px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .o-hint {
+      white-space: nowrap;
+    }
+
+    .is-ok svg {
+      color: var(--o-ok);
+    }
+
+    .is-bad svg {
+      color: var(--o-danger);
+    }
+  }
+
+  &__name {
+    flex: 1;
+  }
+
+  &__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1.5px dashed var(--o-crease);
+
+    .MuiButton-root {
+      margin-left: auto;
+      color: var(--o-ink);
+    }
+  }
+}
+
+.o-spin-dot {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--o-crease);
+  border-top-color: var(--o-accent);
+  border-radius: 50%;
+  animation: o-spin 0.8s linear infinite;
+}

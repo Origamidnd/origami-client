@@ -264,6 +264,21 @@ export interface TranslationResources {
       }
     }
     origami: {
+      check: {
+        again: string
+        allGood: string
+        connectFirst: string
+        copied: string
+        diagnostics: string
+        exit: string
+        idle: string
+        run: string
+        running: string
+        someFailed: string
+        title: string
+        tryOther: string
+        unreachable: string
+      }
       errors: {
         badFormat: string
         forbidden: string

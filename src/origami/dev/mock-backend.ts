@@ -158,6 +158,26 @@ const handlers: Record<string, (args: any) => unknown> = {
   get_system_hostname: () => 'origami-pc',
   get_network_interfaces: () => [],
   get_pending_failures: () => [],
+  test_delay: async ({ url }) => {
+    await new Promise((resolve) =>
+      setTimeout(resolve, 300 + Math.random() * 600),
+    )
+    return url.includes('instagram')
+      ? 10000
+      : Math.round(80 + Math.random() * 250)
+  },
+  get_clash_logs: () => [
+    'time="2026-11-02T06:40:00Z" level=warning msg="[TCP] dial OrigamiVPN error: i/o timeout"',
+  ],
+  get_system_info: () => ({
+    system_name: 'Windows',
+    system_version: '11 (26100)',
+    system_kernel_version: '10.0.26100',
+    system_arch: 'x86_64',
+    app_version: '0.1.0',
+    app_core_mode: 'Service',
+    app_is_admin: false,
+  }),
   'plugin:mihomo|select_node_for_group': ({ groupName, node }) => {
     if (groupName === 'OrigamiVPN') selected = node
     return null
@@ -174,6 +194,10 @@ const handlers: Record<string, (args: any) => unknown> = {
   'plugin:event|listen': () => Math.floor(Math.random() * 1e6),
   'plugin:event|unlisten': () => null,
   'plugin:window|theme': () => theme,
+  'plugin:clipboard-manager|write_text': (args) => {
+    console.info('[mock] clipboard', JSON.stringify(args))
+    return null
+  },
   'plugin:notification|notify': ({ options }) => {
     console.info('[mock] system notification', options.title, options.body)
     return null
