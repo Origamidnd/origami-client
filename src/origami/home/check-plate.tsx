@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { getIpInfo } from '@/services/api'
 import { cmdTestDelay } from '@/services/cmds'
 
+import { exitCountryName } from '../check/exit-country'
 import { CHECK_TARGETS, isReachable } from '../check/targets'
 import { useCopyDiagnostics } from '../check/use-copy-diagnostics'
 import { ReportDialog } from '../report/report-dialog'
@@ -24,32 +25,59 @@ interface ExitInfo {
 }
 
 const AUTO_CHECK_DELAY_MS = 2000
+// Right after the app starts the core is still warming up and every request fails, so the
+// automatic check tries again before calling anything broken. A real block fails every time.
+const AUTO_CHECK_ATTEMPTS = 3
+const AUTO_CHECK_RETRY_MS = 3000
+
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, ms))
 
 /** «VPN работает?»: checks popular services through the core and shows the exit country. */
 export const CheckPlate = () => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { connected } = useConnection()
   const [running, setRunning] = useState(false)
   const [delays, setDelays] = useState<Record<string, number | undefined>>({})
   const [exit, setExit] = useState<ExitInfo | null>(null)
   const wasConnectedRef = useRef(connected)
 
-  const run = useLockFn(async () => {
+  const run = useLockFn(async (auto = false) => {
     setRunning(true)
     setDelays({})
     try {
-      const results = await Promise.all(
-        CHECK_TARGETS.map(async (target) => {
-          const delay = await cmdTestDelay(target.url).catch(() => undefined)
-          setDelays((prev) => ({ ...prev, [target.id]: delay }))
-          return delay
-        }),
-      )
+      // A manual check shows each service as it answers; the automatic one only its final try.
+      const probe = () =>
+        Promise.all(
+          CHECK_TARGETS.map(async (target) => {
+            const delay = await cmdTestDelay(target.url).catch(() => undefined)
+            if (!auto) setDelays((prev) => ({ ...prev, [target.id]: delay }))
+            return delay
+          }),
+        )
+      let results = await probe()
+      for (
+        let attempt = 1;
+        auto &&
+        attempt < AUTO_CHECK_ATTEMPTS &&
+        !results.every((delay) => isReachable(delay));
+        attempt++
+      ) {
+        await sleep(AUTO_CHECK_RETRY_MS)
+        results = await probe()
+      }
+      if (auto) {
+        setDelays(
+          Object.fromEntries(
+            CHECK_TARGETS.map((target, index) => [target.id, results[index]]),
+          ),
+        )
+      }
       const info = await getIpInfo().catch(() => null)
       setExit(
         info
           ? {
-              country: info.country || info.country_code,
+              country: exitCountryName(info, i18n.language),
               asn: info.asn
                 ? `AS${info.asn} ${info.asn_organization}`.trim()
                 : '',
@@ -73,7 +101,7 @@ export const CheckPlate = () => {
     wasConnectedRef.current = connected
     if (!justConnected) return
     const timer = window.setTimeout(
-      () => void runRef.current(),
+      () => void runRef.current(true),
       AUTO_CHECK_DELAY_MS,
     )
     return () => window.clearTimeout(timer)
@@ -104,7 +132,7 @@ export const CheckPlate = () => {
                   ? t('origami.check.allGood')
                   : t('origami.check.someFailed')}
           </div>
-          {exit && !running && (
+          {exit?.country && !running && (
             <div className="o-hint">
               {t('origami.check.exit', { country: exit.country })}
             </div>

@@ -59,7 +59,7 @@ export const buildDiagnostics = (input: DiagnosticsInput): string => {
   }
   if (input.exit) {
     lines.push(
-      `Выход: ${input.exit.country}${input.exit.asn ? `, ${input.exit.asn}` : ''}`,
+      `Выход: ${input.exit.country || 'страна неизвестна'}${input.exit.asn ? `, ${input.exit.asn}` : ''}`,
     )
   }
   lines.push('Проверка сервисов:')

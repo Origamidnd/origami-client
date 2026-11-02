@@ -532,15 +532,20 @@ impl SilentUpdater {
 
         let (tx, rx) = tokio::sync::oneshot::channel();
 
-        app_handle
+        let mut dialog = app_handle
             .dialog()
             .message(body)
             .title(title)
             .buttons(MessageDialogButtons::OkCancelCustom(install_now, later))
-            .kind(MessageDialogKind::Info)
-            .show(move |confirmed| {
-                let _ = tx.send(confirmed);
-            });
+            .kind(MessageDialogKind::Info);
+        // OrigamiVPN: owned by the main window, so a click on the app cannot bury the prompt
+        // under it (the window is disabled while the prompt is open).
+        if let Some(window) = crate::utils::window_manager::WindowManager::get_main_window() {
+            dialog = dialog.parent(&window);
+        }
+        dialog.show(move |confirmed| {
+            let _ = tx.send(confirmed);
+        });
 
         rx.await.unwrap_or(false)
     }

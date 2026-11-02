@@ -21,6 +21,7 @@ ManifestDPIAwareness PerMonitorV2
 !include "FileAssociation.nsh"
 !include "Win\COM.nsh"
 !include "Win\Propkey.nsh"
+!include "Win\RestartManager.nsh"
 !include "WinVer.nsh"
 !include "LogicLib.nsh"
 !include "StrFunc.nsh"
@@ -332,6 +333,8 @@ Function PageLeaveReinstall
   ${EndIf}
 
   reinst_uninstall:
+    !insertmacro CheckIfAppIsRunning "$INSTDIR\${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
+
     HideWindow
     ClearErrors
 
@@ -368,7 +371,10 @@ Function PageLeaveReinstall
       MessageBox MB_ICONEXCLAMATION "$(unableToUninstall)"
       Abort
     ${EndIf}
+    Return
+
   reinst_done:
+    !insertmacro CheckIfAppIsRunning "$INSTDIR\${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
 FunctionEnd
 
 ; 5. Choose install directory page
@@ -987,11 +993,12 @@ Section Install
 
   nsExec::Exec 'netsh int tcp res'
 
-  !include "Win\RestartManager.nsh"
-  !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
+  !insertmacro CheckIfAppIsRunning "$INSTDIR\${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
   Call OrigamiRemoveClashVerge
   !insertmacro SetContext
   !insertmacro CheckAllVergeProcesses
+  ; Left over from OrigamiVPN 0.1.0, which shipped the upstream contract generator.
+  Delete "$INSTDIR\frontend-contract.exe"
 
   ; Ensure startup folders exist
   CreateDirectory "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Startup"
@@ -1178,7 +1185,7 @@ Section Uninstall
     !insertmacro NSIS_HOOK_PREUNINSTALL
   !endif
 
-  !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
+  !insertmacro CheckIfAppIsRunning "$INSTDIR\${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
   !insertmacro CheckAllVergeProcesses
   !insertmacro RemoveVergeService
 
@@ -1209,6 +1216,8 @@ Section Uninstall
   ; A failed core upgrade leaves the displaced binary behind; it is never user data.
   Delete "$INSTDIR\verge-mihomo.old"
   Delete "$INSTDIR\verge-mihomo-alpha.old"
+  ; OrigamiVPN 0.1.0 shipped the upstream contract generator by mistake.
+  Delete "$INSTDIR\frontend-contract.exe"
 
   ; Delete app associations
   {{#each file_associations as |association| ~}}
