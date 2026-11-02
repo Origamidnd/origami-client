@@ -200,8 +200,58 @@
     "fast": "fast",
     "mid": "medium",
     "slow": "slow",
-    "foot": "A site or game not working? Pick another server for this service or",
+    "foot": "A site or game not working? Pick another server for this service,",
     "support": "write to support",
-    "chosen": "{{service}}: {{server}}. Other services stay as they were"
+    "chosen": "{{service}}: {{server}}. Other services stay as they were",
+    "report": "report the block to me",
+    "or": "or"
+  },
+  "report": {
+    "open": "A site or game not working?",
+    "title": "A site or game is not working",
+    "step": "step {{n}} of 3",
+    "what": "What is not working?",
+    "kinds": {
+      "app": "🎮 Game or app",
+      "site": "🌐 Website"
+    },
+    "titleLabel": {
+      "app": "Name",
+      "site": "Site address"
+    },
+    "titlePlaceholder": {
+      "app": "For example, Dota 2",
+      "site": "For example, example.com"
+    },
+    "commentLabel": "What happens (optional)",
+    "commentPlaceholder": "For example, cannot join a match",
+    "recordHint": {
+      "app": "Press «Start», then open the game or app and try what does not work. After a minute press «Done».",
+      "site": "Press «Start», then open the site in your browser and reload the page. After a minute press «Done»."
+    },
+    "recording": "Recording · {{time}}",
+    "found": "addresses: {{total}}, failed: {{failed}}",
+    "nothing": "Nothing was recorded. Try again: press «Start» first, then open the game or site.",
+    "pick": "Which program is not working?",
+    "sendsTitle": "Sent:",
+    "sends": "names of the ticked programs, the addresses they reached and which server was used.",
+    "keepsTitle": "Not sent:",
+    "keeps": "other programs, browser history, your files.",
+    "summary": "Addresses to send: {{count}}",
+    "errors": {
+      "noSubscription": "No OrigamiVPN subscription found. Add one and try again.",
+      "tooMany": "Too many reports in a row. Try again in an hour.",
+      "failed": "Could not send."
+    },
+    "support": "Write to support",
+    "sentTitle": "Sent",
+    "sent": "Thank you! I will look and add it to the rules. When it is added, I will message you in the bot; the update arrives by itself.",
+    "cancel": "Cancel",
+    "next": "Next",
+    "start": "Start",
+    "done": "Done",
+    "again": "Record again",
+    "send": "Send",
+    "close": "Close"
   }
 }

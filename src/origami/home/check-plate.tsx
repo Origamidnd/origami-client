@@ -2,6 +2,7 @@ import {
   CheckCircleOutlineRounded,
   ContentCopyRounded,
   HighlightOffRounded,
+  ReportProblemOutlined,
 } from '@mui/icons-material'
 import { Button } from '@mui/material'
 import { useLockFn } from 'ahooks'
@@ -13,6 +14,7 @@ import { cmdTestDelay } from '@/services/cmds'
 
 import { CHECK_TARGETS, isReachable } from '../check/targets'
 import { useCopyDiagnostics } from '../check/use-copy-diagnostics'
+import { ReportDialog } from '../report/report-dialog'
 
 import { useConnection } from './use-connection'
 
@@ -78,6 +80,7 @@ export const CheckPlate = () => {
   }, [connected])
 
   const copyDiagnostics = useCopyDiagnostics()
+  const [reportOpen, setReportOpen] = useState(false)
 
   const checked = Object.keys(delays).length > 0
   const failed = CHECK_TARGETS.filter(
@@ -155,6 +158,13 @@ export const CheckPlate = () => {
           )}
           <Button
             size="small"
+            startIcon={<ReportProblemOutlined fontSize="small" />}
+            onClick={() => setReportOpen(true)}
+          >
+            {t('origami.report.open')}
+          </Button>
+          <Button
+            size="small"
             startIcon={<ContentCopyRounded fontSize="small" />}
             onClick={() =>
               void copyDiagnostics({ delays, exit: exit ?? undefined })
@@ -164,6 +174,7 @@ export const CheckPlate = () => {
           </Button>
         </div>
       )}
+      <ReportDialog open={reportOpen} onClose={() => setReportOpen(false)} />
     </section>
   )
 }

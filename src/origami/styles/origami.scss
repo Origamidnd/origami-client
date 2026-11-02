@@ -929,3 +929,132 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     cursor: pointer;
   }
 }
+
+// Report a blocked site or game
+.o-rep {
+  .MuiDialog-paper {
+    background: var(--o-plate);
+    border: 1.5px solid var(--o-line);
+    color: var(--o-ink);
+  }
+
+  .MuiDialogTitle-root {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: $display;
+    font-weight: 800;
+    font-size: 24px;
+  }
+
+  &__step {
+    font-family: $mono;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--o-accent);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 4px;
+    font-size: 14px;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &__q {
+    font-weight: 500;
+  }
+
+  &__kinds {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  &__kind {
+    padding: 10px 12px;
+    border: 1.5px solid var(--o-crease);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--o-ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &.is-on {
+      border-color: var(--o-action);
+      background: var(--o-pale);
+    }
+  }
+
+  &__rec {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+  }
+
+  &__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--o-danger);
+    animation: o-rec 1s ease-in-out infinite alternate;
+  }
+
+  &__live,
+  &__procs {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 3px 0;
+    }
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    b {
+      font-weight: 500;
+    }
+  }
+
+  &__privacy {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--o-chip);
+    font-size: 13px;
+
+    p + p {
+      margin-top: 4px;
+    }
+
+    b {
+      font-weight: 500;
+    }
+  }
+
+  &__error {
+    color: var(--o-danger);
+  }
+}
+
+@keyframes o-rec {
+  to {
+    opacity: 0.3;
+  }
+}

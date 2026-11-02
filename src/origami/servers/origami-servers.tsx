@@ -31,6 +31,7 @@ import { DEFAULT_DELAY_TIMEOUT } from '@/utils/delay'
 import { openExternalUrl } from '@/utils/open-external-url'
 
 import { ORIGAMI_LINKS } from '../links'
+import { ReportDialog } from '../report/report-dialog'
 import type { FocusGroupState } from '../use-focus-group'
 
 import {
@@ -163,6 +164,7 @@ export const OrigamiServers = () => {
   const [checking, setChecking] = useState(false)
   const [checkedAt, setCheckedAt] = useState(readCheckedAt)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
   const focus = (location.state as FocusGroupState | null)?.origamiFocusGroup
   const [selected, setSelected] = useState<string | undefined>(focus)
 
@@ -509,6 +511,14 @@ export const OrigamiServers = () => {
               <button
                 type="button"
                 className="o-srv__link"
+                onClick={() => setReportOpen(true)}
+              >
+                {t('origami.servers.report')}
+              </button>{' '}
+              {t('origami.servers.or')}{' '}
+              <button
+                type="button"
+                className="o-srv__link"
                 onClick={() =>
                   void openExternalUrl(
                     current?.support ?? ORIGAMI_LINKS.support,
@@ -521,6 +531,7 @@ export const OrigamiServers = () => {
           </section>
         </div>
       </div>
+      <ReportDialog open={reportOpen} onClose={() => setReportOpen(false)} />
     </BasePage>
   )
 }

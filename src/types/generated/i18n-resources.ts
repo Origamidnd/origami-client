@@ -357,6 +357,54 @@ export interface TranslationResources {
         soon: string
         title: string
       }
+      report: {
+        again: string
+        cancel: string
+        close: string
+        commentLabel: string
+        commentPlaceholder: string
+        done: string
+        errors: {
+          failed: string
+          noSubscription: string
+          tooMany: string
+        }
+        found: string
+        keeps: string
+        keepsTitle: string
+        kinds: {
+          app: string
+          site: string
+        }
+        next: string
+        nothing: string
+        open: string
+        pick: string
+        recordHint: {
+          app: string
+          site: string
+        }
+        recording: string
+        send: string
+        sends: string
+        sendsTitle: string
+        sent: string
+        sentTitle: string
+        start: string
+        step: string
+        summary: string
+        support: string
+        title: string
+        titleLabel: {
+          app: string
+          site: string
+        }
+        titlePlaceholder: {
+          app: string
+          site: string
+        }
+        what: string
+      }
       servers: {
         auto: string
         autoHint: string
@@ -387,6 +435,8 @@ export interface TranslationResources {
         legend: string
         mid: string
         noAnswer: string
+        or: string
+        report: string
         services: string
         slow: string
         support: string
