@@ -461,6 +461,92 @@ FunctionEnd
   !include "{{this}}"
 {{/each}}
 
+; OrigamiVPN shares the TUN service name with Clash Verge, so the two cannot be installed together.
+LangString OrigamiRemoveClashVerge ${LANG_ENGLISH} "Clash Verge is installed on this computer. It conflicts with OrigamiVPN because both use the same system service.$\r$\n$\r$\nUninstall Clash Verge now?"
+LangString OrigamiRemoveClashVerge ${LANG_RUSSIAN} "На компьютере установлен Clash Verge. Он мешает работе OrigamiVPN: у них общая системная служба.$\r$\n$\r$\nУдалить Clash Verge сейчас?"
+LangString OrigamiRemoveClashVerge ${LANG_SIMPCHINESE} "Clash Verge is installed on this computer. It conflicts with OrigamiVPN because both use the same system service.$\r$\n$\r$\nUninstall Clash Verge now?"
+LangString OrigamiKeepClashVerge ${LANG_ENGLISH} "OrigamiVPN will be installed, but its service will not work until Clash Verge is uninstalled."
+LangString OrigamiKeepClashVerge ${LANG_RUSSIAN} "OrigamiVPN будет установлен, но его служба не заработает, пока не удалён Clash Verge."
+LangString OrigamiKeepClashVerge ${LANG_SIMPCHINESE} "OrigamiVPN will be installed, but its service will not work until Clash Verge is uninstalled."
+
+; Sets $R9 to the uninstall command and $R7/$R6 to the root/subkey of an installed Clash Verge.
+!macro OrigamiScanUninstall ROOT
+  StrCpy $R1 0
+  ${Do}
+    EnumRegKey $R2 ${ROOT} "Software\Microsoft\Windows\CurrentVersion\Uninstall" $R1
+    ${If} $R2 == ""
+      ${Break}
+    ${EndIf}
+    ReadRegStr $R3 ${ROOT} "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R2" "DisplayName"
+    ${If} $R3 == "Clash Verge"
+    ${OrIf} $R3 == "Clash Verge Rev"
+    ${OrIf} $R3 == "clash-verge"
+      ReadRegStr $R4 ${ROOT} "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R2" "QuietUninstallString"
+      ${If} $R4 == ""
+        ReadRegStr $R4 ${ROOT} "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R2" "UninstallString"
+        StrCpy $R5 $R4 7
+        ${If} $R5 == "MsiExec"
+          StrCpy $R4 "$R4 /qn"
+        ${ElseIf} $R4 != ""
+          StrCpy $R4 "$R4 /S"
+        ${EndIf}
+      ${EndIf}
+      ${If} $R4 != ""
+        StrCpy $R9 $R4
+        StrCpy $R7 "${ROOT}"
+        StrCpy $R6 $R2
+        ${Break}
+      ${EndIf}
+    ${EndIf}
+    IntOp $R1 $R1 + 1
+  ${Loop}
+!macroend
+
+Function OrigamiRemoveClashVerge
+  ${If} $PassiveMode = 1
+  ${OrIf} $UpdateMode = 1
+    Return
+  ${EndIf}
+
+  StrCpy $R9 ""
+  SetRegView 64
+  !insertmacro OrigamiScanUninstall HKLM
+  ${If} $R9 == ""
+    !insertmacro OrigamiScanUninstall HKCU
+  ${EndIf}
+  ${If} $R9 == ""
+    SetRegView 32
+    !insertmacro OrigamiScanUninstall HKLM
+  ${EndIf}
+  ${If} $R9 == ""
+    Return
+  ${EndIf}
+
+  MessageBox MB_YESNO|MB_ICONQUESTION "$(OrigamiRemoveClashVerge)" /SD IDNO IDYES origami_remove
+  MessageBox MB_OK|MB_ICONINFORMATION "$(OrigamiKeepClashVerge)" /SD IDOK
+  Return
+
+  origami_remove:
+  DetailPrint "Uninstalling Clash Verge: $R9"
+  ExecWait $R9
+
+  ; NSIS uninstallers re-launch from a temp copy, so wait until the uninstall entry is gone.
+  StrCpy $R1 0
+  ${Do}
+    ${If} $R7 == "HKLM"
+      ReadRegStr $R3 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R6" "DisplayName"
+    ${Else}
+      ReadRegStr $R3 HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\$R6" "DisplayName"
+    ${EndIf}
+    ${If} $R3 == ""
+    ${OrIf} $R1 >= 120
+      ${Break}
+    ${EndIf}
+    Sleep 500
+    IntOp $R1 $R1 + 1
+  ${Loop}
+FunctionEnd
+
 Function .onInit
   ${GetOptions} $CMDLINE "/P" $PassiveMode
   ${IfNot} ${Errors}
@@ -903,6 +989,8 @@ Section Install
 
   !include "Win\RestartManager.nsh"
   !insertmacro CheckIfAppIsRunning "${MAINBINARYNAME}.exe" "${PRODUCTNAME}"
+  Call OrigamiRemoveClashVerge
+  !insertmacro SetContext
   !insertmacro CheckAllVergeProcesses
 
   ; Ensure startup folders exist
