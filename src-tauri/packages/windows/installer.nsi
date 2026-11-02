@@ -1047,6 +1047,18 @@ Section Install
 
   !insertmacro StartVergeService
 
+  ; OrigamiVPN connects in TUN mode, which needs the service, so it is registered here (the
+  ; installer already runs elevated) instead of on the first connect. --ensure-service keeps an
+  ; up-to-date registration and only starts it. Not fatal: the app can still install it later.
+  !ifdef MIHOMO_SHA256
+  !ifdef MIHOMO_ALPHA_SHA256
+    DetailPrint "Installing ${PRODUCTNAME} Service..."
+    nsExec::ExecToLog '"$INSTDIR\resources\clash-verge-service-install.exe" --ensure-service --install-core "$INSTDIR\verge-mihomo.exe" --sha256 "${MIHOMO_SHA256}" --install-core "$INSTDIR\verge-mihomo-alpha.exe" --sha256 "${MIHOMO_ALPHA_SHA256}"'
+    Pop $0
+    ${IfThen} $0 != 0 ${|} DetailPrint "Service install returned $0" ${|}
+  !endif
+  !endif
+
   ; Create file associations
   {{#each file_associations as |association| ~}}
     {{#each association.ext as |ext| ~}}

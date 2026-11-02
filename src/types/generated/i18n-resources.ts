@@ -293,7 +293,6 @@ export interface TranslationResources {
           support: string
         }
         mode: {
-          firstConnectHint: string
           label: string
           proxy: string
           proxyHint: string
@@ -311,6 +310,10 @@ export interface TranslationResources {
           timeout: string
           title: string
           via: string
+        }
+        service: {
+          install: string
+          missing: string
         }
         speed: {
           down: string

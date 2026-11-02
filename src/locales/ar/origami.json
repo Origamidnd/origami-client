@@ -19,8 +19,7 @@
       "tun": "Whole computer",
       "proxyHint": "The browser and apps that use the system proxy go through the VPN.",
       "tunHint": "All traffic of the computer goes through the VPN, including games and messengers.",
-      "tunServiceHint": "This mode needs the OrigamiVPN service; you will be offered to install it when connecting.",
-      "firstConnectHint": "On the first connection the system asks for administrator permission to install the OrigamiVPN service."
+      "tunServiceHint": "This mode needs the OrigamiVPN service; you will be offered to install it when connecting."
     },
     "subscription": {
       "title": "Subscription",
@@ -58,6 +57,10 @@
     "announce": {
       "support": "Contact support",
       "dismiss": "Hide message"
+    },
+    "service": {
+      "missing": "The OrigamiVPN service is not installed. The VPN cannot start without it: it routes all of the computer's traffic through the protected connection.",
+      "install": "Install service"
     }
   },
   "welcome": {

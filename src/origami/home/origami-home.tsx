@@ -15,6 +15,7 @@ import { useAppRefreshers } from '@/providers/app-data-context'
 import { updateProfile } from '@/services/cmds'
 import { mutate } from '@/services/mutate'
 import { showNotice } from '@/services/notice-service'
+import { requestService } from '@/services/service-request'
 import { openExternalUrl } from '@/utils/open-external-url'
 import parseTraffic from '@/utils/parse-traffic'
 
@@ -102,8 +103,22 @@ const ConnectPlate = () => {
       ) : (
         mode === 'tun' &&
         tunNeedsService &&
-        !connected && (
-          <p className="o-hint">{t('origami.home.mode.firstConnectHint')}</p>
+        !isLoading && (
+          <div className="o-service-warn" role="alert">
+            <p>{t('origami.home.service.missing')}</p>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() =>
+                requestService({
+                  reason: 'tunNeedsService',
+                  restore: { enable_tun_mode: true },
+                })
+              }
+            >
+              {t('origami.home.service.install')}
+            </Button>
+          </div>
         )
       )}
     </section>
