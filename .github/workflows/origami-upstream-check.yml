@@ -1,0 +1,64 @@
+name: OrigamiVPN upstream check
+
+# Раз в неделю сверяет последние версии Mihomo и Clash Verge Rev с .github/origami-upstream.json.
+# Если вышло новое, запуск завершается с ошибкой: GitHub присылает письмо «Run failed»,
+# а в сводке запуска написано, что вышло и что делать. После выпуска нашей версии
+# с этими обновлениями версии в .github/origami-upstream.json поднимаем вручную.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: origami
+
+      - name: Compare versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          STATE=.github/origami-upstream.json
+          OUR_MIHOMO=$(jq -r .mihomo "$STATE")
+          OUR_CV=$(jq -r .clashVerge "$STATE")
+          MIHOMO=$(curl -fsSL https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt | tr -d '[:space:]')
+          CV=$(gh release view -R clash-verge-rev/clash-verge-rev --json tagName -q .tagName)
+          if [ -z "$MIHOMO" ] || [ -z "$CV" ]; then
+            echo "::error::Не удалось узнать версии апстрима"
+            exit 1
+          fi
+          echo "mihomo: $OUR_MIHOMO -> $MIHOMO, clash verge: $OUR_CV -> $CV"
+
+          if [ "$MIHOMO" = "$OUR_MIHOMO" ] && [ "$CV" = "$OUR_CV" ]; then
+            echo "Новых версий нет: Mihomo $MIHOMO, Clash Verge Rev $CV." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          {
+            echo "## Вышли новые версии апстрима"
+            echo
+            if [ "$MIHOMO" != "$OUR_MIHOMO" ]; then
+              echo "**Mihomo: $OUR_MIHOMO -> $MIHOMO** ([что нового](https://github.com/MetaCubeX/mihomo/releases/tag/$MIHOMO))"
+              echo
+              echo "Каждая сборка берёт последнее ядро сама: достаточно выпустить новую версию OrigamiVPN (тег v*)."
+              echo
+            fi
+            if [ "$CV" != "$OUR_CV" ]; then
+              echo "**Clash Verge Rev: $OUR_CV -> $CV** ([что нового](https://github.com/clash-verge-rev/clash-verge-rev/releases/tag/$CV))"
+              echo
+              echo "Перенести исправления по разделу «Обновление с апстрима» в ORIGAMI.md, проверить наши изменения, выпустить версию."
+              echo
+            fi
+            echo "После выпуска поднять версии в \`.github/origami-upstream.json\`, тогда проверка снова станет зелёной."
+          } >> "$GITHUB_STEP_SUMMARY"
+          [ "$MIHOMO" != "$OUR_MIHOMO" ] && echo "::warning::Новый Mihomo $MIHOMO (у нас $OUR_MIHOMO)"
+          [ "$CV" != "$OUR_CV" ] && echo "::warning::Новый Clash Verge Rev $CV (у нас $OUR_CV)"
+          exit 1
