@@ -7,14 +7,15 @@ import { requestService } from '@/services/service-request'
 
 export type ConnectMode = 'proxy' | 'tun'
 
+// Most people need the whole computer behind the VPN, so TUN is the default.
 const MODE_KEY = 'origami.connectMode'
 const listeners = new Set<() => void>()
 
 const readMode = (): ConnectMode => {
   try {
-    return localStorage.getItem(MODE_KEY) === 'tun' ? 'tun' : 'proxy'
+    return localStorage.getItem(MODE_KEY) === 'proxy' ? 'proxy' : 'tun'
   } catch {
-    return 'proxy'
+    return 'tun'
   }
 }
 

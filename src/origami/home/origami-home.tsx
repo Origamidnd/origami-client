@@ -21,6 +21,7 @@ import parseTraffic from '@/utils/parse-traffic'
 import { useExpertMode } from '../expert-mode'
 import { ORIGAMI_LINKS } from '../links'
 
+import { AnnouncePlate } from './announce-plate'
 import { ServerPlate } from './server-plate'
 import { type ConnectMode, useConnection } from './use-connection'
 
@@ -30,6 +31,7 @@ const formatBytes = (value: number) => parseTraffic(value).join(' ')
 
 const ConnectPlate = () => {
   const { t } = useTranslation()
+  const expert = useExpertMode()
   const {
     mode,
     connected,
@@ -65,31 +67,41 @@ const ConnectPlate = () => {
           {connected ? t('origami.home.power.on') : t('origami.home.power.off')}
         </span>
       </button>
-      <div
-        className="o-seg"
-        role="radiogroup"
-        aria-label={t('origami.home.mode.label')}
-      >
-        {modes.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="radio"
-            aria-checked={mode === item.id}
-            className={mode === item.id ? 'is-on' : undefined}
-            onClick={() => run(() => changeMode(item.id))}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-      <p className="o-hint">
-        {mode === 'tun'
-          ? tunNeedsService
-            ? t('origami.home.mode.tunServiceHint')
-            : t('origami.home.mode.tunHint')
-          : t('origami.home.mode.proxyHint')}
-      </p>
+      {expert && (
+        <div
+          className="o-seg"
+          role="radiogroup"
+          aria-label={t('origami.home.mode.label')}
+        >
+          {modes.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="radio"
+              aria-checked={mode === item.id}
+              className={mode === item.id ? 'is-on' : undefined}
+              onClick={() => run(() => changeMode(item.id))}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {expert ? (
+        <p className="o-hint">
+          {mode === 'tun'
+            ? tunNeedsService
+              ? t('origami.home.mode.tunServiceHint')
+              : t('origami.home.mode.tunHint')
+            : t('origami.home.mode.proxyHint')}
+        </p>
+      ) : (
+        mode === 'tun' &&
+        tunNeedsService &&
+        !connected && (
+          <p className="o-hint">{t('origami.home.mode.firstConnectHint')}</p>
+        )
+      )}
     </section>
   )
 }
@@ -244,6 +256,7 @@ const OrigamiHomePage = () => {
   return (
     <BasePage title={t('layout.components.navigation.tabs.home')}>
       <div className="o-home">
+        <AnnouncePlate />
         <div className="o-home__grid">
           <ConnectPlate />
           <div className="o-home__side">

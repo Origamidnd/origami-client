@@ -5,6 +5,7 @@ import {
 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 
+import { useProfiles } from '@/hooks/use-profiles'
 import { openExternalUrl } from '@/utils/open-external-url'
 
 import { setExpertMode, useExpertMode } from './expert-mode'
@@ -13,6 +14,8 @@ import { ORIGAMI_LINKS } from './links'
 export const OrigamiSidebarFooter = () => {
   const { t } = useTranslation()
   const expert = useExpertMode()
+  const { current } = useProfiles()
+  const supportUrl = current?.support ?? ORIGAMI_LINKS.support
 
   return (
     <div className="origami-nav-footer">
@@ -28,7 +31,7 @@ export const OrigamiSidebarFooter = () => {
       <button
         type="button"
         className="origami-nav-footer__item"
-        onClick={() => void openExternalUrl(ORIGAMI_LINKS.support)}
+        onClick={() => void openExternalUrl(supportUrl)}
       >
         <Telegram fontSize="small" />
         <span>{t('origami.nav.support')}</span>

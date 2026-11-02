@@ -265,7 +265,12 @@ export interface TranslationResources {
     }
     origami: {
       home: {
+        announce: {
+          dismiss: string
+          support: string
+        }
         mode: {
+          firstConnectHint: string
           label: string
           proxy: string
           proxyHint: string

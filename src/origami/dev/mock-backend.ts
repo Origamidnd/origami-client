@@ -93,6 +93,9 @@ const profiles = {
         expire: Math.floor(Date.now() / 1000) + 23 * DAY - 3600,
       },
       home: 'https://lk.origamivpn.pro',
+      announce:
+        'Плановые работы на сервере Нидерланды 5 ноября с 03:00 до 04:00 МСК. Остальные серверы работают как обычно.',
+      support: 'https://t.me/Origami_Dragons',
       selected: [{ name: 'OrigamiVPN', now: servers[0][0] }],
     },
   ],

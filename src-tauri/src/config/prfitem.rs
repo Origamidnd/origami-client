@@ -27,6 +27,24 @@ pub(super) fn normalize_profile_home_url(raw: &str) -> Option<String> {
     Some(url.to_string().into())
 }
 
+const ANNOUNCE_MAX_CHARS: usize = 500;
+
+/// Decodes the `announce` header: plain text or `base64:<utf-8 text>`.
+pub(super) fn decode_announce(raw: &str) -> Option<String> {
+    use base64::{Engine as _, engine::general_purpose::STANDARD};
+
+    let raw = raw.trim();
+    let text = match raw.strip_prefix("base64:") {
+        Some(encoded) => std::string::String::from_utf8(STANDARD.decode(encoded.trim()).ok()?).ok()?,
+        None => raw.to_owned(),
+    };
+    let text = text.trim();
+    if text.is_empty() {
+        return None;
+    }
+    Some(text.chars().take(ANNOUNCE_MAX_CHARS).collect::<std::string::String>().into())
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct PrfItem {
     pub uid: Option<String>,
@@ -61,6 +79,14 @@ pub struct PrfItem {
 
     #[serde(skip_serializing_if = "Option::is_none")]
     pub home: Option<String>,
+
+    /// Message from the provider (`announce` subscription header).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub announce: Option<String>,
+
+    /// Support link from the provider (`support-url` subscription header).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub support: Option<String>,
 
     #[serde(skip)]
     pub file_data: Option<String>,
@@ -233,6 +259,8 @@ impl PrfItem {
                 ..PrfOption::default()
             }),
             home: None,
+            announce: None,
+            support: None,
             updated: Some(chrono::Local::now().timestamp() as usize),
             file_data: Some(file_data.unwrap_or_else(|| tmpl::ITEM_LOCAL.into())),
         })
@@ -351,6 +379,14 @@ impl PrfItem {
             .get("profile-web-page-url")
             .and_then(|value| value.to_str().ok())
             .and_then(normalize_profile_home_url);
+        let announce = header
+            .get("announce")
+            .and_then(|value| value.to_str().ok())
+            .and_then(decode_announce);
+        let support = header
+            .get("support-url")
+            .and_then(|value| value.to_str().ok())
+            .and_then(normalize_profile_home_url);
 
         let uid = help::get_uid("R").into();
         let file = format!("{uid}.yaml").into();
@@ -414,6 +450,8 @@ impl PrfItem {
                 ..PrfOption::default()
             }),
             home,
+            announce,
+            support,
             updated: Some(chrono::Local::now().timestamp() as usize),
             file_data: Some(data.into()),
         })
@@ -562,4 +600,20 @@ fn fix_dirty_url(input: &str) -> Result<Url> {
     }
 
     Ok(url)
+}
+
+#[cfg(test)]
+mod announce_tests {
+    use super::decode_announce;
+
+    #[test]
+    fn decodes_plain_and_base64_announce() {
+        assert_eq!(decode_announce(" Plain text ").as_deref(), Some("Plain text"));
+        assert_eq!(
+            decode_announce("base64:0J/RgNC40LLQtdGC").as_deref(),
+            Some("\u{41f}\u{440}\u{438}\u{432}\u{435}\u{442}")
+        );
+        assert_eq!(decode_announce("base64:%%%"), None);
+        assert_eq!(decode_announce("   "), None);
+    }
 }

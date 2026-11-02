@@ -238,6 +238,8 @@ interface IProfileItem {
   }
   option?: IProfileOption
   home?: string
+  announce?: string
+  support?: string
 }
 
 interface IProfileOption {
