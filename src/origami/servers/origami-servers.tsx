@@ -20,13 +20,7 @@ import { useVerge } from '@/hooks/use-verge'
 import { useAppRefreshers, useProxiesData } from '@/providers/app-data-context'
 import delayManager from '@/services/delay'
 import { showNotice } from '@/services/notice-service'
-import {
-  resolveMember,
-  type InteractableProxyMember,
-  type ProxyGroupView,
-  type ProxyNodeView,
-  type ProxyViewV1,
-} from '@/types/proxy-view'
+import type { ProxyNodeView, ProxyViewV1 } from '@/types/proxy-view'
 import { DEFAULT_DELAY_TIMEOUT } from '@/utils/delay'
 import { openExternalUrl } from '@/utils/open-external-url'
 
@@ -34,6 +28,12 @@ import { ORIGAMI_LINKS } from '../links'
 import { ReportDialog } from '../report/report-dialog'
 import type { FocusGroupState } from '../use-focus-group'
 
+import {
+  pendingSwitches,
+  setVariantPinned,
+  useApplySwitches,
+  usePinnedVariants,
+} from './auto-variant'
 import {
   countryAnswers,
   fastestVariant,
@@ -45,12 +45,19 @@ import {
   type CountryOption,
   type ServerCategory,
 } from './model'
+import {
+  buildServices,
+  CHECK_KEY,
+  isServer,
+  memberName,
+  readDelay,
+  serverLabel,
+  serverOptions,
+  type Service,
+} from './services'
 
-// Delays measured here are kept under one key, separate from the stock page's groups.
-const CHECK_KEY = 'origami-servers'
 const CHECKED_AT_KEY = 'origami.serversCheckedAt'
 const RECHECK_AFTER_MS = 5 * 60 * 1000
-const AUTO_TYPES = new Set(['URLTest', 'Fallback', 'LoadBalance'])
 
 const readCheckedAt = () => {
   try {
@@ -67,63 +74,6 @@ const writeCheckedAt = (value: number) => {
   } catch {
     // Without storage the page simply checks again next time.
   }
-}
-
-interface Service {
-  group: ProxyGroupView
-  auto?: ProxyGroupView
-  direct?: ProxyNodeView
-  servers: InteractableProxyMember[]
-}
-
-const buildServices = (view: ProxyViewV1): Service[] =>
-  view.groups
-    .filter((group) => !group.hidden && group.type === 'Selector')
-    .map((group) => {
-      const service: Service = { group, servers: [] }
-      for (const ref of group.members) {
-        const member = resolveMember(view, ref)
-        if (member.kind === 'unresolved') continue
-        if (member.kind === 'group') {
-          if (AUTO_TYPES.has(member.group.type)) service.auto ??= member.group
-          else service.servers.push(member)
-        } else if (member.node.type === 'Direct') {
-          service.direct ??= member.node
-        } else {
-          service.servers.push(member)
-        }
-      }
-      return service
-    })
-
-const memberName = (member: InteractableProxyMember) => member.ref.name
-
-// Built-in outbounds have no server behind them, so they are not pinged or counted.
-const NOT_SERVERS = new Set([
-  'Direct',
-  'Reject',
-  'RejectDrop',
-  'Pass',
-  'Dns',
-  'Compatible',
-])
-
-// "🔷 🇪🇪 Эстония (Hysteria2)" -> "Эстония (Hysteria2)" for notices.
-const serverLabel = (name: string) =>
-  name.replace(/^[^\p{L}\p{N}]+/u, '').trim() || name
-
-const memberType = (member: InteractableProxyMember) =>
-  member.kind === 'node' ? member.node.type : member.group.type
-
-/** null when the server did not answer, undefined when it was not checked yet. */
-const readDelay = (
-  member: InteractableProxyMember,
-): number | null | undefined => {
-  const delay = delayManager.getDelayFix(member, CHECK_KEY)
-  if (delay === -2) return undefined
-  if (delay < 0) return undefined
-  if (delay === 0 || delay >= DEFAULT_DELAY_TIMEOUT) return null
-  return delay
 }
 
 const nodeByName = (view: ProxyViewV1, name: string) =>
@@ -194,6 +144,8 @@ export const OrigamiServers = () => {
     onSuccess: () => void refreshProxy(),
     onError: () => void refreshProxy(),
   })
+  const applySwitches = useApplySwitches()
+  const pinned = usePinnedVariants()
 
   const runCheck = useLockFn(async () => {
     const seen = new Set<string>()
@@ -202,7 +154,7 @@ export const OrigamiServers = () => {
       .filter((member) => {
         if (seen.has(memberName(member))) return false
         seen.add(memberName(member))
-        return member.kind === 'node' && !NOT_SERVERS.has(member.node.type)
+        return isServer(member)
       })
     if (servers.length === 0) return
     setChecking(true)
@@ -216,6 +168,7 @@ export const OrigamiServers = () => {
       const now = Date.now()
       writeCheckedAt(now)
       setCheckedAt(now)
+      applySwitches(pendingSwitches(services))
       // Name the silent ones: a country row shows its best variant, so a bare count looked wrong.
       const dead = servers
         .filter((member) => readDelay(member) === null)
@@ -283,13 +236,7 @@ export const OrigamiServers = () => {
 
   const title = serviceTitle(service.group.name)
   const isGames = /игр/i.test(title.title)
-  const countries = groupCountries(
-    service.servers.map((member) => ({
-      name: memberName(member),
-      type: memberType(member),
-      delay: readDelay(member),
-    })),
-  )
+  const countries = groupCountries(serverOptions(service))
   const now = service.group.now
   const autoNode = service.auto?.now
     ? nodeByName(proxyView, service.auto.now)
@@ -350,13 +297,31 @@ export const OrigamiServers = () => {
                   type="button"
                   className={`o-srv__chip${option.name === now ? ' is-on' : ''}`}
                   aria-pressed={option.name === now}
-                  onClick={() => choose(option.name, label(option.variant))}
+                  onClick={() => {
+                    // A variant picked by hand stays; automatic switching skips this country.
+                    setVariantPinned(country.base, true)
+                    choose(option.name, label(option.variant))
+                  }}
                 >
                   {option.variant}
-                  <Ping delay={option.delay} checking={checking} unit={false} />
+                  <Ping delay={option.delay} checking={checking} />
                 </button>
               ))}
             </div>
+            <label className="o-srv__auto">
+              <input
+                type="checkbox"
+                checked={!pinned.has(country.base)}
+                onChange={(event) => {
+                  const auto = event.target.checked
+                  setVariantPinned(country.base, !auto)
+                  if (auto && best.name !== now) {
+                    choose(best.name, label(best.variant))
+                  }
+                }}
+              />
+              {t('origami.servers.autoVariant')}
+            </label>
           </div>
         )}
       </div>

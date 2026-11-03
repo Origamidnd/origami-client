@@ -1052,6 +1052,28 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     margin-top: 6px;
   }
 
+  &__auto {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--o-muted);
+    cursor: pointer;
+
+    input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--o-action);
+      cursor: pointer;
+    }
+
+    &:hover {
+      color: var(--o-ink);
+    }
+  }
+
   &__chip {
     padding: 4px 9px;
     border: 1.5px solid var(--o-crease);

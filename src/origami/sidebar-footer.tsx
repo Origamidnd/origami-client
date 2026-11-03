@@ -15,6 +15,7 @@ import { openExternalUrl } from '@/utils/open-external-url'
 
 import { setExpertMode, useExpertMode } from './expert-mode'
 import { ORIGAMI_LINKS } from './links'
+import { useAutoVariantWatch } from './servers/auto-variant'
 import { useExpiryReminder } from './use-expiry-reminder'
 
 // Replaces the stock red "New" badge that sat on top of the logo.
@@ -45,6 +46,7 @@ export const OrigamiSidebarFooter = () => {
   const expert = useExpertMode()
   // The sidebar is always mounted while the window is open, so it hosts background reminders.
   useExpiryReminder()
+  useAutoVariantWatch()
   const { current } = useProfiles()
   const supportUrl = current?.support ?? ORIGAMI_LINKS.support
 

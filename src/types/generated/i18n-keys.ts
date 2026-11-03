@@ -319,6 +319,8 @@ export const translationKeys = [
   'origami.servers.chosen',
   'origami.servers.report',
   'origami.servers.or',
+  'origami.servers.autoVariant',
+  'origami.servers.autoVariantSwitched',
   'origami.report.open',
   'origami.report.title',
   'origami.report.step',

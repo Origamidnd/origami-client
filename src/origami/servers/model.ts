@@ -115,6 +115,31 @@ export const fastestVariant = (country: CountryOption): ServerOption => {
   )
 }
 
+// A faster variant must win clearly, so small ping jitter does not flip the connection back and forth.
+const SWITCH_SHARE = 0.7
+const SWITCH_MIN_GAIN_MS = 20
+
+/**
+ * The variant to move to when automatic switching is on for this country, or null to stay:
+ * the current one went silent and another answers, or another is clearly faster.
+ */
+export const variantToSwitch = (
+  country: CountryOption,
+  currentName: string,
+): ServerOption | null => {
+  const current = country.variants.find((option) => option.name === currentName)
+  if (!current || country.variants.length < 2) return null
+  const best = fastestVariant(country)
+  if (best.name === current.name || !isAlive(best)) return null
+  if (current.delay === undefined) return null
+  if (!isAlive(current)) return best
+  const now = current.delay as number
+  const next = best.delay as number
+  return next <= now * SWITCH_SHARE && now - next >= SWITCH_MIN_GAIN_MS
+    ? best
+    : null
+}
+
 export const countryAnswers = (country: CountryOption) =>
   country.variants.some((option) => option.delay !== null)
 

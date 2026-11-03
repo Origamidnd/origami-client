@@ -6,6 +6,7 @@ import {
   parseServerName,
   pingLevel,
   serviceTitle,
+  variantToSwitch,
 } from './model'
 
 describe('parseServerName', () => {
@@ -100,5 +101,37 @@ describe('serviceTitle', () => {
       title: 'Новая группа',
       hint: undefined,
     })
+  })
+})
+
+describe('variantToSwitch', () => {
+  const sweden = (plain: number | null | undefined, xhttp: number | null) => ({
+    base: 'Швеция',
+    category: 'main' as const,
+    variants: [
+      { name: 'SE', variant: 'Обычный', delay: plain },
+      { name: 'SE xHTTP', variant: 'xHTTP', delay: xhttp },
+    ],
+  })
+
+  it('leaves a working variant alone when the other is only a bit faster', () => {
+    expect(variantToSwitch(sweden(60, 50), 'SE')).toBeNull()
+  })
+
+  it('moves to a clearly faster variant', () => {
+    expect(variantToSwitch(sweden(120, 60), 'SE')?.name).toBe('SE xHTTP')
+  })
+
+  it('moves away from a silent variant to one that answers', () => {
+    expect(variantToSwitch(sweden(null, 300), 'SE')?.name).toBe('SE xHTTP')
+  })
+
+  it('stays when nothing answers or the current one was not checked', () => {
+    expect(variantToSwitch(sweden(null, null), 'SE')).toBeNull()
+    expect(variantToSwitch(sweden(undefined, 40), 'SE')).toBeNull()
+  })
+
+  it('stays when the current server is not in this country', () => {
+    expect(variantToSwitch(sweden(200, 40), 'DE')).toBeNull()
   })
 })

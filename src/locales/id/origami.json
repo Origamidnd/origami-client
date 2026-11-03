@@ -194,7 +194,7 @@
     "tipVariant": "Not loading? Try another connection variant of the same country.",
     "variant": "Connection variant",
     "variantHelpLabel": "How variants differ",
-    "variantHelp": "Choosing a country takes its fastest variant. Pick another one if this does not load. Hysteria2 is for games and calls.",
+    "variantHelp": "Choosing a country takes its fastest variant. While automatic switching is on, the app moves to another variant when this one stops answering or becomes clearly slower. Click a variant to keep it. Hysteria2 is for games and calls.",
     "blocks": {
       "main": "MAIN",
       "mainHint": "Powerful servers for every day: sites, video, messengers",
@@ -212,7 +212,9 @@
     "support": "write to support",
     "chosen": "{{service}}: {{server}}. Other services stay as they were",
     "report": "report the block to me",
-    "or": "or"
+    "or": "or",
+    "autoVariant": "Switch to the fastest variant automatically",
+    "autoVariantSwitched": "{{service}}: switched to {{server}}, it is faster now"
   },
   "report": {
     "open": "A site or game not working?",

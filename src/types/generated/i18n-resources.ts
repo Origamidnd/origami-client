@@ -415,6 +415,8 @@ export interface TranslationResources {
         autoNow: string
         autoShort: string
         autoTitle: string
+        autoVariant: string
+        autoVariantSwitched: string
         blocks: {
           extra: string
           extraHint: string
