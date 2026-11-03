@@ -1,9 +1,4 @@
-import {
-  BoltRounded,
-  HelpOutlineRounded,
-  LinkOffRounded,
-  RefreshRounded,
-} from '@mui/icons-material'
+import { HelpOutlineRounded, RefreshRounded } from '@mui/icons-material'
 import { Button, Tooltip } from '@mui/material'
 import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
@@ -50,7 +45,7 @@ import {
   type CountryOption,
   type ServerCategory,
 } from './model'
-import { ServiceIcon } from './service-icon'
+import { GlyphTile, ServiceIcon } from './service-icon'
 import {
   buildServices,
   CHECK_KEY,
@@ -390,27 +385,29 @@ export const OrigamiServers = () => {
                     aria-current={item === service}
                     onClick={() => setSelected(item.group.name)}
                   >
-                    <b>
-                      <ServiceIcon groupName={item.group.name} />
-                      {info.title}
-                    </b>
-                    <span className="o-hint">
-                      {typeof state === 'string' ? (
-                        state
-                      ) : (
-                        <>
-                          {state.label}
-                          {state.node && !checking && nodeDelay(state.node) ? (
-                            <>
-                              {' '}
-                              ·{' '}
-                              {t('origami.home.server.ping', {
-                                ms: nodeDelay(state.node),
-                              })}
-                            </>
-                          ) : null}
-                        </>
-                      )}
+                    <ServiceIcon groupName={item.group.name} />
+                    <span className="o-srv__service-text">
+                      <b>{info.title}</b>
+                      <span className="o-hint">
+                        {typeof state === 'string' ? (
+                          state
+                        ) : (
+                          <>
+                            {state.label}
+                            {state.node &&
+                            !checking &&
+                            nodeDelay(state.node) ? (
+                              <>
+                                {' '}
+                                ·{' '}
+                                {t('origami.home.server.ping', {
+                                  ms: nodeDelay(state.node),
+                                })}
+                              </>
+                            ) : null}
+                          </>
+                        )}
+                      </span>
                     </span>
                   </button>
                 </Tooltip>
@@ -420,7 +417,7 @@ export const OrigamiServers = () => {
 
           <section className="o-plate o-srv__pick" aria-live="polite">
             <div className="o-srv__label">
-              <ServiceIcon groupName={service.group.name} />
+              <ServiceIcon groupName={service.group.name} small />
               {title.title.toUpperCase()}
             </div>
             {title.hint && <p className="o-srv__block-hint">{title.hint}</p>}
@@ -435,7 +432,7 @@ export const OrigamiServers = () => {
                   choose(service.auto.name, t('origami.servers.auto'))
                 }
               >
-                <BoltRounded className="o-srv__icon" aria-hidden="true" />
+                <GlyphTile glyph="auto" />
                 <span className="o-srv__opt-text">
                   {t('origami.servers.autoTitle')}
                   <small>
@@ -460,7 +457,7 @@ export const OrigamiServers = () => {
                   choose(service.direct.name, t('origami.servers.direct'))
                 }
               >
-                <LinkOffRounded className="o-srv__icon" aria-hidden="true" />
+                <GlyphTile glyph="direct" />
                 <span className="o-srv__opt-text">
                   {t('origami.servers.direct')}
                   <small>{t('origami.servers.directHint')}</small>

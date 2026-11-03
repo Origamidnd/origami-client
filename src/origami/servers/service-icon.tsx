@@ -1,37 +1,31 @@
-import {
-  AccountBalanceRounded,
-  AutoAwesomeRounded,
-  CategoryRounded,
-  HeadsetMicRounded,
-  LanguageRounded,
-  LiveTvRounded,
-  LockOpenRounded,
-  MusicNoteRounded,
-  SearchRounded,
-  SendRounded,
-  SmartDisplayRounded,
-  SportsEsportsRounded,
-} from '@mui/icons-material'
-import type { ReactElement } from 'react'
+import type { CSSProperties } from 'react'
 
-import { serviceIconKey, type ServiceIconKey } from './service-names'
+import { GLYPHS, type GlyphKey } from './service-glyphs'
+import { GLYPH_HUES, serviceIconKey } from './service-names'
 
-const props = { className: 'o-srv__icon', 'aria-hidden': true } as const
+/** Origami tile: a glyph on a soft square in the category colour, with a folded top corner. */
+export const GlyphTile = ({
+  glyph,
+  small = false,
+}: {
+  glyph: GlyphKey
+  small?: boolean
+}) => (
+  <span
+    className={`o-tile${small ? ' o-tile--small' : ''}`}
+    style={{ '--o-tile-hue': GLYPH_HUES[glyph] } as CSSProperties}
+    aria-hidden="true"
+  >
+    <svg viewBox="0 0 256 256" fill="currentColor">
+      <path d={GLYPHS[glyph]} />
+    </svg>
+  </span>
+)
 
-const ICONS: Record<ServiceIconKey, ReactElement> = {
-  other: <LanguageRounded {...props} />,
-  blocked: <LockOpenRounded {...props} />,
-  youtube: <SmartDisplayRounded {...props} />,
-  discord: <HeadsetMicRounded {...props} />,
-  telegram: <SendRounded {...props} />,
-  games: <SportsEsportsRounded {...props} />,
-  music: <MusicNoteRounded {...props} />,
-  twitch: <LiveTvRounded {...props} />,
-  ai: <AutoAwesomeRounded {...props} />,
-  google: <SearchRounded {...props} />,
-  russia: <AccountBalanceRounded {...props} />,
-  unknown: <CategoryRounded {...props} />,
-}
-
-export const ServiceIcon = ({ groupName }: { groupName: string }) =>
-  ICONS[serviceIconKey(groupName)]
+export const ServiceIcon = ({
+  groupName,
+  small,
+}: {
+  groupName: string
+  small?: boolean
+}) => <GlyphTile glyph={serviceIconKey(groupName)} small={small} />

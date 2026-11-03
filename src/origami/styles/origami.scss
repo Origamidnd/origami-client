@@ -893,7 +893,9 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 
   &__service {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
     padding: 8px 12px;
     border: 0;
@@ -908,21 +910,15 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     }
 
     b {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      display: block;
       font-weight: 500;
       font-size: 14px;
       line-height: 20px;
     }
 
-    // State line starts under the title, past the icon.
-    .o-hint {
-      padding-left: 26px;
-    }
-
-    &.is-on .o-srv__icon {
-      color: var(--o-accent);
+    &-text {
+      flex: 1;
+      min-width: 0;
     }
 
     .o-hint {
@@ -946,12 +942,6 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     padding: 4px 0 12px;
   }
 
-  &__icon {
-    flex: none;
-    font-size: 18px !important;
-    color: var(--o-muted);
-  }
-
   &__label {
     display: flex;
     align-items: center;
@@ -961,11 +951,6 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     font-size: 11px;
     letter-spacing: 0.08em;
     color: var(--o-accent);
-
-    .o-srv__icon {
-      font-size: 15px !important;
-      color: var(--o-accent);
-    }
   }
 
   &__block-hint {
@@ -993,10 +978,6 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
       background: var(--o-pale);
       box-shadow: inset 3px 0 0 var(--o-action);
     }
-  }
-
-  &__opt.is-on .o-srv__icon {
-    color: var(--o-accent);
   }
 
   &__opt {
@@ -1195,6 +1176,56 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     font: inherit;
     text-decoration: underline;
     cursor: pointer;
+  }
+}
+
+// Origami tile for category icons: soft square in the category colour with a folded top corner.
+.o-tile {
+  --o-tile-size: 28px;
+  --o-tile-fold: 8px;
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--o-tile-size);
+  height: var(--o-tile-size);
+  padding: 6px;
+  box-sizing: border-box;
+  border-radius: 6px 2px 6px 6px;
+  background: color-mix(in srgb, var(--o-tile-hue) 18%, var(--o-plate));
+  color: color-mix(in srgb, var(--o-tile-hue) 85%, var(--o-ink));
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--o-tile-fold)) 0,
+    100% var(--o-tile-fold),
+    100% 100%,
+    0 100%
+  );
+
+  // The folded-over corner.
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: var(--o-tile-fold);
+    height: var(--o-tile-fold);
+    background: color-mix(in srgb, var(--o-tile-hue) 40%, var(--o-plate));
+    clip-path: polygon(0 0, 0 100%, 100% 100%);
+    border-radius: 0 0 0 2px;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  &--small {
+    --o-tile-size: 18px;
+    --o-tile-fold: 5px;
+    padding: 3px;
+    border-radius: 4px 1px 4px 4px;
   }
 }
 
