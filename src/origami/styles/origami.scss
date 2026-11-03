@@ -29,7 +29,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
 // Sidebar
 .layout .layout-content__left {
-  border-right: 1.5px dashed var(--o-crease);
+  border-right: 1px dashed var(--o-crease);
   background: var(--o-bg);
 
   .the-menu .MuiListItemButton-root.Mui-selected,
@@ -67,36 +67,160 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
       color: var(--o-ink);
     }
 
+    > span {
+      flex: 1;
+    }
+
     &.is-on {
-      background: var(--o-pale);
       color: var(--o-ink);
+    }
+  }
+
+  // "Advanced" is a setting, so it looks like a switch, unlike the links below it.
+  &__switch {
+    position: relative;
+    flex: none;
+    width: 28px;
+    height: 16px;
+    border-radius: 8px;
+    background: var(--o-crease);
+    transition: background-color 0.2s;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--o-bg);
+      transition: transform 0.2s;
+    }
+
+    .is-on > & {
+      background: var(--o-action);
+
+      &::after {
+        transform: translateX(12px);
+      }
+    }
+  }
+
+  &__rule {
+    margin: 4px 12px;
+    border-top: 1px dashed var(--o-crease);
+  }
+
+  &__out {
+    flex: none;
+    font-size: 14px !important;
+    opacity: 0.6;
+  }
+
+  &__update {
+    margin-bottom: 4px;
+    background: var(--o-pale);
+    color: var(--o-ink);
+    font-weight: 600;
+
+    &:hover {
+      background: var(--o-pale);
+      box-shadow: inset 0 0 0 1.5px var(--o-accent);
+    }
+  }
+
+  &__dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    margin: 0 5px;
+    border-radius: 50%;
+    background: var(--o-accent);
+  }
+}
+
+// In simple mode speed is shown on the home connect plate, so the stock sidebar graph is hidden.
+:root[data-origami-expert='0'] .layout .the-traffic {
+  display: none;
+}
+
+// The update button now lives in the footer.
+.layout .the-logo .the-newbtn {
+  display: none;
+}
+
+.layout--nav-collapsed {
+  .origami-nav-footer__item > span,
+  .origami-nav-footer__switch,
+  .origami-nav-footer__out {
+    display: none;
+  }
+}
+
+// Own title bar (Windows/Linux): page colour, Windows-sized buttons, no stock divider.
+.layout .the_titlebar {
+  align-items: stretch;
+  height: 36px;
+  padding: 0;
+  border-bottom: 1px dashed var(--o-crease);
+  background: var(--o-bg);
+
+  > .MuiBox-root {
+    gap: 0;
+  }
+
+  .MuiIconButton-root {
+    width: 46px;
+    height: 100%;
+    border-radius: 0;
+    color: var(--o-muted);
+    font-size: 16px !important;
+    transition:
+      background-color 0.12s,
+      color 0.12s;
+
+    &:hover {
+      background: var(--o-chip);
+      color: var(--o-ink);
+    }
+
+    // Close keeps the familiar Windows red.
+    &:last-child:hover {
+      background: #c42b1c;
+      color: #fff;
     }
   }
 }
 
-.layout--nav-collapsed .origami-nav-footer__item span {
-  display: none;
+.linux.layout .the_titlebar .MuiIconButton-root:last-child:hover {
+  background: #c42b1c;
 }
 
 // Page titles use the display face, as on the subscription page.
 .base-page > header h2,
 .base-page > header .MuiTypography-root:first-of-type {
   font-family: $display;
+  font-size: 24px !important;
   font-weight: 800;
+  line-height: 1.1;
   letter-spacing: 0.01em;
 }
 
 // Home
+// One spacing step for the whole client: 4 / 8 / 12 / 16 / 24.
 .o-home {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 4px 4px 16px;
+  max-width: 980px;
+  padding: 4px 4px 24px;
   color: var(--o-ink);
 
+  // The connect plate only needs room for the button, the rest goes to server and subscription.
   &__grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
     gap: 12px;
 
     @media (max-width: 760px) {
@@ -108,24 +232,30 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     display: flex;
     flex-direction: column;
     gap: 12px;
+
+    > .o-sub {
+      flex: 1;
+    }
   }
 }
 
 .o-plate {
   background: var(--o-plate);
-  border: 1.5px solid var(--o-line);
-  border-radius: 10px;
-  padding: 14px 16px;
+  border: 1px solid var(--o-crease);
+  border-radius: 12px;
+  padding: 16px;
 }
 
 .o-label {
   font-size: 12px;
+  line-height: 16px;
   color: var(--o-muted);
 }
 
 .o-hint {
   margin: 0;
   font-size: 12px;
+  line-height: 16px;
   color: var(--o-muted);
 }
 
@@ -141,75 +271,130 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
 .o-value {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
+  line-height: 20px;
 }
 
 .o-connect {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 20px 16px;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 16px 16px;
   text-align: center;
 }
 
-.o-status {
-  padding: 3px 12px;
-  border-radius: 99px;
-  font-size: 12px;
-  background: var(--o-chip);
-  color: var(--o-muted);
-
-  &.is-on {
-    background: var(--o-ok-bg);
-    color: var(--o-ok-text);
-  }
-}
-
+// The main button carries only the icon; what is going on is written under it.
 .o-power {
-  width: 128px;
-  height: 128px;
+  position: relative;
+  width: 112px;
+  height: 112px;
+  margin: 10px 0 4px;
   border-radius: 50%;
   border: 2px solid var(--o-line);
   background: var(--o-action);
   color: var(--o-on-action);
   box-shadow: 4px 4px 0 var(--o-shadow) !important;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
   cursor: pointer;
   transition:
-    transform 0.08s,
-    box-shadow 0.08s;
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background-color 0.3s ease,
+    color 0.3s ease;
 
-  &:active {
+  // Ring around the button: dashed while connecting, a soft breathing halo while protected.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 2px dashed transparent;
+    pointer-events: none;
+  }
+
+  &:hover:not(:disabled) {
+    transform: translate(-1px, -1px);
+    box-shadow: 5px 5px 0 var(--o-shadow) !important;
+  }
+
+  &:active:not(:disabled) {
     transform: translate(3px, 3px);
     box-shadow: 1px 1px 0 var(--o-shadow) !important;
   }
 
+  &:focus-visible {
+    outline: 2px solid var(--o-accent);
+    outline-offset: 14px;
+  }
+
   &:disabled {
-    opacity: 0.6;
     cursor: progress;
   }
 
   &.is-on {
     background: var(--o-ok);
     color: #fff;
+
+    &::before {
+      border: 0;
+      box-shadow: 0 0 0 0 var(--o-ok);
+      animation: o-halo 2.8s ease-out infinite;
+    }
+  }
+
+  &.is-busy {
+    background: var(--o-chip);
+    color: var(--o-ink);
+
+    &::before {
+      border-color: var(--o-accent);
+      animation: o-spin 2.4s linear infinite;
+    }
   }
 
   &__icon {
-    font-size: 34px !important;
+    font-size: 46px !important;
   }
 
-  &__label {
+  &__caption {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  &__state {
     font-family: $display;
-    font-size: 19px;
+    font-size: 26px;
     font-weight: 800;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+
+    &.is-on {
+      color: var(--o-ok-text);
+    }
+  }
+}
+
+@keyframes o-halo {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--o-ok) 45%, transparent);
+  }
+
+  70%,
+  100% {
+    box-shadow: 0 0 0 16px color-mix(in srgb, var(--o-ok) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .o-power::before {
+    animation: none !important;
   }
 }
 
@@ -259,9 +444,18 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
 .o-speed {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
+  align-self: stretch;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px dashed var(--o-crease);
+  text-align: left;
+
+  > div + div {
+    text-align: right;
+  }
 }
 
 // Stock home cards placed on the Origami home keep the paper outline.
@@ -414,7 +608,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     &::after {
       content: '';
       flex: 1;
-      border-top: 1.5px dashed var(--o-crease);
+      border-top: 1px dashed var(--o-crease);
     }
   }
 
@@ -502,7 +696,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     justify-content: space-between;
     gap: 8px;
     padding-top: 8px;
-    border-top: 1.5px dashed var(--o-crease);
+    border-top: 1px dashed var(--o-crease);
 
     .MuiButton-root {
       margin-left: auto;
@@ -568,7 +762,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     padding: 10px 16px;
 
     & + & {
-      border-top: 1.5px dashed var(--o-crease);
+      border-top: 1px dashed var(--o-crease);
     }
 
     @media (max-width: 560px) {
@@ -706,7 +900,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     cursor: pointer;
 
     & + & {
-      border-top: 1.5px dashed var(--o-crease);
+      border-top: 1px dashed var(--o-crease);
     }
 
     b {
@@ -730,7 +924,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 
   &__label {
-    padding: 12px 16px 2px;
+    padding: 16px 20px 4px;
     font-family: $mono;
     font-size: 11px;
     letter-spacing: 0.08em;
@@ -739,26 +933,28 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
   &__block-hint {
     margin: 0;
-    padding: 0 16px 4px;
+    padding: 0 20px 6px;
     font-size: 12px;
     color: var(--o-muted);
   }
 
+  // Rows have no outline of their own: hover shades them, the chosen one gets the orange edge.
   &__opt,
   &__country {
-    width: calc(100% - 28px);
-    margin: 6px 14px;
-    border: 1.5px solid var(--o-crease);
+    width: calc(100% - 16px);
+    margin: 2px 8px;
+    border: 0;
     border-radius: 8px;
     color: var(--o-ink);
+    transition: background-color 0.15s;
 
     &:hover {
-      border-color: var(--o-line);
+      background: var(--o-chip);
     }
 
     &.is-on {
-      border-color: var(--o-action);
       background: var(--o-pale);
+      box-shadow: inset 3px 0 0 var(--o-action);
     }
   }
 
@@ -784,7 +980,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 
   &__tip {
-    margin: 8px 16px 2px;
+    margin: 8px 20px 4px;
     font-size: 13px;
 
     b {
@@ -830,24 +1026,22 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 
   &__q {
-    width: 20px;
-    height: 20px;
+    display: inline-flex;
     padding: 0;
-    border: 1.5px solid var(--o-accent);
-    border-radius: 50%;
-    background: transparent;
-    color: var(--o-accent);
-    font: 500 12px/16px Onest, system-ui, sans-serif;
-    cursor: pointer;
-  }
-
-  &__help {
-    margin: 6px 0 0;
-    padding: 8px 10px;
-    border-radius: 8px;
-    background: var(--o-chip);
-    font-size: 12px;
+    border: 0;
+    background: none;
     color: var(--o-muted);
+    cursor: help;
+    transition: color 0.15s;
+
+    svg {
+      font-size: 16px;
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: var(--o-accent);
+    }
   }
 
   &__chips {
@@ -915,7 +1109,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   &__foot {
     margin: 12px 16px 0;
     padding-top: 10px;
-    border-top: 1.5px dashed var(--o-crease);
+    border-top: 1px dashed var(--o-crease);
     font-size: 13px;
   }
 
@@ -927,6 +1121,26 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     font: inherit;
     text-decoration: underline;
     cursor: pointer;
+  }
+}
+
+// Hover hints (MUI Tooltip with className o-tip), in paper colours.
+.MuiTooltip-tooltip.o-tip {
+  max-width: 280px;
+  padding: 8px 10px;
+  border: 1px solid var(--o-crease);
+  border-radius: 8px;
+  background: var(--o-plate);
+  color: var(--o-ink);
+  font: 400 12px/1.45 Onest, system-ui, sans-serif;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.25);
+
+  .MuiTooltip-arrow {
+    color: var(--o-plate);
+
+    &::before {
+      border: 1px solid var(--o-crease);
+    }
   }
 }
 

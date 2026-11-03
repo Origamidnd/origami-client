@@ -131,7 +131,10 @@ mod app_init {
         logging!(debug, Type::Setup, "初始化窗口状态管理...");
         let window_state_plugin = tauri_plugin_window_state::Builder::new()
             .with_filename(files::WINDOW_STATE)
-            .with_state_flags(tauri_plugin_window_state::StateFlags::default())
+            // OrigamiVPN: the frame comes from origami_system_titlebar, so a saved state cannot bring the system one back.
+            .with_state_flags(
+                tauri_plugin_window_state::StateFlags::default() & !tauri_plugin_window_state::StateFlags::DECORATIONS,
+            )
             .build();
         app.handle().plugin(window_state_plugin)?;
         Ok(())

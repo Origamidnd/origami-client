@@ -1,6 +1,7 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { patchVergeConfig } from '@/services/cmds'
 import debounce from '@/utils/debounce'
 
 import { WindowContext } from './window-context'
@@ -75,6 +76,8 @@ export const WindowProvider: React.FC<{ children: React.ReactNode }> = ({
     const currentVal = await currentWindow.isDecorated()
     await currentWindow.setDecorations(!currentVal)
     setDecorated(!currentVal)
+    // OrigamiVPN: the window is built from this setting on the next start.
+    await patchVergeConfig({ origami_system_titlebar: !currentVal })
   }, [currentWindow])
 
   useEffect(() => {

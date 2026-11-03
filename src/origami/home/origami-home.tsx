@@ -34,6 +34,30 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 const formatBytes = (value: number) => parseTraffic(value).join(' ')
 
+// Speed sits at the foot of the connect plate, so the grid no longer has a separate box for it.
+const SpeedRow = () => {
+  const { t } = useTranslation()
+  const visible = useVisibility()
+  const {
+    response: { data: traffic },
+  } = useTrafficData({ enabled: visible })
+
+  return (
+    <div className="o-speed">
+      <div>
+        <div className="o-label">{t('origami.home.speed.down')}</div>
+        <div className="o-mono o-value">
+          {formatBytes(traffic?.down ?? 0)}/s
+        </div>
+      </div>
+      <div>
+        <div className="o-label">{t('origami.home.speed.up')}</div>
+        <div className="o-mono o-value">{formatBytes(traffic?.up ?? 0)}/s</div>
+      </div>
+    </div>
+  )
+}
+
 const ConnectPlate = () => {
   const { t } = useTranslation()
   const expert = useExpertMode()
@@ -47,31 +71,61 @@ const ConnectPlate = () => {
     changeMode,
   } = useConnection()
 
+  // Connecting or disconnecting: the button shows a turning ring until the core answers.
+  const [busy, setBusy] = useState(false)
+
   const run = (action: () => Promise<void>) =>
     action().catch((error) => showNotice.error(error))
+
+  const toggle = async () => {
+    setBusy(true)
+    try {
+      await run(connected ? disconnect : connect)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const modes: { id: ConnectMode; label: string }[] = [
     { id: 'proxy', label: t('origami.home.mode.proxy') },
     { id: 'tun', label: t('origami.home.mode.tun') },
   ]
 
+  const state = busy ? 'busy' : connected ? 'on' : 'off'
+
   return (
     <section className="o-plate o-connect">
-      <div className={`o-status${connected ? ' is-on' : ''}`}>
-        {connected ? t('origami.home.status.on') : t('origami.home.status.off')}
-      </div>
       <button
         type="button"
-        className={`o-power${connected ? ' is-on' : ''}`}
-        disabled={isLoading}
+        className={`o-power is-${state}`}
+        disabled={isLoading || busy}
         aria-pressed={connected}
-        onClick={() => run(connected ? disconnect : connect)}
+        aria-label={
+          connected
+            ? t('origami.home.state.disconnect')
+            : t('origami.home.state.connect')
+        }
+        onClick={toggle}
       >
         <PowerSettingsNewRounded className="o-power__icon" />
-        <span className="o-power__label">
-          {connected ? t('origami.home.power.on') : t('origami.home.power.off')}
-        </span>
       </button>
+      <div className="o-power__caption" aria-live="polite">
+        <div className={`o-power__state is-${state}`}>
+          {busy
+            ? connected
+              ? t('origami.home.state.disconnecting')
+              : t('origami.home.state.connecting')
+            : connected
+              ? t('origami.home.state.on')
+              : t('origami.home.state.off')}
+        </div>
+        <div className="o-hint">
+          {connected
+            ? t('origami.home.state.onHint')
+            : t('origami.home.state.offHint')}
+        </div>
+      </div>
+      <SpeedRow />
       {expert && (
         <div
           className="o-seg"
@@ -253,29 +307,6 @@ const SubscriptionPlate = () => {
   )
 }
 
-const SpeedPlate = () => {
-  const { t } = useTranslation()
-  const visible = useVisibility()
-  const {
-    response: { data: traffic },
-  } = useTrafficData({ enabled: visible })
-
-  return (
-    <section className="o-plate o-speed">
-      <div>
-        <div className="o-label">{t('origami.home.speed.down')}</div>
-        <div className="o-mono o-value">
-          {formatBytes(traffic?.down ?? 0)}/s
-        </div>
-      </div>
-      <div>
-        <div className="o-label">{t('origami.home.speed.up')}</div>
-        <div className="o-mono o-value">{formatBytes(traffic?.up ?? 0)}/s</div>
-      </div>
-    </section>
-  )
-}
-
 const OrigamiHomePage = () => {
   const { t } = useTranslation()
   const expert = useExpertMode()
@@ -294,11 +325,10 @@ const OrigamiHomePage = () => {
           <div className="o-home__grid">
             <ConnectPlate />
             <div className="o-home__side">
+              <ServerPlate />
               <SubscriptionPlate />
-              <SpeedPlate />
             </div>
           </div>
-          <ServerPlate />
           <CheckPlate />
           {expert && (
             <div className="o-home__server">

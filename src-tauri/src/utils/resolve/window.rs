@@ -19,9 +19,10 @@ const DEFAULT_HEIGHT: f64 = 700.0;
 const MINIMAL_WIDTH: f64 = 520.0;
 const MINIMAL_HEIGHT: f64 = 520.0;
 
-#[cfg(target_os = "linux")]
+// OrigamiVPN: Windows and Linux use the client's own title bar unless the user asked for the system one.
+#[cfg(not(target_os = "macos"))]
 const DEFAULT_DECORATIONS: bool = false;
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
 const DEFAULT_DECORATIONS: bool = true;
 
 const fn restored_window_size_is_too_small(width: u32, height: u32) -> bool {
@@ -83,7 +84,7 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
     )
     .title("OrigamiVPN")
     .center()
-    .decorations(DEFAULT_DECORATIONS)
+    .decorations(latest.origami_system_titlebar.unwrap_or(DEFAULT_DECORATIONS))
     .fullscreen(false)
     .inner_size(DEFAULT_WIDTH, DEFAULT_HEIGHT)
     .min_inner_size(MINIMAL_WIDTH, MINIMAL_HEIGHT)

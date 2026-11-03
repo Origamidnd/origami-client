@@ -431,6 +431,8 @@ export type IVerge_Deserialize = {
   origami_expert_mode?: boolean | null
   /**  OrigamiVPN: connect mode picked on the home screen, "tun" or "proxy", for the tray. */
   origami_connect_mode?: string | null
+  /**  OrigamiVPN: true keeps the system window frame; unset or false draws the client's own title bar. */
+  origami_system_titlebar?: boolean | null
   enable_auto_light_weight_mode?: boolean | null
   /**  自动进入轻量模式的延迟（分钟） */
   auto_light_weight_minutes?: number | null
@@ -525,6 +527,8 @@ export type IVerge_Serialize = {
   origami_expert_mode: boolean | null
   /**  OrigamiVPN: connect mode picked on the home screen, "tun" or "proxy", for the tray. */
   origami_connect_mode?: string | null
+  /**  OrigamiVPN: true keeps the system window frame; unset or false draws the client's own title bar. */
+  origami_system_titlebar?: boolean | null
   enable_auto_light_weight_mode: boolean | null
   /**  自动进入轻量模式的延迟（分钟） */
   auto_light_weight_minutes: number | null

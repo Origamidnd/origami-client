@@ -300,10 +300,6 @@ export interface TranslationResources {
           tunHint: string
           tunServiceHint: string
         }
-        power: {
-          off: string
-          on: string
-        }
         server: {
           none: string
           ping: string
@@ -319,9 +315,15 @@ export interface TranslationResources {
           down: string
           up: string
         }
-        status: {
+        state: {
+          connect: string
+          connecting: string
+          disconnect: string
+          disconnecting: string
           off: string
+          offHint: string
           on: string
+          onHint: string
         }
         subscription: {
           add: string
@@ -349,7 +351,9 @@ export interface TranslationResources {
       nav: {
         cabinet: string
         expert: string
+        external: string
         support: string
+        update: string
       }
       reminder: {
         expired: string

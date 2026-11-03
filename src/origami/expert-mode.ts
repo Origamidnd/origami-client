@@ -22,7 +22,13 @@ const read = () => {
   }
 }
 
+// Lets styles hide expert-only bits (such as the sidebar speed graph) without touching stock components.
+const mark = (value: boolean) => {
+  document.documentElement.dataset.origamiExpert = value ? '1' : '0'
+}
+
 let current = read()
+mark(current)
 syncToTray({ origami_expert_mode: current })
 
 export const setExpertMode = (value: boolean) => {
@@ -32,6 +38,7 @@ export const setExpertMode = (value: boolean) => {
   } catch {
     // Storage can be unavailable; the choice then lasts for this session only.
   }
+  mark(value)
   syncToTray({ origami_expert_mode: value })
   listeners.forEach((listener) => listener())
 }

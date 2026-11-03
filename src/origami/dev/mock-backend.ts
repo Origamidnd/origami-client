@@ -279,11 +279,24 @@ const handlers: Record<string, (args: any) => unknown> = {
   }),
   'plugin:mihomo|get_version': () => ({ meta: true, version: 'v1.19.0' }),
   'plugin:app|version': () => '0.1.0',
+  'plugin:updater|check': () =>
+    params.get('update') === '1'
+      ? {
+          rid: 1,
+          currentVersion: '0.1.4',
+          version: '0.1.5',
+          date: '2026-11-04',
+          body: 'Preview',
+          rawJson: {},
+        }
+      : null,
   'plugin:app|name': () => 'OrigamiVPN',
   'plugin:os|platform': () => 'windows',
   'plugin:event|listen': () => Math.floor(Math.random() * 1e6),
   'plugin:event|unlisten': () => null,
   'plugin:window|theme': () => theme,
+  'plugin:window|is_decorated': () => params.get('frame') === '1',
+  'plugin:window|is_maximized': () => false,
   'plugin:clipboard-manager|write_text': (args) => {
     console.info('[mock] clipboard', JSON.stringify(args))
     return null

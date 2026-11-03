@@ -221,6 +221,10 @@ pub struct IVerge {
     #[specta(type = Option<std::string::String>)]
     pub origami_connect_mode: Option<String>,
 
+    /// OrigamiVPN: true keeps the system window frame; unset or false draws the client's own title bar.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origami_system_titlebar: Option<bool>,
+
     pub enable_auto_light_weight_mode: Option<bool>,
 
     /// 自动进入轻量模式的延迟（分钟）
@@ -529,6 +533,7 @@ impl IVerge {
         patch!(tray_inline_outbound_modes);
         patch!(origami_expert_mode);
         patch!(origami_connect_mode);
+        patch!(origami_system_titlebar);
         patch!(enable_auto_light_weight_mode);
         patch!(auto_light_weight_minutes);
         patch!(enable_dns_settings);

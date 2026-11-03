@@ -2,16 +2,20 @@
   "nav": {
     "expert": "Advanced",
     "support": "Support",
-    "cabinet": "Account"
+    "cabinet": "Account",
+    "update": "Update {{version}}",
+    "external": "Opens in the browser or Telegram"
   },
   "home": {
-    "status": {
-      "on": "Connected",
-      "off": "Not connected"
-    },
-    "power": {
+    "state": {
+      "off": "Not connected",
       "on": "Protected",
-      "off": "Connect"
+      "connecting": "Connecting...",
+      "disconnecting": "Disconnecting...",
+      "offHint": "Click to turn the VPN on",
+      "onHint": "Click to turn it off",
+      "connect": "Connect",
+      "disconnect": "Disconnect"
     },
     "mode": {
       "label": "Connection mode",

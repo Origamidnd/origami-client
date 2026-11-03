@@ -1,5 +1,5 @@
-import { RefreshRounded } from '@mui/icons-material'
-import { Button } from '@mui/material'
+import { HelpOutlineRounded, RefreshRounded } from '@mui/icons-material'
+import { Button, Tooltip } from '@mui/material'
 import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
 import {
@@ -163,7 +163,6 @@ export const OrigamiServers = () => {
   const [, rerender] = useReducer((tick: number) => tick + 1, 0)
   const [checking, setChecking] = useState(false)
   const [checkedAt, setCheckedAt] = useState(readCheckedAt)
-  const [helpOpen, setHelpOpen] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
   const focus = (location.state as FocusGroupState | null)?.origamiFocusGroup
   const [selected, setSelected] = useState<string | undefined>(focus)
@@ -307,19 +306,24 @@ export const OrigamiServers = () => {
           <div className="o-srv__variants">
             <div className="o-srv__variants-title">
               {t('origami.servers.variant')}
-              <button
-                type="button"
-                className="o-srv__q"
-                aria-expanded={helpOpen}
-                aria-label={t('origami.servers.variantHelpLabel')}
-                onClick={() => setHelpOpen(!helpOpen)}
+              <Tooltip
+                arrow
+                placement="top-start"
+                enterDelay={80}
+                enterTouchDelay={0}
+                leaveTouchDelay={5000}
+                title={t('origami.servers.variantHelp')}
+                slotProps={{ tooltip: { className: 'o-tip' } }}
               >
-                ?
-              </button>
+                <button
+                  type="button"
+                  className="o-srv__q"
+                  aria-label={t('origami.servers.variantHelpLabel')}
+                >
+                  <HelpOutlineRounded />
+                </button>
+              </Tooltip>
             </div>
-            {helpOpen && (
-              <p className="o-srv__help">{t('origami.servers.variantHelp')}</p>
-            )}
             <div className="o-srv__chips">
               {country.variants.map((option) => (
                 <button
@@ -386,10 +390,7 @@ export const OrigamiServers = () => {
                   type="button"
                   className={`o-srv__service${item === service ? ' is-on' : ''}`}
                   aria-current={item === service}
-                  onClick={() => {
-                    setSelected(item.group.name)
-                    setHelpOpen(false)
-                  }}
+                  onClick={() => setSelected(item.group.name)}
                 >
                   <b>
                     {info.icon} {info.title}
