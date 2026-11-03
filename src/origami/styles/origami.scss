@@ -296,9 +296,8 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   border: 2px solid var(--o-line);
   background: var(--o-action);
   color: var(--o-on-action);
-  // The paper shadow is a darker tone of the button itself, not black ink.
-  --o-power-shadow: color-mix(in srgb, var(--o-action) 62%, #000);
-  border-color: var(--o-power-shadow);
+  // The paper shadow takes the page surface (the colour under the sidebar), in both themes.
+  --o-power-shadow: var(--o-bg);
   box-shadow: 4px 4px 0 var(--o-power-shadow) !important;
   display: flex;
   align-items: center;
@@ -340,7 +339,6 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 
   &.is-on {
-    --o-power-shadow: color-mix(in srgb, var(--o-ok) 62%, #000);
     background: var(--o-ok);
     color: #fff;
 
@@ -352,7 +350,6 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 
   &.is-busy {
-    --o-power-shadow: var(--o-crease);
     background: var(--o-chip);
     color: var(--o-ink);
 
