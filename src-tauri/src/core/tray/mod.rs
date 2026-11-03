@@ -949,7 +949,28 @@ fn on_tray_icon_event(_tray_icon: &TrayIcon, tray_event: TrayIconEvent) {
 /// OrigamiVPN: the home screen's connect button. Off turns both switches off; on uses the mode
 /// picked on the home screen, TUN unless it is the system proxy. Without the service TUN cannot
 /// start, so the window opens and asks to install it.
+/// OrigamiVPN: one connect/disconnect at a time from the tray. A second click while the core is
+/// still switching queued another restart behind the first one.
+static ORIGAMI_TOGGLING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+struct OrigamiToggleGuard;
+
+impl Drop for OrigamiToggleGuard {
+    fn drop(&mut self) {
+        ORIGAMI_TOGGLING.store(false, std::sync::atomic::Ordering::Release);
+    }
+}
+
 async fn origami_toggle_connection() {
+    if ORIGAMI_TOGGLING.swap(true, std::sync::atomic::Ordering::AcqRel) {
+        logging!(
+            info,
+            Type::Tray,
+            "connect toggle ignored: the previous one is still running"
+        );
+        return;
+    }
+    let _guard = OrigamiToggleGuard;
     let verge = Config::verge().await.latest_arc();
     let tun_on = verge.enable_tun_mode.unwrap_or(false);
     let proxy_on = verge.enable_system_proxy.unwrap_or(false);
