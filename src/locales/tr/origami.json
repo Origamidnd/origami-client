@@ -181,7 +181,7 @@
     "checking": "Checking…",
     "checkedAt": "checked at {{time}}",
     "checkedAll": "Checked. All servers answer",
-    "checkedSome": "Checked. Not answering: {{count}}",
+    "checkedSome": "Checked. No answer from: {{names}}",
     "noAnswer": "no answer",
     "direct": "Without VPN",
     "directHint": "direct, as without the app",

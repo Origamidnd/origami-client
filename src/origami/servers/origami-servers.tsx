@@ -98,6 +98,20 @@ const buildServices = (view: ProxyViewV1): Service[] =>
 
 const memberName = (member: InteractableProxyMember) => member.ref.name
 
+// Built-in outbounds have no server behind them, so they are not pinged or counted.
+const NOT_SERVERS = new Set([
+  'Direct',
+  'Reject',
+  'RejectDrop',
+  'Pass',
+  'Dns',
+  'Compatible',
+])
+
+// "🔷 🇪🇪 Эстония (Hysteria2)" -> "Эстония (Hysteria2)" for notices.
+const serverLabel = (name: string) =>
+  name.replace(/^[^\p{L}\p{N}]+/u, '').trim() || name
+
 const memberType = (member: InteractableProxyMember) =>
   member.kind === 'node' ? member.node.type : member.group.type
 
@@ -188,7 +202,7 @@ export const OrigamiServers = () => {
       .filter((member) => {
         if (seen.has(memberName(member))) return false
         seen.add(memberName(member))
-        return member.kind === 'node'
+        return member.kind === 'node' && !NOT_SERVERS.has(member.node.type)
       })
     if (servers.length === 0) return
     setChecking(true)
@@ -202,9 +216,14 @@ export const OrigamiServers = () => {
       const now = Date.now()
       writeCheckedAt(now)
       setCheckedAt(now)
-      const dead = servers.filter((member) => readDelay(member) === null)
+      // Name the silent ones: a country row shows its best variant, so a bare count looked wrong.
+      const dead = servers
+        .filter((member) => readDelay(member) === null)
+        .map((member) => serverLabel(memberName(member)))
       if (dead.length) {
-        showNotice.info('origami.servers.checkedSome', { count: dead.length })
+        showNotice.info('origami.servers.checkedSome', {
+          names: dead.join(', '),
+        })
       } else {
         showNotice.success('origami.servers.checkedAll')
       }
@@ -385,35 +404,44 @@ export const OrigamiServers = () => {
               const info = serviceTitle(item.group.name)
               const state = describe(item)
               return (
-                <button
+                <Tooltip
                   key={item.group.name}
-                  type="button"
-                  className={`o-srv__service${item === service ? ' is-on' : ''}`}
-                  aria-current={item === service}
-                  onClick={() => setSelected(item.group.name)}
+                  arrow
+                  placement="right"
+                  enterDelay={400}
+                  enterNextDelay={200}
+                  title={info.hint ?? ''}
+                  slotProps={{ tooltip: { className: 'o-tip' } }}
                 >
-                  <b>
-                    {info.icon} {info.title}
-                  </b>
-                  <span className="o-hint">
-                    {typeof state === 'string' ? (
-                      state
-                    ) : (
-                      <>
-                        {state.label}
-                        {state.node && !checking && nodeDelay(state.node) ? (
-                          <>
-                            {' '}
-                            ·{' '}
-                            {t('origami.home.server.ping', {
-                              ms: nodeDelay(state.node),
-                            })}
-                          </>
-                        ) : null}
-                      </>
-                    )}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    className={`o-srv__service${item === service ? ' is-on' : ''}`}
+                    aria-current={item === service}
+                    onClick={() => setSelected(item.group.name)}
+                  >
+                    <b>
+                      {info.icon} {info.title}
+                    </b>
+                    <span className="o-hint">
+                      {typeof state === 'string' ? (
+                        state
+                      ) : (
+                        <>
+                          {state.label}
+                          {state.node && !checking && nodeDelay(state.node) ? (
+                            <>
+                              {' '}
+                              ·{' '}
+                              {t('origami.home.server.ping', {
+                                ms: nodeDelay(state.node),
+                              })}
+                            </>
+                          ) : null}
+                        </>
+                      )}
+                    </span>
+                  </button>
+                </Tooltip>
               )
             })}
           </nav>

@@ -86,6 +86,19 @@ describe('serviceTitle', () => {
       icon: '🇷🇺',
       title: 'Российские сайты, банки, Госуслуги',
     })
-    expect(serviceTitle('▶️ YouTube')).toEqual({ icon: '▶️', title: 'YouTube' })
+    expect(serviceTitle('▶️ YouTube')).toMatchObject({
+      icon: '▶️',
+      title: 'YouTube',
+    })
+  })
+
+  it('explains what each known group covers', () => {
+    expect(serviceTitle('🎵 Музыка').hint).toContain('Spotify')
+    expect(serviceTitle('🔍 Google Services').hint).toContain('Gmail')
+    expect(serviceTitle('🧪 Новая группа')).toEqual({
+      icon: '🧪',
+      title: 'Новая группа',
+      hint: undefined,
+    })
   })
 })

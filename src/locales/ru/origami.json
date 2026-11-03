@@ -181,7 +181,7 @@
     "checking": "Проверяем…",
     "checkedAt": "проверено в {{time}}",
     "checkedAll": "Проверено. Все серверы отвечают",
-    "checkedSome": "Проверено. Не отвечают: {{count}}",
+    "checkedSome": "Проверено. Не отвечают: {{names}}",
     "noAnswer": "нет ответа",
     "direct": "Без VPN",
     "directHint": "напрямую, как без приложения",

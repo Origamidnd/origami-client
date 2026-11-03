@@ -128,21 +128,36 @@ export const pingLevel = (delay: number | null | undefined): PingLevel => {
   return 'slow'
 }
 
-// Template group names that read badly in a list for everyone.
-const SERVICE_TITLES: Record<string, { title: string; hint?: string }> = {
+// Friendlier names for template groups and a line on what each one covers.
+// Kept in step with the Default Mihomo template rules (origami-infra panel/templates).
+const SERVICE_TITLES: Record<string, { title?: string; hint: string }> = {
   '🚫 Заблокированные сервисы': {
     title: 'Заблокированные сайты',
-    hint: 'Сайты, которые в России не открываются без VPN',
+    hint: 'Instagram, Facebook, X, TikTok, GitHub и другие сайты, которые в России не открываются без VPN',
   },
   '🌐 Остальные незаблокированные сервисы': {
     title: 'Остальные сайты',
-    hint: 'Всё, что не попало в другие пункты',
+    hint: 'Всё, что не попало в другие пункты: остальные зарубежные сайты и программы',
   },
-  '🔍 Google Services': { title: 'Google' },
-  '🇷🇺 Ру-сайты': { title: 'Российские сайты, банки, Госуслуги' },
+  '▶️ YouTube': { hint: 'YouTube и YouTube Music, в браузере и в приложениях' },
+  '💬 Discord': { hint: 'Discord целиком: чаты, голосовые каналы и стримы' },
+  '➤ Telegram': { hint: 'Telegram и AyuGram: сообщения, звонки, файлы' },
+  '🎮 Игры': {
+    hint: 'Игры, которые настроены отдельно, и античиты (EAC, BattlEye, Vanguard, FACEIT). Обычно лучше без VPN - так ниже пинг',
+  },
+  '🎵 Музыка': { hint: 'Spotify, SoundCloud, Deezer, Tidal и Apple Music' },
+  '📺 Twitch': { hint: 'Twitch: стримы, чат и записи' },
   '🤖 Нейросети (AI)': {
     title: 'Нейросети',
-    hint: 'ChatGPT, Claude, Gemini и другие',
+    hint: 'ChatGPT, Claude, Gemini, Google AI Studio и другие. Gemini идёт отсюда, даже если открыт из сервисов Google',
+  },
+  '🔍 Google Services': {
+    title: 'Google',
+    hint: 'Поиск (с его ИИ-ответами), Gmail, Диск, Документы, Таблицы, Meet, Карты и другие сервисы Google. YouTube и Gemini - в своих пунктах',
+  },
+  '🇷🇺 Ру-сайты': {
+    title: 'Российские сайты, банки, Госуслуги',
+    hint: 'Российские сайты и приложения. Лучше без VPN: так быстрее, и они не ругаются на зарубежный IP',
   },
 }
 
@@ -157,9 +172,6 @@ export const serviceTitle = (groupName: string): ServiceTitle => {
   const space = groupName.indexOf(' ')
   const icon = space > 0 ? groupName.slice(0, space) : ''
   const known = SERVICE_TITLES[groupName]
-  if (known) return { icon, ...known }
-  return {
-    icon,
-    title: space > 0 ? groupName.slice(space + 1).trim() : groupName,
-  }
+  const title = space > 0 ? groupName.slice(space + 1).trim() : groupName
+  return { icon, title: known?.title ?? title, hint: known?.hint }
 }
