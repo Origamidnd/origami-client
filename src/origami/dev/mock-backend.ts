@@ -269,7 +269,10 @@ const handlers: Record<string, (args: any) => unknown> = {
       (sum, ch) => sum + ch.charCodeAt(0),
       0,
     )
-    return hash % 8 === 0 ? { delay: 0 } : { delay: 20 + ((hash * 7) % 160) }
+    // alive=1 keeps every server answering, for screenshots.
+    return hash % 8 === 0 && params.get('alive') !== '1'
+      ? { delay: 0 }
+      : { delay: 20 + ((hash * 7) % 160) }
   },
   'plugin:mihomo|select_node_for_group': ({ groupName, node }) => {
     if (groupName === 'OrigamiVPN') selected = node
