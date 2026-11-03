@@ -21,6 +21,8 @@ interface SharedSubscriptionEntry {
   refs: number
   ws: MihomoWebSocket | null
   reconnectTimer: ReturnType<typeof setTimeout> | null
+  staleTimer: ReturnType<typeof setInterval> | null
+  lastMessageAt: number
   connecting: boolean
   owners: Set<SharedSubscriptionOwner>
   activeOwner: SharedSubscriptionOwner | null
@@ -56,6 +58,10 @@ const pickActiveOwner = (entry: SharedSubscriptionEntry) => {
 }
 
 const closeSharedSocket = async (entry: SharedSubscriptionEntry) => {
+  if (entry.staleTimer) {
+    clearInterval(entry.staleTimer)
+    entry.staleTimer = null
+  }
   const ws = entry.ws
   if (!ws) return
 
@@ -63,13 +69,16 @@ const closeSharedSocket = async (entry: SharedSubscriptionEntry) => {
   await ws.close()
 }
 
-const createSharedSubscriptionEntry = (
+export const createSharedSubscriptionEntry = (
   connect: () => Promise<MihomoWebSocket>,
+  staleAfterMs?: number,
 ): SharedSubscriptionEntry => {
   const entry: SharedSubscriptionEntry = {
     refs: 0,
     ws: null,
     reconnectTimer: null,
+    staleTimer: null,
+    lastMessageAt: 0,
     connecting: false,
     owners: new Set(),
     activeOwner: null,
@@ -104,6 +113,7 @@ const createSharedSubscriptionEntry = (
       }
 
       ws.addListener((msg: Message) => {
+        entry.lastMessageAt = Date.now()
         if (msg.type !== 'Text') return
         const activeOwner = pickActiveOwner(entry)
         if (!activeOwner) return
@@ -113,6 +123,17 @@ const createSharedSubscriptionEntry = (
 
       entry.ws = ws
       clearReconnectTimer()
+
+      // OrigamiVPN: the plugin ends a stream silently when the core closes it (sleep, network
+      // change), so a feed that should tick every second is reconnected once it goes quiet.
+      if (staleAfterMs) {
+        entry.lastMessageAt = Date.now()
+        entry.staleTimer = setInterval(() => {
+          if (Date.now() - entry.lastMessageAt > staleAfterMs) {
+            void entry.scheduleReconnect()
+          }
+        }, staleAfterMs)
+      }
     } catch (ignoreError) {
       if (!entry.closed && !entry.ws) {
         clearReconnectTimer()
@@ -163,6 +184,8 @@ interface UseMihomoWsSubscriptionOptions<T> {
   buildSubscriptKey: (date: number) => string | null
   fallbackData: T
   connect: () => Promise<MihomoWebSocket>
+  /** Reconnect when no message came for this long; only for feeds that tick on their own. */
+  staleAfterMs?: number
   /**
    * When > 0, coalesce rapid WebSocket messages by wrapping the `next`
    * function passed to `setupHandlers`.  Only the most recent value is
@@ -183,6 +206,7 @@ export const useMihomoWsSubscription = <T>(
     buildSubscriptKey,
     fallbackData,
     connect,
+    staleAfterMs,
     throttleMs,
     setupHandlers,
   } = options
@@ -229,7 +253,7 @@ export const useMihomoWsSubscription = <T>(
     let isMounted = true
     let entry = sharedSubscriptions.get(subscriptionCacheKey)
     if (!entry) {
-      entry = createSharedSubscriptionEntry(connect)
+      entry = createSharedSubscriptionEntry(connect, staleAfterMs)
       sharedSubscriptions.set(subscriptionCacheKey, entry)
     }
 

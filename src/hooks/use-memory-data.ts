@@ -37,6 +37,8 @@ export const useMemoryData = (options?: { enabled?: boolean }) => {
     buildSubscriptKey: (date) => (enabled ? `getClashMemory-${date}` : null),
     fallbackData: FALLBACK_MEMORY_USAGE,
     connect: () => MihomoWebSocket.connect_memory(),
+    // The core sends this every second, so silence means the stream is gone.
+    staleAfterMs: 5000,
     throttleMs: 500,
     setupHandlers: ({ next, scheduleReconnect }) => ({
       handleMessage: (data) => {

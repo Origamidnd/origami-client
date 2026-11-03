@@ -36,6 +36,8 @@ export const useTrafficData = (options?: { enabled?: boolean }) => {
     buildSubscriptKey: (date) => (enabled ? `getClashTraffic-${date}` : null),
     fallbackData: FALLBACK_TRAFFIC,
     connect: () => MihomoWebSocket.connect_traffic(),
+    // The core sends this every second, so silence means the stream is gone.
+    staleAfterMs: 5000,
     throttleMs: 200,
     setupHandlers: ({ next, scheduleReconnect }) => ({
       handleMessage: (data) => {
