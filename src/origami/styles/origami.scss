@@ -296,7 +296,10 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   border: 2px solid var(--o-line);
   background: var(--o-action);
   color: var(--o-on-action);
-  box-shadow: 4px 4px 0 var(--o-shadow) !important;
+  // The paper shadow is a darker tone of the button itself, not black ink.
+  --o-power-shadow: color-mix(in srgb, var(--o-action) 62%, #000);
+  border-color: var(--o-power-shadow);
+  box-shadow: 4px 4px 0 var(--o-power-shadow) !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -319,12 +322,12 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
   &:hover:not(:disabled) {
     transform: translate(-1px, -1px);
-    box-shadow: 5px 5px 0 var(--o-shadow) !important;
+    box-shadow: 5px 5px 0 var(--o-power-shadow) !important;
   }
 
   &:active:not(:disabled) {
     transform: translate(3px, 3px);
-    box-shadow: 1px 1px 0 var(--o-shadow) !important;
+    box-shadow: 1px 1px 0 var(--o-power-shadow) !important;
   }
 
   &:focus-visible {
@@ -337,6 +340,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 
   &.is-on {
+    --o-power-shadow: color-mix(in srgb, var(--o-ok) 62%, #000);
     background: var(--o-ok);
     color: #fff;
 
@@ -348,6 +352,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 
   &.is-busy {
+    --o-power-shadow: var(--o-crease);
     background: var(--o-chip);
     color: var(--o-ink);
 
@@ -864,7 +869,8 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
   &__lead {
     margin: 0;
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.45;
     color: var(--o-muted);
 
     b {
@@ -875,7 +881,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
   &__cols {
     display: grid;
-    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+    grid-template-columns: minmax(190px, 240px) minmax(0, 1fr);
     gap: 12px;
     align-items: start;
 
@@ -892,7 +898,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   &__service {
     display: block;
     width: 100%;
-    padding: 9px 14px;
+    padding: 8px 12px;
     border: 0;
     background: transparent;
     color: var(--o-ink);
@@ -908,6 +914,14 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
       display: block;
       font-weight: 500;
       font-size: 14px;
+      line-height: 20px;
+    }
+
+    .o-hint {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     &:hover {
@@ -925,7 +939,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 
   &__label {
-    padding: 16px 20px 4px;
+    padding: 20px 20px 2px;
     font-family: $mono;
     font-size: 11px;
     letter-spacing: 0.08em;
@@ -972,19 +986,30 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
   &__opt-text {
     flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
 
     small {
       display: block;
       font-size: 12px;
+      font-weight: 400;
+      line-height: 16px;
       color: var(--o-muted);
     }
   }
 
+  // Advice for the unsure: quiet, it should not compete with the choices around it.
   &__tip {
-    margin: 8px 20px 4px;
-    font-size: 13px;
+    margin: 10px 20px 0;
+    padding-left: 10px;
+    border-left: 2px solid var(--o-crease);
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--o-muted);
 
     b {
+      color: var(--o-ink);
       font-weight: 500;
     }
   }
