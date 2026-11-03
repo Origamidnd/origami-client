@@ -9,7 +9,7 @@ const theme = params.get('theme') === 'dark' ? 'dark' : 'light'
 const verge: Record<string, unknown> = {
   language: params.get('lang') ?? 'ru',
   theme_mode: theme,
-  enable_system_proxy: false,
+  enable_system_proxy: params.get('on') === '1',
   enable_tun_mode: false,
   menu_icon: 'monochrome',
   clash_core: 'verge-mihomo',
@@ -19,7 +19,11 @@ const verge: Record<string, unknown> = {
   traffic_graph: true,
 }
 
-const sysproxy = { enable: false, server: '', bypass: '' }
+const sysproxy = {
+  enable: params.get('on') === '1',
+  server: params.get('on') === '1' ? '127.0.0.1:7897' : '',
+  bypass: '',
+}
 
 const servers = [
   ['Финляндия', 18],
