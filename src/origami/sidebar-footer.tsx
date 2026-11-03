@@ -13,6 +13,7 @@ import { useProfiles } from '@/hooks/use-profiles'
 import { useUpdate } from '@/hooks/use-update'
 import { openExternalUrl } from '@/utils/open-external-url'
 
+import { CoreTroubleDialog } from './core-trouble/core-trouble-dialog'
 import { setExpertMode, useExpertMode } from './expert-mode'
 import { ORIGAMI_LINKS } from './links'
 import { useAutoVariantWatch } from './servers/auto-variant'
@@ -65,6 +66,7 @@ export const OrigamiSidebarFooter = () => {
 
   return (
     <div className="origami-nav-footer">
+      <CoreTroubleDialog />
       <UpdateItem />
       <button
         type="button"

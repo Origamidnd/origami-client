@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 
+import { reportCoreTrouble } from '@/origami/core-trouble/store'
 import {
   type RunState,
   getCoreStartupError,
@@ -29,6 +30,9 @@ vi.mock('@/services/cmds', () => ({
   takeServiceOwnerNotice: vi.fn().mockResolvedValue(null),
 }))
 vi.mock('@/services/service-request', () => ({ requestService: vi.fn() }))
+vi.mock('@/origami/core-trouble/store', () => ({
+  reportCoreTrouble: vi.fn(),
+}))
 vi.mock('@/services/notice-service', () => ({
   showNotice: { info: vi.fn(), error: vi.fn(), warning: vi.fn() },
 }))
@@ -74,7 +78,7 @@ it('does not replay a recovered startup error after WebView recreation', async (
   })
   first.handleNoticeMessage('core_start::error', '', (key) => key, vi.fn())
   await flush()
-  expect(showNotice.error).toHaveBeenCalledOnce()
+  expect(reportCoreTrouble).toHaveBeenCalledOnce()
 
   // Mocked modules share one instance across resetModules; the notice-handlers
   // module state is what a WebView recreation actually resets.
@@ -83,7 +87,7 @@ it('does not replay a recovered startup error after WebView recreation', async (
   const recreated = await import('@/services/notice-handlers')
   recreated.handleNoticeMessage('core_start::error', '', (key) => key, vi.fn())
   await flush()
-  expect(showNotice.error).toHaveBeenCalledOnce()
+  expect(reportCoreTrouble).toHaveBeenCalledOnce()
 })
 
 it.each([
@@ -103,15 +107,15 @@ it.each([
     bus.onSubscribed()
     bus.handlers['verge://notice-message'](['core_start::error', ''])
     await flush()
-    expect(showNotice.error).not.toHaveBeenCalled()
+    expect(reportCoreTrouble).not.toHaveBeenCalled()
     nativeWindow.isVisible.mockResolvedValue(true)
     nativeWindow.isMinimized.mockResolvedValue(false)
     bus.onWindowFocus()
     await flush()
-    expect(showNotice.error).toHaveBeenCalledExactlyOnceWith(
-      'settings.feedback.errors.clash.startFailed',
+    expect(reportCoreTrouble).toHaveBeenCalledExactlyOnceWith({
+      kind: 'startFailed',
       detail,
-    )
+    })
   },
 )
 
@@ -125,10 +129,10 @@ it('delivers an early core startup failure once after listeners mount', async ()
   bus.onSubscribed()
   bus.handlers['verge://notice-message'](['core_start::error', ''])
   await flush()
-  expect(showNotice.error).toHaveBeenCalledExactlyOnceWith(
-    'settings.feedback.errors.clash.startFailed',
+  expect(reportCoreTrouble).toHaveBeenCalledExactlyOnceWith({
+    kind: 'startFailed',
     detail,
-  )
+  })
 })
 
 it('shows the same core failure again after the core has started in between', async () => {
@@ -142,7 +146,7 @@ it('shows the same core failure again after the core has started in between', as
   bus.handlers['verge://run-state-changed']({ mode: 'Service' } as RunState)
   bus.handlers['verge://notice-message'](['core_start::error', ''])
   await flush()
-  expect(showNotice.error).toHaveBeenCalledTimes(2)
+  expect(reportCoreTrouble).toHaveBeenCalledTimes(2)
 })
 
 it('drains a DNS notice after listeners mount without duplicating its live event', async () => {

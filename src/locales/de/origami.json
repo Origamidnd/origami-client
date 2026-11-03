@@ -266,5 +266,20 @@
   },
   "notices": {
     "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later."
+  },
+  "coreTrouble": {
+    "title": "The VPN does not start",
+    "serviceCoreStopped": "The VPN core stopped and did not restart on its own. A restart usually helps.",
+    "startFailed": "The VPN core could not start. A restart usually helps; if not, reinstall the service.",
+    "config": "The subscription settings did not pass the check. Update the subscription: that is usually enough.",
+    "restart": "Restart",
+    "reinstall": "Reinstall the service",
+    "refresh": "Update the subscription",
+    "stillBroken": "Did not help? Copy the diagnostics and send them to support.",
+    "details": "Details for support",
+    "copy": "Copy diagnostics",
+    "close": "Close",
+    "restarted": "The VPN stopped and restarted on its own",
+    "fixed": "Done, the VPN works again"
   }
 }

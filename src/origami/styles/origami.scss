@@ -1372,6 +1372,47 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 }
 
+.o-trouble {
+  &__title {
+    font-family: $display;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  &__fixes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .MuiButton-outlined {
+      color: var(--o-ink);
+      border-color: var(--o-line);
+    }
+  }
+
+  &__detail {
+    margin: 0;
+    padding: 8px 10px;
+    max-height: 140px;
+    overflow: auto;
+    border-radius: 8px;
+    background: var(--o-chip);
+    font: 400 11px/1.4 $mono;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .o-srv__link {
+    align-self: flex-start;
+    font-size: 13px;
+  }
+
+  .MuiDialogActions-root .MuiButton-root {
+    color: var(--o-ink);
+  }
+}
+
 @keyframes o-rec {
   to {
     opacity: 0.3;

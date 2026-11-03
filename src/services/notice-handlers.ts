@@ -1,5 +1,6 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 
+import { reportCoreTrouble } from '@/origami/core-trouble/store'
 import {
   getCoreStartupError,
   takeDiscardedKeysNotice,
@@ -76,12 +77,8 @@ const handlers: Record<
           shownStartupError !== shown
         ) {
           shownStartupError = shown
-          showNotice.error(
-            failure.kind === 'serviceCoreStopped'
-              ? 'settings.feedback.errors.clash.serviceCoreStopped'
-              : 'settings.feedback.errors.clash.startFailed',
-            failure.detail,
-          )
+          // OrigamiVPN: a quiet restart for a stopped core, then a dialog with fixes.
+          await reportCoreTrouble(failure)
         }
       })
       .catch((error) => {
@@ -194,7 +191,7 @@ const handlers: Record<
   'reactivate_profiles::error': (msg) => showNotice.error(msg),
   update_failed: (msg) => showNotice.error(msg),
   'config_validate::boot_error': (msg) =>
-    showNotice.error('shared.feedback.validation.config.bootFailed', msg),
+    void reportCoreTrouble({ kind: 'config', detail: msg }),
   'config_validate::error': (msg) =>
     showNotice.error('shared.feedback.validation.config.failed', msg),
   'config_validate::process_terminated': () =>

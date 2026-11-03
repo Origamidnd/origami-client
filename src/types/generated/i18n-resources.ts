@@ -279,6 +279,21 @@ export interface TranslationResources {
         tryOther: string
         unreachable: string
       }
+      coreTrouble: {
+        close: string
+        config: string
+        copy: string
+        details: string
+        fixed: string
+        refresh: string
+        reinstall: string
+        restart: string
+        restarted: string
+        serviceCoreStopped: string
+        startFailed: string
+        stillBroken: string
+        title: string
+      }
       errors: {
         badFormat: string
         forbidden: string
