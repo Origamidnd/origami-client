@@ -14,6 +14,7 @@ import { UpdateViewer } from '@/components/setting/mods/update-viewer'
 import { useSystemState } from '@/hooks/use-system-state'
 import { readLastCheckTime, updateLastCheckTime } from '@/hooks/use-update'
 import { useVerge } from '@/hooks/use-verge'
+import { useWindowDecorations } from '@/hooks/use-window'
 import { exitApp, reinstallService, restartCore } from '@/services/cmds'
 import { supportedLanguages } from '@/services/i18n'
 import { mutate } from '@/services/mutate'
@@ -81,6 +82,7 @@ const Section = ({
 export const OrigamiSettings = () => {
   const { t } = useTranslation()
   const { verge, patchVerge } = useVerge()
+  const { decorated, toggleDecorations } = useWindowDecorations()
   const { runState } = useSystemState()
   const expert = useExpertMode()
   const copyDiagnostics = useCopyDiagnostics()
@@ -223,6 +225,15 @@ export const OrigamiSettings = () => {
               </MenuItem>
             ))}
           </Select>
+        </Row>
+        <Row
+          title={t('origami.settings.titlebar.title')}
+          hint={t('origami.settings.titlebar.hint')}
+        >
+          <Switch
+            checked={decorated === true}
+            onChange={() => void toggleDecorations()}
+          />
         </Row>
       </Section>
 

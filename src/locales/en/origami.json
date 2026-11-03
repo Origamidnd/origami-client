@@ -166,7 +166,11 @@
       "hint": "Shows the connection mode, rules, logs, connections and all Mihomo core settings"
     },
     "footer": "OrigamiVPN {{version}} · Mihomo core",
-    "exit": "Quit OrigamiVPN"
+    "exit": "Quit OrigamiVPN",
+    "titlebar": {
+      "title": "System window frame",
+      "hint": "The standard Windows title bar instead of the OrigamiVPN one"
+    }
   },
   "servers": {
     "title": "Servers",

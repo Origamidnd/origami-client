@@ -166,7 +166,11 @@
       "hint": "Покажет режим подключения, правила, журналы, соединения и все настройки ядра Mihomo"
     },
     "footer": "OrigamiVPN {{version}} · ядро Mihomo",
-    "exit": "Выйти из OrigamiVPN"
+    "exit": "Выйти из OrigamiVPN",
+    "titlebar": {
+      "title": "Системная рамка окна",
+      "hint": "Стандартная панель Windows вместо панели OrigamiVPN"
+    }
   },
   "servers": {
     "title": "Серверы",

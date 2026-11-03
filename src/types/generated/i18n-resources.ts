@@ -497,6 +497,10 @@ export interface TranslationResources {
           system: string
           title: string
         }
+        titlebar: {
+          hint: string
+          title: string
+        }
         updates: {
           auto: string
           autoHint: string

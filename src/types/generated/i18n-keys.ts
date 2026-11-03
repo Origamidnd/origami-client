@@ -279,6 +279,8 @@ export const translationKeys = [
   'origami.settings.expert.hint',
   'origami.settings.footer',
   'origami.settings.exit',
+  'origami.settings.titlebar.title',
+  'origami.settings.titlebar.hint',
   'origami.servers.title',
   'origami.servers.lead',
   'origami.servers.leadExample',
