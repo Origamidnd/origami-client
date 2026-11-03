@@ -242,28 +242,22 @@ pub enum DownloadEvent {
     Finished,
 }
 
-// OrigamiVPN downloads updates from GitHub only: the upstream mirrors are third-party proxies.
-const MIRRORS: [&str; 0] = [];
+// OrigamiVPN: GitHub first, then our own copy of the release behind the subscription host, which
+// opens from Russia when GitHub is slow. The copy holds the same signed files, and the updater
+// checks the signature against our key, so the mirror cannot swap them.
+const GITHUB_RELEASES: &str = "https://github.com/Origamidnd/origami-client/releases/download/";
+const MIRROR: &str = "https://sub.origamivpn.pro/client/";
 /// A source delivering less than this per window is dropped for the next one.
 const MIN_PROGRESS: u64 = 1024 * 1024;
 const PROGRESS_WINDOW: Duration = Duration::from_secs(30);
 
-/// The manifest's URL, then the other mirror, then GitHub itself.
+/// The manifest's URL, then the same file on the mirror (`<tag>/<file>`).
 fn download_sources(url: &tauri::Url) -> Vec<tauri::Url> {
-    let origin = MIRRORS
-        .iter()
-        .find_map(|mirror| url.as_str().strip_prefix(mirror))
-        .unwrap_or(url.as_str());
     let mut sources = vec![url.clone()];
-    if origin.starts_with("https://github.com/") {
-        let candidates = MIRRORS.iter().map(|mirror| format!("{mirror}{origin}"));
-        for candidate in candidates.chain([origin.to_owned()]) {
-            if let Ok(candidate) = tauri::Url::parse(&candidate)
-                && !sources.contains(&candidate)
-            {
-                sources.push(candidate);
-            }
-        }
+    if let Some(rest) = url.as_str().strip_prefix(GITHUB_RELEASES)
+        && let Ok(mirror) = tauri::Url::parse(&format!("{MIRROR}{rest}"))
+    {
+        sources.push(mirror);
     }
     sources
 }
@@ -744,5 +738,34 @@ impl SilentUpdater {
 
             tokio::time::sleep(std::time::Duration::from_secs(24 * 60 * 60)).await;
         }
+    }
+}
+
+#[cfg(test)]
+mod origami_mirror_tests {
+    use super::download_sources;
+
+    #[test]
+    fn github_release_files_fall_back_to_the_mirror() -> Result<(), tauri::Error> {
+        let url = tauri::Url::parse(
+            "https://github.com/Origamidnd/origami-client/releases/download/v0.1.7/OrigamiVPN_0.1.7_x64-setup.exe",
+        )
+        .map_err(|e| tauri::Error::Anyhow(e.into()))?;
+        let sources: Vec<String> = download_sources(&url).iter().map(ToString::to_string).collect();
+        assert_eq!(
+            sources,
+            [
+                "https://github.com/Origamidnd/origami-client/releases/download/v0.1.7/OrigamiVPN_0.1.7_x64-setup.exe",
+                "https://sub.origamivpn.pro/client/v0.1.7/OrigamiVPN_0.1.7_x64-setup.exe",
+            ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn other_urls_have_no_mirror() -> Result<(), tauri::Error> {
+        let url = tauri::Url::parse("https://example.com/file.exe").map_err(|e| tauri::Error::Anyhow(e.into()))?;
+        assert_eq!(download_sources(&url).len(), 1);
+        Ok(())
     }
 }
