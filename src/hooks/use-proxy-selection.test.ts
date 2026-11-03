@@ -1,4 +1,8 @@
-import { selectNodeForGroup } from 'tauri-plugin-mihomo-api'
+import {
+  closeConnection,
+  getConnections,
+  selectNodeForGroup,
+} from 'tauri-plugin-mihomo-api'
 import { expect, it, vi } from 'vitest'
 
 import { useProxySelection } from './use-proxy-selection'
@@ -14,6 +18,8 @@ vi.mock('@/hooks/use-record-selection', () => ({
 }))
 vi.mock('@/hooks/use-verge', () => ({ useVerge: () => ({ verge: {} }) }))
 vi.mock('tauri-plugin-mihomo-api', () => ({
+  closeConnection: vi.fn(),
+  getConnections: vi.fn(),
   selectNodeForGroup: vi.fn(),
   unfixedProxy: vi.fn(),
 }))
@@ -48,4 +54,20 @@ it('applies and records independent group selections while another group is pend
     expect(record).toHaveBeenCalledWith('Group A', 'Node A'),
   )
   expect(firstSuccess).toHaveBeenCalledOnce()
+})
+
+it('closes only the connections of the switched group', async () => {
+  vi.mocked(selectNodeForGroup).mockResolvedValue(undefined)
+  vi.mocked(getConnections).mockResolvedValue({
+    connections: [
+      { id: 'site', chains: ['🇫🇮 Finland', '🎲 Auto', '🚫 Blocked'] },
+      { id: 'voice', chains: ['🇫🇮 Finland', '🎲 Auto', '💬 Discord'] },
+    ],
+  } as never)
+  const { changeProxy } = useProxySelection()
+
+  changeProxy('🚫 Blocked', '🇩🇪 Germany', '🎲 Auto')
+
+  await vi.waitFor(() => expect(closeConnection).toHaveBeenCalledWith('site'))
+  expect(closeConnection).not.toHaveBeenCalledWith('voice')
 })

@@ -16,11 +16,14 @@ import { mutate } from '@/services/mutate'
 import { debugLog } from '@/utils/debug'
 
 // 缓存连接清理
-const cleanupConnections = async (previousProxy: string) => {
+// OrigamiVPN: only the connections that went through the switched group are closed, so they
+// reconnect through the new server. Matching the previous proxy instead also cut every other
+// service that shared it, for example Discord when the blocked-sites group left Auto.
+const cleanupConnections = async (groupName: string) => {
   try {
     const { connections } = await getConnections()
     const cleanupPromises = (connections ?? [])
-      .filter((conn) => conn.chains.includes(previousProxy))
+      .filter((conn) => conn.chains.includes(groupName))
       .map((conn) => closeConnection(conn.id))
 
     if (cleanupPromises.length > 0) {
@@ -55,7 +58,7 @@ export const useProxySelection = (options: ProxySelectionOptions = {}) => {
 
   const { onSuccess, onError, enableConnectionCleanup = true } = options
 
-  const autoCloseConnection = verge?.auto_close_connection ?? false
+  const autoCloseConnection = verge?.auto_close_connection ?? true
 
   // 切换节点
   const syncTraySelection = useCallback(() => {
@@ -98,8 +101,13 @@ export const useProxySelection = (options: ProxySelectionOptions = {}) => {
           )
         }
 
-        if (enableConnectionCleanup && autoCloseConnection && previousProxy) {
-          void cleanupConnections(previousProxy)
+        if (
+          enableConnectionCleanup &&
+          autoCloseConnection &&
+          previousProxy &&
+          previousProxy !== proxyName
+        ) {
+          void cleanupConnections(groupName)
         }
       } catch (error) {
         console.error(
