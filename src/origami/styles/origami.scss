@@ -908,10 +908,21 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     }
 
     b {
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-weight: 500;
       font-size: 14px;
       line-height: 20px;
+    }
+
+    // State line starts under the title, past the icon.
+    .o-hint {
+      padding-left: 26px;
+    }
+
+    &.is-on .o-srv__icon {
+      color: var(--o-accent);
     }
 
     .o-hint {
@@ -935,12 +946,26 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     padding: 4px 0 12px;
   }
 
+  &__icon {
+    flex: none;
+    font-size: 18px !important;
+    color: var(--o-muted);
+  }
+
   &__label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 20px 20px 2px;
     font-family: $mono;
     font-size: 11px;
     letter-spacing: 0.08em;
     color: var(--o-accent);
+
+    .o-srv__icon {
+      font-size: 15px !important;
+      color: var(--o-accent);
+    }
   }
 
   &__block-hint {
@@ -968,6 +993,10 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
       background: var(--o-pale);
       box-shadow: inset 3px 0 0 var(--o-action);
     }
+  }
+
+  &__opt.is-on .o-srv__icon {
+    color: var(--o-accent);
   }
 
   &__opt {

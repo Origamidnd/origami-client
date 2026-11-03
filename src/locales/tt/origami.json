@@ -187,7 +187,7 @@
     "directHint": "direct, as without the app",
     "auto": "Auto",
     "autoShort": "Auto · {{server}}",
-    "autoTitle": "⚡ Auto: the fastest",
+    "autoTitle": "Auto: the fastest",
     "autoNow": "now {{server}}, switches by itself if a server goes down",
     "autoHint": "picks the fastest server by itself",
     "tipAuto": "Not sure what to pick? Keep «Auto».",

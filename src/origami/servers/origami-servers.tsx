@@ -1,4 +1,9 @@
-import { HelpOutlineRounded, RefreshRounded } from '@mui/icons-material'
+import {
+  BoltRounded,
+  HelpOutlineRounded,
+  LinkOffRounded,
+  RefreshRounded,
+} from '@mui/icons-material'
 import { Button, Tooltip } from '@mui/material'
 import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
@@ -45,6 +50,7 @@ import {
   type CountryOption,
   type ServerCategory,
 } from './model'
+import { ServiceIcon } from './service-icon'
 import {
   buildServices,
   CHECK_KEY,
@@ -385,7 +391,8 @@ export const OrigamiServers = () => {
                     onClick={() => setSelected(item.group.name)}
                   >
                     <b>
-                      {info.icon} {info.title}
+                      <ServiceIcon groupName={item.group.name} />
+                      {info.title}
                     </b>
                     <span className="o-hint">
                       {typeof state === 'string' ? (
@@ -413,7 +420,8 @@ export const OrigamiServers = () => {
 
           <section className="o-plate o-srv__pick" aria-live="polite">
             <div className="o-srv__label">
-              {title.icon} {title.title.toUpperCase()}
+              <ServiceIcon groupName={service.group.name} />
+              {title.title.toUpperCase()}
             </div>
             {title.hint && <p className="o-srv__block-hint">{title.hint}</p>}
 
@@ -427,6 +435,7 @@ export const OrigamiServers = () => {
                   choose(service.auto.name, t('origami.servers.auto'))
                 }
               >
+                <BoltRounded className="o-srv__icon" aria-hidden="true" />
                 <span className="o-srv__opt-text">
                   {t('origami.servers.autoTitle')}
                   <small>
@@ -451,6 +460,7 @@ export const OrigamiServers = () => {
                   choose(service.direct.name, t('origami.servers.direct'))
                 }
               >
+                <LinkOffRounded className="o-srv__icon" aria-hidden="true" />
                 <span className="o-srv__opt-text">
                   {t('origami.servers.direct')}
                   <small>{t('origami.servers.directHint')}</small>

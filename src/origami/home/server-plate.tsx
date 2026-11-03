@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router'
 import { useProxiesData } from '@/providers/app-data-context'
 
 import { resolveCurrent } from '../current-server'
+import { withoutEmoji } from '../servers/service-names'
 import type { FocusGroupState } from '../use-focus-group'
 
 const delayTone = (delay?: number) => {
@@ -30,11 +31,11 @@ export const ServerPlate = () => {
       <div className="o-server__text">
         <div className="o-label">{t('origami.home.server.title')}</div>
         <div className="o-server__name">
-          {current?.name ?? t('origami.home.server.none')}
+          {current ? withoutEmoji(current.name) : t('origami.home.server.none')}
         </div>
         {current?.via && (
           <div className="o-hint">
-            {t('origami.home.server.via', { group: current.via })}
+            {t('origami.home.server.via', { group: withoutEmoji(current.via) })}
           </div>
         )}
       </div>
