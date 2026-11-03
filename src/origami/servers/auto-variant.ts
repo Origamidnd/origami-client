@@ -26,6 +26,8 @@ import {
 
 // Countries where the user picked a variant by hand; automatic switching leaves them alone.
 const STORAGE_KEY = 'origami.variantPinned'
+// Set once the choices made before automatic switching existed have been pinned.
+const PINNED_EXISTING_KEY = 'origami.variantPinnedExisting'
 const WATCH_EVERY_MS = 10 * 60 * 1000
 const FIRST_WATCH_MS = 60 * 1000
 
@@ -42,11 +44,7 @@ const read = (): ReadonlySet<string> => {
 
 let pinned = read()
 
-export const setVariantPinned = (country: string, value: boolean) => {
-  if (pinned.has(country) === value) return
-  const next = new Set(pinned)
-  if (value) next.add(country)
-  else next.delete(country)
+const write = (next: ReadonlySet<string>) => {
   pinned = next
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([...next]))
@@ -54,6 +52,14 @@ export const setVariantPinned = (country: string, value: boolean) => {
     // Without storage the choice lasts for this session only.
   }
   listeners.forEach((listener) => listener())
+}
+
+export const setVariantPinned = (country: string, value: boolean) => {
+  if (pinned.has(country) === value) return
+  const next = new Set(pinned)
+  if (value) next.add(country)
+  else next.delete(country)
+  write(next)
 }
 
 const subscribe = (listener: () => void) => {
@@ -83,6 +89,26 @@ export const chosenCountry = (service: Service) => {
       country.variants.length > 1 &&
       country.variants.some((option) => option.name === now),
   )
+}
+
+/**
+ * Before 0.1.5 a variant could only be picked by hand (for example Hysteria2 for games), so on
+ * the first start with automatic switching every variant chosen at that moment is pinned.
+ * Countries picked later with a click on the country switch automatically.
+ */
+export const pinExistingChoicesOnce = (services: Service[]) => {
+  try {
+    if (localStorage.getItem(PINNED_EXISTING_KEY)) return
+    localStorage.setItem(PINNED_EXISTING_KEY, '1')
+  } catch {
+    return
+  }
+  const next = new Set(pinned)
+  for (const service of services) {
+    const country = chosenCountry(service)
+    if (country) next.add(country.base)
+  }
+  if (next.size !== pinned.size) write(next)
 }
 
 /** Moves to make in every service whose country still switches automatically. */
@@ -128,6 +154,10 @@ export const useAutoVariantWatch = () => {
   const apply = useApplySwitches()
   const latestRef = useRef({ proxyView, apply, refreshProxy, verge })
   latestRef.current = { proxyView, apply, refreshProxy, verge }
+
+  useEffect(() => {
+    if (proxyView) pinExistingChoicesOnce(buildServices(proxyView))
+  }, [proxyView])
 
   useEffect(() => {
     let stopped = false
