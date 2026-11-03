@@ -15,5 +15,4 @@ scripts/_env.sh
 target
 .vfox.toml
 .vfox
-.claude
 .zed
