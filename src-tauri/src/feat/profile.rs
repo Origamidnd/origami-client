@@ -4,7 +4,10 @@ use crate::{
     cmd,
     config::{Config, PrfItem, PrfOption, profiles::profiles_update_item_safe},
     core::{CoreManager, handle, tray, validate::ValidationOutcome},
-    utils::help::{mask_err, mask_url},
+    utils::{
+        dirs,
+        help::{mask_err, mask_url},
+    },
 };
 use anyhow::{Result, bail};
 use clash_verge_logging::{Type, logging};
@@ -199,9 +202,24 @@ async fn perform_profile_update(
     bail!(last_err)
 }
 
+/// OrigamiVPN: the current profile's file before an update, so a subscription the core rejects
+/// (a broken template or a panel error page) cannot replace the last working one.
+async fn snapshot_profile_file(uid: &String) -> Option<(std::path::PathBuf, Vec<u8>)> {
+    let file = Config::profiles().await.latest_arc().get_item(uid).ok()?.file.clone()?;
+    let path = dirs::app_profiles_dir().ok()?.join(file.as_str());
+    let bytes = tokio::fs::read(&path).await.ok()?;
+    Some((path, bytes))
+}
+
 #[tracing::instrument(skip_all, level = "info", fields(uid = %uid, manual = is_mannual_trigger))]
 pub async fn update_profile(uid: &String, option: Option<&PrfOption>, is_mannual_trigger: bool) -> Result<()> {
     let url_opt = should_update_profile(uid, is_mannual_trigger).await?;
+    let was_current = Config::profiles().await.latest_arc().current.as_ref() == Some(uid);
+    let previous = if was_current && url_opt.is_some() {
+        snapshot_profile_file(uid).await
+    } else {
+        None
+    };
 
     let profile_persisted = match url_opt {
         Some((url, opt)) => {
@@ -220,6 +238,28 @@ pub async fn update_profile(uid: &String, option: Option<&PrfOption>, is_mannual
             Ok(outcome) if outcome.is_valid() => announce(Refresh::Clash),
             Ok(outcome @ (ValidationOutcome::Skipped { .. } | ValidationOutcome::Busy)) if !is_mannual_trigger => {
                 logging!(info, Type::Config, "[订阅更新] 本次配置刷新已跳过: {}", outcome);
+            }
+            Ok(outcome @ ValidationOutcome::Invalid { .. }) if profile_persisted && previous.is_some() => {
+                let message = mask_err(&outcome.to_string());
+                if let Some((path, bytes)) = previous {
+                    logging!(
+                        warn,
+                        Type::Config,
+                        "[订阅更新] core rejected the new subscription, restoring the previous file: {}",
+                        message
+                    );
+                    tokio::fs::write(&path, bytes).await?;
+                    let restored = CoreManager::global().update_config_forced().await;
+                    logging!(
+                        info,
+                        Type::Config,
+                        "[订阅更新] previous subscription back: {:?}",
+                        restored
+                    );
+                    announce(Refresh::Clash);
+                }
+                handle::Handle::notice(NoticeStatus::OrigamiProfileKept, message.as_str());
+                bail!(message);
             }
             result => {
                 let message = match result {

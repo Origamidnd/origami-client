@@ -357,6 +357,7 @@ export const translationKeys = [
   'origami.report.again',
   'origami.report.send',
   'origami.report.close',
+  'origami.notices.profileKept',
   'profiles.page.actions.updateAll',
   'profiles.page.actions.viewRuntimeConfig',
   'profiles.page.actions.reactivate',

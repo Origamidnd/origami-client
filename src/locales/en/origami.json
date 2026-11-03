@@ -263,5 +263,8 @@
     "again": "Record again",
     "send": "Send",
     "close": "Close"
+  },
+  "notices": {
+    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later."
   }
 }

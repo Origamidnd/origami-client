@@ -231,6 +231,8 @@ const handlers: Record<
       newPort,
     })
   },
+  'origami::profile_kept': () =>
+    showNotice.warning('origami.notices.profileKept', undefined, 10000),
   'mixed_port::fallback_error': (msg) =>
     showNotice.error(
       'settings.modals.clashPort.messages.automaticFallbackFailed',

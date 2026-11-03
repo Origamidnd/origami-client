@@ -628,6 +628,8 @@ export type NoticeStatus =
   | 'config_core::change_error'
   | 'mixed_port::fallback'
   | 'mixed_port::fallback_error'
+  /**  OrigamiVPN: the core rejected a downloaded subscription, the previous file was put back. */
+  | 'origami::profile_kept'
 
 export type PendingAction =
   | 'install'

@@ -355,6 +355,9 @@ export interface TranslationResources {
         support: string
         update: string
       }
+      notices: {
+        profileKept: string
+      }
       reminder: {
         expired: string
         lastDay: string

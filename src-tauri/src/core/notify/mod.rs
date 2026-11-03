@@ -76,6 +76,9 @@ pub enum NoticeStatus {
     MixedPortFallback,
     #[serde(rename = "mixed_port::fallback_error")]
     MixedPortFallbackError,
+    /// OrigamiVPN: the core rejected a downloaded subscription, the previous file was put back.
+    #[serde(rename = "origami::profile_kept")]
+    OrigamiProfileKept,
 }
 
 impl NoticeStatus {
@@ -83,7 +86,7 @@ impl NoticeStatus {
     /// test both derive their variant list from here; expected strings stay
     /// hand-written in the test so renames cannot slip through.
     #[cfg(test)]
-    pub const ALL: [Self; 34] = [
+    pub const ALL: [Self; 35] = [
         Self::Info,
         Self::ImportSubUrlOk,
         Self::ImportSubUrlError,
@@ -118,6 +121,7 @@ impl NoticeStatus {
         Self::ConfigCoreChangeError,
         Self::MixedPortFallback,
         Self::MixedPortFallbackError,
+        Self::OrigamiProfileKept,
     ];
 }
 
@@ -163,6 +167,7 @@ mod tests {
             "config_core::change_error",
             "mixed_port::fallback",
             "mixed_port::fallback_error",
+            "origami::profile_kept",
         ];
         let actual: Vec<_> = statuses
             .into_iter()
