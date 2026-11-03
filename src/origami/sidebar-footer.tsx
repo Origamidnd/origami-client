@@ -16,6 +16,7 @@ import { openExternalUrl } from '@/utils/open-external-url'
 import { CoreTroubleDialog } from './core-trouble/core-trouble-dialog'
 import { setExpertMode, useExpertMode } from './expert-mode'
 import { ORIGAMI_LINKS } from './links'
+import { useNetworkRecovery } from './network-recovery'
 import { useAutoVariantWatch } from './servers/auto-variant'
 import { useExpiryReminder } from './use-expiry-reminder'
 
@@ -48,6 +49,7 @@ export const OrigamiSidebarFooter = () => {
   // The sidebar is always mounted while the window is open, so it hosts background reminders.
   useExpiryReminder()
   useAutoVariantWatch()
+  useNetworkRecovery()
   const { current } = useProfiles()
   const supportUrl = current?.support ?? ORIGAMI_LINKS.support
 

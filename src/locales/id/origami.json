@@ -281,5 +281,8 @@
     "close": "Close",
     "restarted": "The VPN stopped and restarted on its own",
     "fixed": "Done, the VPN works again"
+  },
+  "recovery": {
+    "restarted": "The network changed or the computer woke up: the VPN reconnected"
   }
 }

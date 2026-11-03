@@ -371,6 +371,7 @@ export const translationKeys = [
   'origami.coreTrouble.close',
   'origami.coreTrouble.restarted',
   'origami.coreTrouble.fixed',
+  'origami.recovery.restarted',
   'profiles.page.actions.updateAll',
   'profiles.page.actions.viewRuntimeConfig',
   'profiles.page.actions.reactivate',

@@ -373,6 +373,9 @@ export interface TranslationResources {
       notices: {
         profileKept: string
       }
+      recovery: {
+        restarted: string
+      }
       reminder: {
         expired: string
         lastDay: string
