@@ -553,6 +553,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   padding: 2px 8px;
   border-radius: 6px;
   font-size: 12px;
+  word-spacing: -0.3em;
 
   &.is-good {
     background: var(--o-ok-bg);
@@ -668,6 +669,11 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
 .o-check {
+  // Ping values ("233 мс"): a mono space is a full cell wide, keep number and unit together.
+  .o-mono {
+    word-spacing: -0.3em;
+  }
+
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1427,7 +1433,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     cursor: pointer;
 
     .o-srv__ping {
-      margin-left: 4px;
+      margin-left: 8px;
     }
 
     &:hover {
@@ -1449,6 +1455,8 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   &__ping {
     font-family: $mono;
     font-size: 12px;
+    // A mono space is a full cell wide; pull "27 мс" together so it reads as one value.
+    word-spacing: -0.3em;
 
     &.is-fast {
       color: var(--o-ok);
