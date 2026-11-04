@@ -160,7 +160,14 @@ jobs:
       - name: Point latest.json at the published downloads
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # The notes for a version live in .github/release-notes/<tag>.md: they go into latest.json for
+        # the update dialog and into the release page. Without the file both keep the stock text.
         run: |
           gh release download "$GITHUB_REF_NAME" -p latest.json -D draft -R "$GITHUB_REPOSITORY"
-          scripts/origami-fix-latest-json.sh "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" draft/latest.json latest.json
+          notes=".github/release-notes/$GITHUB_REF_NAME.md"
+          [[ -f $notes ]] || notes=''
+          scripts/origami-fix-latest-json.sh "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" draft/latest.json latest.json "$notes"
           gh release upload "$GITHUB_REF_NAME" latest.json --clobber -R "$GITHUB_REPOSITORY"
+          if [[ -n $notes ]]; then
+            gh release edit "$GITHUB_REF_NAME" --notes-file "$notes" -R "$GITHUB_REPOSITORY"
+          fi

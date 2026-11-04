@@ -458,10 +458,11 @@ const handlers: Record<string, (args: any) => unknown> = {
     params.get('update') === '1'
       ? {
           rid: 1,
-          currentVersion: '0.1.4',
-          version: '0.1.5',
-          date: '2026-11-04',
-          body: 'Preview',
+          currentVersion: '0.1.7',
+          version: '0.1.8',
+          date: '2026-11-05',
+          // The real text arrives from latest.json (.github/release-notes/<tag>.md).
+          body: 'Что нового в 0.1.8:\n\n- Через полминуты после запуска программа сама проверяет, идёт ли трафик через VPN, и при необходимости переподключает его.\n- В окне обновления теперь виден список изменений.\n\nЕсли что-то не работает, нажмите "Скопировать диагностику для поддержки" на главном экране и пришлите мне.',
           rawJson: {},
         }
       : null,

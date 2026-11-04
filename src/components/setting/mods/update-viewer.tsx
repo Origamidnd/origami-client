@@ -65,7 +65,11 @@ const GITHUB_ALERT_CLASS_PATTERN =
   /markdown-alert-(note|tip|important|warning|caution)/
 const UPDATE_MARKDOWN_ID_PREFIX = 'update-markdown-'
 
-const shouldShowReleaseNotes = (language: string) => language === 'zh'
+// OrigamiVPN: our notes are written in Russian for every user (CI puts them into latest.json from
+// .github/release-notes); the stock text of releases without notes is not worth showing.
+const STOCK_RELEASE_BODY = 'OrigamiVPN desktop client.'
+const shouldShowReleaseNotes = (body: string) =>
+  body.trim() !== '' && body.trim() !== STOCK_RELEASE_BODY
 
 const LazyReactMarkdown = lazy(async () => {
   const [
@@ -174,7 +178,7 @@ const remarkGitHubAlerts = (labels: Record<GitHubAlertType, string>) => {
 }
 
 export function UpdateViewer({ ref }: { ref?: Ref<DialogRef> }) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
 
   const [open, setOpen] = useState(false)
   const updateState = useUpdateState()
@@ -216,16 +220,15 @@ export function UpdateViewer({ ref }: { ref?: Ref<DialogRef> }) {
     [githubAlertLabels],
   )
 
-  const activeLanguage = i18n.resolvedLanguage ?? i18n.language
   const markdownContent = useMemo(() => {
     if (!updateInfo?.body) {
       return t('settings.modals.update.messages.available')
     }
-    if (!shouldShowReleaseNotes(activeLanguage)) {
+    if (!shouldShowReleaseNotes(updateInfo.body)) {
       return t('settings.modals.update.messages.available')
     }
     return updateInfo?.body
-  }, [activeLanguage, t, updateInfo])
+  }, [t, updateInfo])
 
   const breakChangeFlag = useMemo(() => {
     if (!updateInfo?.body) {
