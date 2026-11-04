@@ -441,6 +441,7 @@ const handlers: Record<string, (args: any) => unknown> = {
   }),
   'plugin:mihomo|get_version': () => ({ meta: true, version: 'v1.19.0' }),
   // `?nodns=1`: every other silent server has an address that does not resolve.
+  origami_set_link_ok: () => null,
   origami_unresolved_servers: ({ names }) =>
     params.get('nodns') === '1'
       ? (names as string[]).filter((_, i) => i % 2 === 0)

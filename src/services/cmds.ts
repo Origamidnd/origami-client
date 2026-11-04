@@ -331,6 +331,11 @@ export async function origamiUnresolvedServers(names: string[]) {
   return commands.origamiUnresolvedServers(names)
 }
 
+/** OrigamiVPN: tells the tray whether traffic goes through, for its red dot. */
+export async function origamiSetLinkOk(ok: boolean) {
+  return commands.origamiSetLinkOk(ok)
+}
+
 export async function cmdTestDelay(url: string) {
   return commands.testDelay(url)
 }

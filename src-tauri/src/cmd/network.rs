@@ -170,3 +170,10 @@ async fn core_resolves(host: &str) -> bool {
     // DNS RCODE: 2 = the resolver failed, 3 = no such name. Anything else counts as found.
     !matches!(body.get("Status").and_then(serde_json::Value::as_u64), Some(2 | 3))
 }
+
+/// OrigamiVPN: the UI's link probe reports whether traffic goes through; false paints the tray red.
+#[tauri::command]
+#[specta::specta]
+pub async fn origami_set_link_ok(ok: bool) {
+    crate::core::tray::set_link_ok(ok).await;
+}

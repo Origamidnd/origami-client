@@ -5,7 +5,7 @@ import {
   flushFakeIp,
 } from 'tauri-plugin-mihomo-api'
 
-import { cmdTestDelay, restartCore } from '@/services/cmds'
+import { cmdTestDelay, origamiSetLinkOk, restartCore } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
 
 import { isReachable } from './check/targets'
@@ -20,6 +20,9 @@ const MIN_INTERVAL_MS = 30 * 1000
 // One check a little after start: a core left over from an install over a running app can be up
 // but pass no traffic until it is restarted.
 const STARTUP_CHECK_MS = 30 * 1000
+// The tray turns red after this many failed probes in a row, one a minute while the VPN is on.
+const LINK_PROBE_MS = 60 * 1000
+const LINK_FAILS = 2
 const PROBE_URL = 'https://www.gstatic.com/generate_204'
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -64,6 +67,18 @@ export const watchRecovery = (
   let lastRun = 0
   let pending: ReturnType<typeof setTimeout> | null = null
   let running = false
+  let linkOk = true
+  let fails = 0
+
+  const report = (ok: boolean) => {
+    if (ok) fails = 0
+    if (ok === linkOk) return
+    linkOk = ok
+    origamiSetLinkOk(ok).catch(() => {
+      // The tray keeps its icon; the next probe reports again.
+      linkOk = !ok
+    })
+  }
 
   const schedule = (reason: Reason = 'network') => {
     if (pending) clearTimeout(pending)
@@ -75,6 +90,7 @@ export const watchRecovery = (
       running = true
       recoverNetwork()
         .then((result) => {
+          report(result !== 'offline')
           if (result === 'restarted') {
             showNotice.info(RESTARTED_NOTICE[reason])
           }
@@ -97,8 +113,21 @@ export const watchRecovery = (
   target.addEventListener('online', onOnline)
   const startup = setTimeout(() => schedule('startup'), STARTUP_CHECK_MS)
 
+  const linkProbe = setInterval(() => {
+    if (!isConnected()) {
+      report(true)
+      return
+    }
+    if (running) return
+    void probe().then((ok) => {
+      if (ok) report(true)
+      else if (++fails >= LINK_FAILS) report(false)
+    })
+  }, LINK_PROBE_MS)
+
   return () => {
     clearInterval(tick)
+    clearInterval(linkProbe)
     clearTimeout(startup)
     if (pending) clearTimeout(pending)
     target.removeEventListener('online', onOnline)

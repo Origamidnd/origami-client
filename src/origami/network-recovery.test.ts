@@ -1,7 +1,7 @@
 import { closeAllConnections } from 'tauri-plugin-mihomo-api'
 import { beforeEach, expect, it, vi } from 'vitest'
 
-import { cmdTestDelay, restartCore } from '@/services/cmds'
+import { cmdTestDelay, origamiSetLinkOk, restartCore } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
 
 import { recoverNetwork, watchRecovery } from './network-recovery'
@@ -13,6 +13,7 @@ vi.mock('tauri-plugin-mihomo-api', () => ({
 }))
 vi.mock('@/services/cmds', () => ({
   cmdTestDelay: vi.fn(),
+  origamiSetLinkOk: vi.fn(async () => null),
   restartCore: vi.fn(async () => {}),
 }))
 vi.mock('@/services/notice-service', () => ({ showNotice: { info: vi.fn() } }))
@@ -23,6 +24,7 @@ beforeEach(() => {
   vi.mocked(cmdTestDelay).mockReset()
   vi.mocked(restartCore).mockClear()
   vi.mocked(closeAllConnections).mockClear()
+  vi.mocked(origamiSetLinkOk).mockClear()
 })
 
 const run = async () => {
@@ -77,5 +79,21 @@ it('skips the start check while the VPN is off', async () => {
   const stop = watchRecovery(() => false, fakeWindow() as never)
   await vi.advanceTimersByTimeAsync(60 * 1000)
   expect(cmdTestDelay).not.toHaveBeenCalled()
+  stop()
+})
+
+it('paints the tray red after two failed minute probes and back when traffic returns', async () => {
+  vi.mocked(cmdTestDelay).mockResolvedValue(120)
+  const stop = watchRecovery(() => true, fakeWindow() as never)
+  // The start check passes; then the link breaks.
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  vi.mocked(cmdTestDelay).mockResolvedValue(10000)
+  await vi.advanceTimersByTimeAsync(60 * 1000)
+  expect(origamiSetLinkOk).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(60 * 1000)
+  expect(origamiSetLinkOk).toHaveBeenLastCalledWith(false)
+  vi.mocked(cmdTestDelay).mockResolvedValue(90)
+  await vi.advanceTimersByTimeAsync(60 * 1000)
+  expect(origamiSetLinkOk).toHaveBeenLastCalledWith(true)
   stop()
 })

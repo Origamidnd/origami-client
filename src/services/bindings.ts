@@ -74,6 +74,9 @@ export const commands = {
    */
   origamiUnresolvedServers: (names: string[]) =>
     __TAURI_INVOKE<string[]>('origami_unresolved_servers', { names }),
+  /**  OrigamiVPN: the UI's link probe reports whether traffic goes through; false paints the tray red. */
+  origamiSetLinkOk: (ok: boolean) =>
+    __TAURI_INVOKE<void>('origami_set_link_ok', { ok }),
   getProxyView: () => __TAURI_INVOKE<ProxyViewV1_Serialize>('get_proxy_view'),
   getRuntimeYaml: () => __TAURI_INVOKE<string>('get_runtime_yaml'),
   getRuntimeLogs: () => __TAURI_INVOKE<RuntimeLogs>('get_runtime_logs'),

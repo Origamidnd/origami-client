@@ -53,6 +53,21 @@ enum IconKind {
     Common,
     SysProxy,
     Tun,
+    /// OrigamiVPN: the VPN is on but traffic does not go through (the UI's link probe says so).
+    Trouble,
+}
+
+/// OrigamiVPN: set by the UI's link probe; the tray shows a red dot while the VPN is on and this is false.
+static LINK_OK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+
+/// OrigamiVPN: records the link state and redraws the tray icon when it changes.
+pub async fn set_link_ok(ok: bool) {
+    if LINK_OK.swap(ok, std::sync::atomic::Ordering::Relaxed) != ok {
+        logging_error!(
+            Type::Tray,
+            Tray::global().update_icon(&Config::verge().await.latest_arc()).await
+        );
+    }
 }
 
 pub struct Tray {
@@ -65,7 +80,10 @@ impl TrayState {
     async fn get_tray_icon(verge: &IVerge) -> (bool, Cow<'_, [u8]>) {
         let tun_mode = verge.enable_tun_mode.unwrap_or(false) && crate::core::runstate::RUN_STATE.state().tun_capable();
         let system_mode = verge.enable_system_proxy.unwrap_or(false);
-        let kind = if tun_mode {
+        let link_ok = LINK_OK.load(std::sync::atomic::Ordering::Relaxed);
+        let kind = if (tun_mode || system_mode) && !link_ok {
+            IconKind::Trouble
+        } else if tun_mode {
             IconKind::Tun
         } else if system_mode {
             IconKind::SysProxy
@@ -80,6 +98,7 @@ impl TrayState {
             IconKind::Common => (verge.common_tray_icon.unwrap_or(false), "common"),
             IconKind::SysProxy => (verge.sysproxy_tray_icon.unwrap_or(false), "sysproxy"),
             IconKind::Tun => (verge.tun_tray_icon.unwrap_or(false), "tun"),
+            IconKind::Trouble => (false, "trouble"),
         };
 
         if custom_enabled
@@ -106,6 +125,7 @@ impl TrayState {
                             Cow::Borrowed(include_bytes!("../../../icons/tray-icon-sys-mono-new.ico"))
                         }
                         IconKind::Tun => Cow::Borrowed(include_bytes!("../../../icons/tray-icon-tun-mono-new.ico")),
+                        IconKind::Trouble => Cow::Borrowed(include_bytes!("../../../icons/tray-icon-trouble.ico")),
                     },
                 );
             }
@@ -120,6 +140,7 @@ impl TrayState {
                 IconKind::Common => Cow::Borrowed(include_bytes!("../../../icons/tray-icon.ico")),
                 IconKind::SysProxy => Cow::Borrowed(include_bytes!("../../../icons/tray-icon-sys.ico")),
                 IconKind::Tun => Cow::Borrowed(include_bytes!("../../../icons/tray-icon-tun.ico")),
+                IconKind::Trouble => Cow::Borrowed(include_bytes!("../../../icons/tray-icon-trouble.ico")),
             },
         )
     }

@@ -40,6 +40,7 @@ pub fn builder() -> tauri_specta::Builder<tauri::Wry> {
             cmd::change_clash_core,
             cmd::get_runtime_config,
             cmd::origami_unresolved_servers,
+            cmd::origami_set_link_ok,
             cmd::get_proxy_view,
             cmd::get_runtime_yaml,
             cmd::get_runtime_logs,
