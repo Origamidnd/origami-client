@@ -443,12 +443,9 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     updateViaProxy: 'profiles.components.menu.updateViaProxy',
     delete: 'shared.actions.delete',
   } as const
-  // OrigamiVPN: without expert mode the menu keeps only what the row and tiles do not show.
-  const SIMPLE_MENU: string[] = [
-    menuLabels.update,
-    menuLabels.updateViaProxy,
-    menuLabels.delete,
-  ]
+  // OrigamiVPN: without expert mode the menu keeps only what the row and tiles do not show
+  // (the row has its own refresh button).
+  const SIMPLE_MENU: string[] = [menuLabels.updateViaProxy, menuLabels.delete]
 
   const urlModeMenu: ContextMenuItem[] = [
     ...(hasHome
@@ -786,6 +783,26 @@ const ProfileItemBase = (props: ProfileItemProps) => {
           </Button>
         )}
 
+        {hasUrl && (
+          <IconButton
+            size="small"
+            color="inherit"
+            title={t('origami.servers.refreshSub')}
+            disabled={loading}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (activating || loading) return
+              onUpdate(1)
+            }}
+          >
+            <RefreshRounded
+              fontSize="small"
+              sx={{
+                animation: loading ? `1s linear infinite ${round}` : 'none',
+              }}
+            />
+          </IconButton>
+        )}
         <IconButton
           size="small"
           color="inherit"
@@ -797,14 +814,7 @@ const ProfileItemBase = (props: ProfileItemProps) => {
             setAnchorEl(e.currentTarget)
           }}
         >
-          {loading ? (
-            <RefreshRounded
-              fontSize="small"
-              sx={{ animation: `1s linear infinite ${round}` }}
-            />
-          ) : (
-            <MoreVertRounded fontSize="small" />
-          )}
+          <MoreVertRounded fontSize="small" />
         </IconButton>
         {details && <ExpandMoreRounded className="o-prow__chevron" />}
       </ProfileBox>
