@@ -1,0 +1,321 @@
+//! OrigamiVPN: the user's own routes for apps and sites, put in front of the subscription's rules.
+//!
+//! The subscription and its template stay as they are: removing a route brings back the original
+//! behaviour. "Through the VPN" goes to a group of our own, so the user picks its server on the
+//! Servers tab like for any other service.
+use crate::config::IOrigamiRoute;
+use serde_yaml_ng::{Mapping, Sequence, Value};
+
+/// The selector "through the VPN" routes use; the UI looks it up by this name.
+pub const OWN_GROUP: &str = "⭐ Свои правила";
+/// Its members are copied from here: our Auto group and every server, without the direct outbound.
+const SOURCE_GROUP: &str = "🚫 Заблокированные сервисы";
+
+const BUILTIN_OUTBOUNDS: [&str; 5] = ["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"];
+const NOT_SERVER_TYPES: [&str; 4] = ["direct", "reject", "dns", "pass"];
+
+pub fn use_origami_routes(mut config: Mapping, routes: &[IOrigamiRoute]) -> Mapping {
+    let has_group = ensure_own_group(&mut config);
+
+    let lines: Sequence = routes
+        .iter()
+        .filter_map(|route| rule_line(route, has_group))
+        .map(Value::from)
+        .collect();
+    if lines.is_empty() {
+        return config;
+    }
+
+    // App rules need the core to look up which process opened a connection.
+    if routes.iter().any(|route| route.kind == "app") {
+        let key = Value::from("find-process-mode");
+        if config.get(&key).and_then(Value::as_str) == Some("off") {
+            config.insert(key, Value::from("strict"));
+        }
+    }
+
+    let key = Value::from("rules");
+    let ours = config
+        .get(&key)
+        .and_then(Value::as_sequence)
+        .cloned()
+        .unwrap_or_default();
+    let mut rules = lines;
+    rules.extend(ours);
+    config.insert(key, Value::Sequence(rules));
+    config
+}
+
+fn rule_line(route: &IOrigamiRoute, has_group: bool) -> Option<String> {
+    let target = match route.via.as_str() {
+        "direct" => "DIRECT",
+        "vpn" if has_group => OWN_GROUP,
+        _ => return None,
+    };
+    match route.kind.as_str() {
+        "app" => clean_process(&route.value).map(|name| format!("PROCESS-NAME,{name},{target}")),
+        "site" => clean_domain(&route.value).map(|domain| format!("DOMAIN-SUFFIX,{domain},{target}")),
+        _ => None,
+    }
+}
+
+/// A process name as the core reports it: the file name, without a folder.
+fn clean_process(value: &str) -> Option<String> {
+    let name = value.trim().rsplit(['/', '\\']).next().unwrap_or_default().trim();
+    // Windows names may hold spaces ("League of Legends.exe"); the core splits a rule on commas only.
+    valid_field(name, true).then(|| name.to_owned())
+}
+
+/// `https://www.Example.com/path` -> `example.com`; `*.example.com` -> `example.com`.
+fn clean_domain(value: &str) -> Option<String> {
+    let mut domain = value.trim().to_lowercase();
+    if let Some((_, rest)) = domain.split_once("://") {
+        domain = rest.to_owned();
+    }
+    let host = domain.split(['/', '?', '#']).next().unwrap_or_default();
+    let host = host.rsplit_once('@').map_or(host, |(_, host)| host);
+    let host = host.split(':').next().unwrap_or_default();
+    // "www." would leave the bare domain and its other subdomains out of the rule.
+    let host = host
+        .trim_start_matches("*.")
+        .trim_start_matches("www.")
+        .trim_matches('.');
+    (valid_field(host, false) && host.contains('.')).then(|| host.to_owned())
+}
+
+// One field of a rule line: no separators the core would read as another field.
+fn valid_field(value: &str, spaces: bool) -> bool {
+    !value.is_empty()
+        && !value
+            .chars()
+            .any(|c| c == ',' || c.is_control() || (c.is_whitespace() && !(spaces && c == ' ')))
+}
+
+/// Adds our selector unless it is there already; false when there is no server to put in it.
+fn ensure_own_group(config: &mut Mapping) -> bool {
+    let groups_key = Value::from("proxy-groups");
+    let mut groups = config
+        .get(&groups_key)
+        .and_then(Value::as_sequence)
+        .cloned()
+        .unwrap_or_default();
+    if groups.iter().any(|group| group_name(group) == Some(OWN_GROUP)) {
+        return true;
+    }
+
+    let members = vpn_members(config, &groups);
+    if members.is_empty() {
+        return false;
+    }
+    let mut group = Mapping::new();
+    group.insert(Value::from("name"), Value::from(OWN_GROUP));
+    group.insert(Value::from("type"), Value::from("select"));
+    group.insert(
+        Value::from("proxies"),
+        Value::Sequence(members.into_iter().map(Value::from).collect()),
+    );
+    groups.push(Value::Mapping(group));
+    config.insert(groups_key, Value::Sequence(groups));
+    true
+}
+
+fn vpn_members(config: &Mapping, groups: &Sequence) -> Vec<String> {
+    let not_servers: Vec<&str> = config
+        .get("proxies")
+        .and_then(Value::as_sequence)
+        .into_iter()
+        .flatten()
+        .filter(|proxy| {
+            proxy
+                .get("type")
+                .and_then(Value::as_str)
+                .is_some_and(|kind| NOT_SERVER_TYPES.contains(&kind.to_lowercase().as_str()))
+        })
+        .filter_map(|proxy| proxy.get("name").and_then(Value::as_str))
+        .collect();
+    let is_server = |name: &str| !BUILTIN_OUTBOUNDS.contains(&name) && !not_servers.contains(&name);
+
+    let source = groups.iter().find(|group| group_name(group) == Some(SOURCE_GROUP));
+    if let Some(source) = source {
+        return source
+            .get("proxies")
+            .and_then(Value::as_sequence)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .filter(|name| is_server(name))
+            .map(str::to_owned)
+            .collect();
+    }
+
+    // Another subscription: every server it lists.
+    config
+        .get("proxies")
+        .and_then(Value::as_sequence)
+        .into_iter()
+        .flatten()
+        .filter_map(|proxy| proxy.get("name").and_then(Value::as_str))
+        .filter(|name| is_server(name))
+        .map(str::to_owned)
+        .collect()
+}
+
+fn group_name(group: &Value) -> Option<&str> {
+    group.get("name").and_then(Value::as_str)
+}
+
+#[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used, reason = "tests assert by panicking")]
+mod tests {
+    use super::*;
+
+    fn route(kind: &str, value: &str, via: &str) -> IOrigamiRoute {
+        IOrigamiRoute {
+            kind: kind.into(),
+            value: value.into(),
+            via: via.into(),
+        }
+    }
+
+    fn config() -> Mapping {
+        serde_yaml_ng::from_str(
+            r#"
+find-process-mode: strict
+proxies:
+  - { name: "🔓 БЕЗ ПРОКСИ (Прямое соединение)", type: direct }
+  - { name: "🇫🇮 Финляндия", type: vless }
+  - { name: "🇸🇪 Швеция", type: vless }
+proxy-groups:
+  - name: "🚫 Заблокированные сервисы"
+    type: select
+    proxies: ["🎲 Авто-выбор (Лучший пинг)", "🔓 БЕЗ ПРОКСИ (Прямое соединение)", "🇫🇮 Финляндия", "🇸🇪 Швеция"]
+  - name: "🎲 Авто-выбор (Лучший пинг)"
+    type: url-test
+    proxies: ["🇫🇮 Финляндия", "🇸🇪 Швеция"]
+rules:
+  - "PROCESS-NAME,steam.exe,DIRECT"
+  - "MATCH,🚫 Заблокированные сервисы"
+"#,
+        )
+        .unwrap()
+    }
+
+    fn rules(config: &Mapping) -> Vec<&str> {
+        config["rules"]
+            .as_sequence()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .collect()
+    }
+
+    fn own_group(config: &Mapping) -> &Value {
+        config["proxy-groups"]
+            .as_sequence()
+            .unwrap()
+            .iter()
+            .find(|group| group_name(group) == Some(OWN_GROUP))
+            .expect("own group")
+    }
+
+    #[test]
+    fn no_routes_leaves_the_rules_alone() {
+        let out = use_origami_routes(config(), &[]);
+        assert_eq!(rules(&out), rules(&config()));
+    }
+
+    #[test]
+    fn own_group_takes_auto_and_servers_but_not_direct() {
+        let out = use_origami_routes(config(), &[]);
+        let members: Vec<&str> = own_group(&out)["proxies"]
+            .as_sequence()
+            .unwrap()
+            .iter()
+            .filter_map(Value::as_str)
+            .collect();
+        assert_eq!(members, ["🎲 Авто-выбор (Лучший пинг)", "🇫🇮 Финляндия", "🇸🇪 Швеция"]);
+    }
+
+    #[test]
+    fn routes_go_first_and_override_ours() {
+        let out = use_origami_routes(
+            config(),
+            &[
+                route("app", "steam.exe", "vpn"),
+                route("site", "https://www.Example.com/a?b", "direct"),
+            ],
+        );
+        assert_eq!(
+            rules(&out),
+            [
+                "PROCESS-NAME,steam.exe,⭐ Свои правила",
+                "DOMAIN-SUFFIX,example.com,DIRECT",
+                "PROCESS-NAME,steam.exe,DIRECT",
+                "MATCH,🚫 Заблокированные сервисы",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_full_path_becomes_the_process_name() {
+        assert_eq!(
+            clean_process(r"C:\Games\Tarkov\EscapeFromTarkov.exe").as_deref(),
+            Some("EscapeFromTarkov.exe")
+        );
+        assert_eq!(clean_process("/usr/bin/firefox").as_deref(), Some("firefox"));
+        assert_eq!(
+            clean_process(" League of Legends.exe ").as_deref(),
+            Some("League of Legends.exe")
+        );
+    }
+
+    #[test]
+    fn values_that_would_break_the_rule_line_are_dropped() {
+        let out = use_origami_routes(
+            config(),
+            &[
+                route("app", "evil.exe,DIRECT", "vpn"),
+                route("site", "not a domain", "direct"),
+                route("site", "localhost", "direct"),
+                route("app", "  ", "direct"),
+                route("site", "*.example.org", "boom"),
+            ],
+        );
+        assert_eq!(rules(&out), rules(&config()));
+    }
+
+    #[test]
+    fn wildcard_and_port_are_trimmed() {
+        assert_eq!(clean_domain("*.example.org").as_deref(), Some("example.org"));
+        assert_eq!(clean_domain("example.org:8443").as_deref(), Some("example.org"));
+    }
+
+    #[test]
+    fn app_routes_turn_process_lookup_on() {
+        let mut base = config();
+        base.insert("find-process-mode".into(), "off".into());
+        let out = use_origami_routes(base, &[route("app", "game.exe", "direct")]);
+        assert_eq!(out["find-process-mode"].as_str(), Some("strict"));
+    }
+
+    #[test]
+    fn without_servers_vpn_routes_are_skipped_and_direct_ones_kept() {
+        let base: Mapping = serde_yaml_ng::from_str("rules: [\"MATCH,DIRECT\"]").unwrap();
+        let out = use_origami_routes(base, &[route("app", "a.exe", "vpn"), route("app", "b.exe", "direct")]);
+        assert_eq!(rules(&out), ["PROCESS-NAME,b.exe,DIRECT", "MATCH,DIRECT"]);
+        assert!(out.get("proxy-groups").is_none());
+    }
+
+    #[test]
+    fn another_subscription_uses_all_its_servers() {
+        let base: Mapping = serde_yaml_ng::from_str(
+            "proxies: [{ name: a, type: ss }, { name: d, type: direct }]\nproxy-groups: [{ name: P, type: select, proxies: [a] }]",
+        )
+        .unwrap();
+        let out = use_origami_routes(base, &[]);
+        assert_eq!(
+            own_group(&out)["proxies"].as_sequence().unwrap(),
+            &vec![Value::from("a")]
+        );
+    }
+}

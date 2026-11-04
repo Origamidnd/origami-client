@@ -329,5 +329,29 @@
     "more": "More",
     "add": "Add subscription",
     "urlPlaceholder": "Subscription link"
+  },
+  "routes": {
+    "kind": "What to route",
+    "app": "Program",
+    "site": "Site",
+    "via": "How",
+    "direct": "Direct",
+    "vpn": "Through VPN",
+    "appPlaceholder": "For example, steam.exe",
+    "sitePlaceholder": "For example, example.com",
+    "pickFile": "Pick the program file",
+    "programs": "Programs",
+    "add": "Add",
+    "recent": "Recently online:",
+    "empty": "Nothing here yet. Add a game, program or site: while a rule is here, it wins over ours. Remove it, and everything goes by our rules again.",
+    "remove": "Remove rule",
+    "badApp": "Enter a program, for example steam.exe",
+    "badSite": "Enter a site address, for example example.com",
+    "added": "{{name}}: rule added",
+    "proxyMode": "VPN runs as a system proxy now: many games and programs ignore it, so a rule for them will not work. Turn on full mode (TUN).",
+    "server": "Server for rules through VPN",
+    "serverHint": "Where the programs and sites you sent through VPN go.",
+    "count": "Rules: {{count}}",
+    "none": "None yet"
   }
 }

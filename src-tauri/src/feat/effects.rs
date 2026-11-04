@@ -125,6 +125,7 @@ verge_registry! {
     origami_expert_mode => [TrayMenu];
     origami_connect_mode => NoEffect;
     origami_system_titlebar => NoEffect;
+    origami_routes => [ClashConfig];
     enable_auto_light_weight_mode => [Lightweight];
     auto_light_weight_minutes => NoEffect;
     enable_hover_jump_navigator => NoEffect;

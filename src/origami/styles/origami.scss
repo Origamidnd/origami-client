@@ -1734,3 +1734,104 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     opacity: 0.3;
   }
 }
+
+// Own rules: programs and sites the user routes ahead of our rules (Servers tab, "Свои правила").
+.o-routes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 16px 16px;
+  color: var(--o-ink);
+
+  &__form {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    grid-template-areas:
+      'kind via . .'
+      'input input input add';
+    align-items: center;
+    gap: 8px;
+
+    > :nth-child(1) {
+      grid-area: kind;
+    }
+
+    > :nth-child(2) {
+      grid-area: input;
+    }
+
+    > :nth-child(3) {
+      grid-area: via;
+    }
+
+    > :nth-child(4) {
+      grid-area: add;
+      height: 36px;
+    }
+  }
+
+  &__seg {
+    width: auto;
+
+    button {
+      flex: none;
+      padding: 5px 12px;
+      white-space: nowrap;
+    }
+  }
+
+  &__recent {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--o-crease);
+    border-radius: 10px;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 8px 8px 12px;
+
+      + li {
+        border-top: 1px dashed var(--o-crease);
+      }
+    }
+  }
+
+  &__name {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+
+    b {
+      overflow: hidden;
+      font-weight: 500;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__empty {
+    margin: 0;
+  }
+
+  &__warn {
+    margin: 0;
+    padding: 8px 12px;
+    border-left: 3px solid var(--o-warn);
+    background: var(--o-warn-bg);
+    color: var(--o-warn-text);
+    font-size: 12px;
+  }
+}

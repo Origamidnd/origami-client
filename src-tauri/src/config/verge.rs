@@ -225,6 +225,10 @@ pub struct IVerge {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub origami_system_titlebar: Option<bool>,
 
+    /// OrigamiVPN: apps and sites the user sent direct or through the VPN, ahead of the subscription's rules.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origami_routes: Option<Vec<IOrigamiRoute>>,
+
     pub enable_auto_light_weight_mode: Option<bool>,
 
     /// 自动进入轻量模式的延迟（分钟）
@@ -236,6 +240,19 @@ pub struct IVerge {
     pub hover_jump_navigator_delay: Option<u64>,
 
     pub enable_external_controller: Option<bool>,
+}
+
+/// OrigamiVPN: one route of the user's own: an app (process name) or a site (domain), sent direct or
+/// through the VPN.
+#[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, specta::Type)]
+#[serde(default)]
+pub struct IOrigamiRoute {
+    /// "app" or "site"
+    pub kind: std::string::String,
+    /// Process name such as `steam.exe`, or a domain such as `example.com`.
+    pub value: std::string::String,
+    /// "direct" or "vpn"
+    pub via: std::string::String,
 }
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize, specta::Type)]
@@ -534,6 +551,7 @@ impl IVerge {
         patch!(origami_expert_mode);
         patch!(origami_connect_mode);
         patch!(origami_system_titlebar);
+        patch!(origami_routes);
         patch!(enable_auto_light_weight_mode);
         patch!(auto_light_weight_minutes);
         patch!(enable_dns_settings);

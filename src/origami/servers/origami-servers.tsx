@@ -31,6 +31,8 @@ import { openExternalUrl } from '@/utils/open-external-url'
 import { ORIGAMI_LINKS } from '../links'
 import { PingBadge } from '../ping-badge'
 import { ReportDialog } from '../report/report-dialog'
+import { OwnRoutes } from '../routes/own-routes'
+import { OWN_GROUP } from '../routes/routes'
 import type { FocusGroupState } from '../use-focus-group'
 import { useRefreshSubscription } from '../use-refresh-subscription'
 
@@ -198,7 +200,14 @@ export const OrigamiServers = () => {
     )
   }
 
+  const ownRoutes = verge?.origami_routes?.length ?? 0
+
   const describe = (item: Service) => {
+    // The own rules entry speaks of the rules; their server is chosen inside.
+    if (item.group.name === OWN_GROUP)
+      return ownRoutes
+        ? t('origami.routes.count', { count: ownRoutes })
+        : t('origami.routes.none')
     const now = item.group.now
     if (!now) return ''
     if (item.direct && now === item.direct.name)
@@ -429,6 +438,18 @@ export const OrigamiServers = () => {
               {title.title.toUpperCase()}
             </div>
             {title.hint && <p className="o-srv__block-hint">{title.hint}</p>}
+
+            {service.group.name === OWN_GROUP && (
+              <>
+                <OwnRoutes />
+                <div className="o-srv__label">
+                  {t('origami.routes.server').toUpperCase()}
+                </div>
+                <p className="o-srv__block-hint">
+                  {t('origami.routes.serverHint')}
+                </p>
+              </>
+            )}
 
             {service.auto && (
               <button

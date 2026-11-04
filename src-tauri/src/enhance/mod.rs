@@ -2,6 +2,7 @@ use crate::core::notify::NoticeStatus;
 mod chain;
 pub mod field;
 mod merge;
+mod origami_routes;
 mod script;
 pub mod seq;
 mod tun;
@@ -10,6 +11,7 @@ use self::{
     chain::{AsyncChainItemFrom as _, ChainItem, ChainType},
     field::{use_keys, use_lowercase_owned, use_sort},
     merge::use_merge,
+    origami_routes::use_origami_routes,
     script::use_script,
     seq::{SeqMap, use_seq},
     tun::use_tun,
@@ -962,6 +964,14 @@ pub async fn enhance(
     let config = ensure_lan_bind_address(config);
 
     let config = cleanup_proxy_groups(config);
+    // OrigamiVPN: the user's own app and site routes go in front of everything else.
+    let routes = Config::verge()
+        .await
+        .latest_arc()
+        .origami_routes
+        .clone()
+        .unwrap_or_default();
+    let config = use_origami_routes(config, &routes);
     let config = use_sort(config);
 
     let mut exists_keys_set = HashSet::new();

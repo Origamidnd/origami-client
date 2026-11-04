@@ -10,11 +10,14 @@ export type ServiceIconKey =
   | 'ai'
   | 'google'
   | 'russia'
+  | 'own'
   | 'unknown'
 
 // Group names come from the subscription with an emoji in front, which other apps (Happ, stock
 // Clash Verge) show as is. Only this client swaps them for a drawn icon, so the template stays put.
 const ICONS: [RegExp, ServiceIconKey][] = [
+  // The user's own routes (added by this client, not the template).
+  [/свои правила/i, 'own'],
   // "Остальные незаблокированные" also contains "заблокир", so it goes first.
   [/остальн|other/i, 'other'],
   [/заблокир|blocked/i, 'blocked'],
@@ -43,6 +46,7 @@ export const GLYPH_HUES: Record<ServiceIconKey | 'auto' | 'direct', string> = {
   ai: '#D6409F',
   google: '#4285F4',
   russia: '#12A594',
+  own: '#C9973A',
   unknown: '#8B8D98',
   auto: '#F5A524',
   direct: '#8B8D98',

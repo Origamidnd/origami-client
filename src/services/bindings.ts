@@ -314,6 +314,19 @@ export type FailedOperation =
   | 'systemProxyRestore'
   | 'systemProxyGuard'
 
+/**
+ *  OrigamiVPN: one route of the user's own: an app (process name) or a site (domain), sent direct or
+ *  through the VPN.
+ */
+export type IOrigamiRoute = {
+  /**  "app" or "site" */
+  kind?: string
+  /**  Process name such as `steam.exe`, or a domain such as `example.com`. */
+  value?: string
+  /**  "direct" or "vpn" */
+  via?: string
+}
+
 /**  Define the `profiles.yaml` schema */
 export type IProfiles = IProfiles_Serialize | IProfiles_Deserialize
 
@@ -433,6 +446,8 @@ export type IVerge_Deserialize = {
   origami_connect_mode?: string | null
   /**  OrigamiVPN: true keeps the system window frame; unset or false draws the client's own title bar. */
   origami_system_titlebar?: boolean | null
+  /**  OrigamiVPN: apps and sites the user sent direct or through the VPN, ahead of the subscription's rules. */
+  origami_routes?: IOrigamiRoute[] | null
   enable_auto_light_weight_mode?: boolean | null
   /**  自动进入轻量模式的延迟（分钟） */
   auto_light_weight_minutes?: number | null
@@ -529,6 +544,8 @@ export type IVerge_Serialize = {
   origami_connect_mode?: string | null
   /**  OrigamiVPN: true keeps the system window frame; unset or false draws the client's own title bar. */
   origami_system_titlebar?: boolean | null
+  /**  OrigamiVPN: apps and sites the user sent direct or through the VPN, ahead of the subscription's rules. */
+  origami_routes?: IOrigamiRoute[] | null
   enable_auto_light_weight_mode: boolean | null
   /**  自动进入轻量模式的延迟（分钟） */
   auto_light_weight_minutes: number | null

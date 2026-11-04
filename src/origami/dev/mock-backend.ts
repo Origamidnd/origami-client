@@ -11,6 +11,14 @@ const verge: Record<string, unknown> = {
   theme_mode: theme,
   enable_system_proxy: params.get('on') === '1',
   enable_tun_mode: false,
+  // `?routes=1` starts with a couple of own rules (Servers tab, "Свои правила").
+  origami_routes:
+    params.get('routes') === '1'
+      ? [
+          { kind: 'app', value: 'League of Legends.exe', via: 'direct' },
+          { kind: 'site', value: 'rutracker.org', via: 'vpn' },
+        ]
+      : [],
   menu_icon: 'monochrome',
   clash_core: 'verge-mihomo',
   verge_mixed_port: 7897,
@@ -44,8 +52,31 @@ const fixtures = import.meta.glob<{ default: GroupsFixture }>(
   './fixtures/subscription-groups.json',
   { eager: true },
 )
-const realGroups =
+const fixtureGroups =
   params.get('real') === '1' ? Object.values(fixtures)[0]?.default : undefined
+
+// The core adds the own rules selector to every config (src-tauri enhance/origami_routes.rs):
+// the blocked sites group's members without the direct outbound.
+const withOwnGroup = (fixture: GroupsFixture): GroupsFixture => {
+  const source = fixture.groups.find((g) => /заблокир/i.test(g.name))
+  if (!source || /остальн/i.test(source.name)) return fixture
+  const direct = new Set(
+    fixture.nodes.filter(([, type]) => type === 'direct').map(([name]) => name),
+  )
+  return {
+    ...fixture,
+    groups: [
+      ...fixture.groups,
+      {
+        name: '⭐ Свои правила',
+        type: 'select',
+        hidden: false,
+        members: source.members.filter((name) => !direct.has(name)),
+      },
+    ],
+  }
+}
+const realGroups = fixtureGroups && withOwnGroup(fixtureGroups)
 
 const GROUP_TYPES: Record<string, string> = {
   select: 'Selector',

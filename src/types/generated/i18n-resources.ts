@@ -431,6 +431,30 @@ export interface TranslationResources {
         }
         what: string
       }
+      routes: {
+        add: string
+        added: string
+        app: string
+        appPlaceholder: string
+        badApp: string
+        badSite: string
+        count: string
+        direct: string
+        empty: string
+        kind: string
+        none: string
+        pickFile: string
+        programs: string
+        proxyMode: string
+        recent: string
+        remove: string
+        server: string
+        serverHint: string
+        site: string
+        sitePlaceholder: string
+        via: string
+        vpn: string
+      }
       servers: {
         auto: string
         autoHint: string
