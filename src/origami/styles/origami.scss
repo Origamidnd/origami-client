@@ -845,6 +845,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 
   &__seg {
+    flex: none;
     width: auto;
 
     button {
@@ -1743,29 +1744,30 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   margin: 4px 16px 16px;
   color: var(--o-ink);
 
+  // Both switches on the first line, the field and the button on the next; in a narrow pane the
+  // second switch wraps instead of being cut.
   &__form {
-    display: grid;
-    grid-template-columns: auto auto 1fr auto;
-    grid-template-areas:
-      'kind via . .'
-      'input input input add';
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
 
     > :nth-child(1) {
-      grid-area: kind;
-    }
-
-    > :nth-child(2) {
-      grid-area: input;
+      order: 1;
     }
 
     > :nth-child(3) {
-      grid-area: via;
+      order: 2;
+    }
+
+    > :nth-child(2) {
+      flex: 1 1 60%;
+      order: 3;
     }
 
     > :nth-child(4) {
-      grid-area: add;
+      flex: none;
+      order: 4;
       height: 36px;
     }
   }
