@@ -22,7 +22,7 @@
       "label": "Connection mode",
       "proxy": "Browser and apps",
       "tun": "Whole computer",
-      "proxyHint": "The browser and apps that use the system proxy go through the VPN.",
+      "proxyHint": "Browsers and programs that use the system proxy go through VPN. Calls on websites (WebRTC) may show your real IP to the other side - if that matters, choose \"Whole computer\".",
       "tunHint": "All traffic of the computer goes through the VPN, including games and messengers.",
       "tunServiceHint": "This mode needs the OrigamiVPN service; you will be offered to install it when connecting."
     },
