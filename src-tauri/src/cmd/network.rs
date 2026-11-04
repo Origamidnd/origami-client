@@ -104,3 +104,69 @@ pub struct AutoProxy {
     pub enable: bool,
     pub url: String,
 }
+
+/// OrigamiVPN: of the given proxies, the ones whose server address the core cannot resolve.
+///
+/// A delay test reports a dead server and an unresolvable name the same way, so the Servers tab
+/// asks this for the silent ones and names the second case "address not found". Servers given as
+/// an IP and names missing from the runtime config are never listed.
+#[tauri::command]
+#[specta::specta]
+pub async fn origami_unresolved_servers(names: Vec<std::string::String>) -> CmdResult<Vec<std::string::String>> {
+    let hosts: Vec<(std::string::String, std::string::String)> = {
+        let runtime = crate::config::Config::runtime().await;
+        let runtime = runtime.latest_arc();
+        let proxies = runtime
+            .config
+            .as_ref()
+            .and_then(|config| config.get("proxies"))
+            .and_then(serde_yaml_ng::Value::as_sequence)
+            .cloned()
+            .unwrap_or_default();
+        names
+            .into_iter()
+            .filter_map(|name| {
+                let proxy = proxies
+                    .iter()
+                    .find(|proxy| proxy.get("name").and_then(serde_yaml_ng::Value::as_str) == Some(name.as_str()))?;
+                let server = proxy.get("server").and_then(serde_yaml_ng::Value::as_str)?.trim();
+                let bare = server.trim_start_matches('[').trim_end_matches(']');
+                (bare.parse::<std::net::IpAddr>().is_err() && !bare.is_empty()).then(|| (name, bare.to_owned()))
+            })
+            .collect()
+    };
+
+    let mut unresolved = Vec::new();
+    for (name, host) in hosts {
+        if !core_resolves(&host).await {
+            unresolved.push(name);
+        }
+    }
+    Ok(unresolved)
+}
+
+// Asks the core's own DNS (`/dns/query`), the resolver it uses to reach servers. An API error counts
+// as resolved: only a clear "no address" answer should change what the user sees.
+async fn core_resolves(host: &str) -> bool {
+    let mihomo = crate::core::handle::Handle::mihomo();
+    let request = match mihomo.load_ctx().build_request(reqwest::Method::GET, "/dns/query") {
+        Ok(request) => request,
+        Err(_) => return true,
+    };
+    let Ok(response) = request
+        .query(&[("name", host), ("type", "A")])
+        .timeout(std::time::Duration::from_secs(5))
+        .send()
+        .await
+    else {
+        return true;
+    };
+    if !response.status().is_success() {
+        return true;
+    }
+    let Ok(body) = response.json::<serde_json::Value>().await else {
+        return true;
+    };
+    // DNS RCODE: 2 = the resolver failed, 3 = no such name. Anything else counts as found.
+    !matches!(body.get("Status").and_then(serde_json::Value::as_u64), Some(2 | 3))
+}

@@ -11,16 +11,29 @@ export const PingBadge = ({
   delay,
   checking = false,
   tone = 'level',
+  noAddress = false,
 }: {
   /** Milliseconds; null means no answer, undefined means not measured yet. */
   delay: number | null | undefined
   checking?: boolean
   tone?: 'level' | 'plain'
+  /** The server did not answer because its address does not resolve. */
+  noAddress?: boolean
 }) => {
   const { t } = useTranslation()
   if (checking) return <span className="o-ping is-wait">…</span>
   const level = pingLevel(delay)
   if (level === 'unknown') return null
+  if (level === 'dead' && noAddress) {
+    return (
+      <span
+        className="o-ping is-dead"
+        title={t('origami.servers.noAddressHint')}
+      >
+        {t('origami.servers.noAddress')}
+      </span>
+    )
+  }
   return (
     <span
       className={`o-ping is-${tone === 'plain' && level !== 'dead' ? 'plain' : level}`}

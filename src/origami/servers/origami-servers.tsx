@@ -22,6 +22,7 @@ import { useProfiles } from '@/hooks/use-profiles'
 import { useProxySelection } from '@/hooks/use-proxy-selection'
 import { useVerge } from '@/hooks/use-verge'
 import { useAppRefreshers, useProxiesData } from '@/providers/app-data-context'
+import { origamiUnresolvedServers } from '@/services/cmds'
 import delayManager from '@/services/delay'
 import { showNotice } from '@/services/notice-service'
 import type { ProxyNodeView, ProxyViewV1 } from '@/types/proxy-view'
@@ -96,13 +97,24 @@ const nodeDelay = (node: ProxyNodeView | undefined) => {
   return last === undefined ? undefined : last > 0 ? last : null
 }
 
+// Servers the last check found with an address that does not resolve; kept across tab switches.
+let unresolvedCache = new Set<string>()
+
 const Ping = ({
   delay,
   checking,
+  name,
 }: {
   delay: number | null | undefined
   checking: boolean
-}) => <PingBadge delay={delay} checking={checking} />
+  name?: string
+}) => (
+  <PingBadge
+    delay={delay}
+    checking={checking}
+    noAddress={!!name && unresolvedCache.has(name)}
+  />
+)
 
 const BLOCK_ORDER: ServerCategory[] = ['main', 'extra', 'other']
 const GAMES_ORDER: ServerCategory[] = ['other', 'main', 'extra']
@@ -161,10 +173,31 @@ export const OrigamiServers = () => {
       setCheckedAt(now)
       applySwitches(pendingSwitches(services))
       // Name the silent ones: a country row shows its best variant, so a bare count looked wrong.
-      const dead = servers
+      // An address that does not resolve is told apart: the server may be fine, its name is not.
+      const silent = servers
         .filter((member) => readDelay(member) === null)
-        .map((member) => serverLabel(memberName(member)))
-      if (dead.length) {
+        .map(memberName)
+      unresolvedCache = new Set(
+        silent.length
+          ? await origamiUnresolvedServers(silent).catch(() => [])
+          : [],
+      )
+      const dead = silent
+        .filter((name) => !unresolvedCache.has(name))
+        .map(serverLabel)
+      const noAddress = silent
+        .filter((name) => unresolvedCache.has(name))
+        .map(serverLabel)
+      if (noAddress.length) {
+        showNotice.info('origami.servers.checkedNoAddress', {
+          names: noAddress.join(', '),
+          dead: dead.length
+            ? t('origami.servers.checkedNoAddressDead', {
+                names: dead.join(', '),
+              })
+            : '',
+        })
+      } else if (dead.length) {
         showNotice.info('origami.servers.checkedSome', {
           names: dead.join(', '),
         })
@@ -271,7 +304,7 @@ export const OrigamiServers = () => {
         >
           <span className="o-srv__country-name">{country.base}</span>
           {chosen && many && <span className="o-hint">{chosen.variant}</span>}
-          <Ping delay={shown.delay} checking={checking} />
+          <Ping delay={shown.delay} checking={checking} name={shown.name} />
         </button>
         {chosen && many && (
           <div className="o-srv__variants">
@@ -309,7 +342,11 @@ export const OrigamiServers = () => {
                   }}
                 >
                   {option.variant}
-                  <Ping delay={option.delay} checking={checking} />
+                  <Ping
+                    delay={option.delay}
+                    checking={checking}
+                    name={option.name}
+                  />
                 </button>
               ))}
             </div>
@@ -473,7 +510,11 @@ export const OrigamiServers = () => {
                       : t('origami.servers.autoHint')}
                   </small>
                 </span>
-                <Ping delay={nodeDelay(autoNode)} checking={checking} />
+                <Ping
+                  delay={nodeDelay(autoNode)}
+                  checking={checking}
+                  name={autoNode?.name}
+                />
               </button>
             )}
             {service.direct && (

@@ -65,6 +65,15 @@ export const commands = {
     } | null>('change_clash_core', { clashCore }),
   getRuntimeConfig: () =>
     __TAURI_INVOKE<{ [key in string]: JsonValue } | null>('get_runtime_config'),
+  /**
+   *  OrigamiVPN: of the given proxies, the ones whose server address the core cannot resolve.
+   *
+   *  A delay test reports a dead server and an unresolvable name the same way, so the Servers tab
+   *  asks this for the silent ones and names the second case "address not found". Servers given as
+   *  an IP and names missing from the runtime config are never listed.
+   */
+  origamiUnresolvedServers: (names: string[]) =>
+    __TAURI_INVOKE<string[]>('origami_unresolved_servers', { names }),
   getProxyView: () => __TAURI_INVOKE<ProxyViewV1_Serialize>('get_proxy_view'),
   getRuntimeYaml: () => __TAURI_INVOKE<string>('get_runtime_yaml'),
   getRuntimeLogs: () => __TAURI_INVOKE<RuntimeLogs>('get_runtime_logs'),

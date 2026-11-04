@@ -326,6 +326,11 @@ export async function syncRuntimeProviders() {
   })
 }
 
+/** OrigamiVPN: of these proxies, the ones whose server address the core cannot resolve. */
+export async function origamiUnresolvedServers(names: string[]) {
+  return commands.origamiUnresolvedServers(names)
+}
+
 export async function cmdTestDelay(url: string) {
   return commands.testDelay(url)
 }

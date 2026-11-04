@@ -235,7 +235,11 @@
     "autoVariant": "Switch to the fastest variant automatically",
     "autoVariantSwitched": "{{service}}: switched to {{server}}, it is faster now",
     "refreshSub": "Update subscription",
-    "refreshingSub": "Updating subscription"
+    "refreshingSub": "Updating subscription",
+    "noAddress": "address not found",
+    "noAddressHint": "The IP address of this server could not be found: DNS is broken at your provider or in the subscription. The server itself may be fine. Try another server or refresh the subscription.",
+    "checkedNoAddress": "Checked. Address not found: {{names}}. This is a DNS problem, not the server.{{dead}}",
+    "checkedNoAddressDead": " Not answering: {{names}}"
   },
   "report": {
     "open": "A site or game not working?",

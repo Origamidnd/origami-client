@@ -476,6 +476,8 @@ export interface TranslationResources {
         check: string
         checkedAll: string
         checkedAt: string
+        checkedNoAddress: string
+        checkedNoAddressDead: string
         checkedSome: string
         checking: string
         chosen: string
@@ -487,6 +489,8 @@ export interface TranslationResources {
         leadExample: string
         legend: string
         mid: string
+        noAddress: string
+        noAddressHint: string
         noAnswer: string
         or: string
         refreshingSub: string
