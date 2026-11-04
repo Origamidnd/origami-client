@@ -731,8 +731,14 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     padding-top: 8px;
     border-top: 1px dashed var(--o-crease);
 
+    // The hint takes its own line; under it one button sits on each edge, its icon lined up with
+    // the plate's content (text buttons carry 8px of inner padding).
+    .o-hint {
+      flex-basis: 100%;
+    }
+
     .MuiButton-root {
-      margin-left: auto;
+      margin: 0 -8px;
       color: var(--o-ink);
     }
   }

@@ -30,7 +30,8 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 const formatBytes = (value: number) => parseTraffic(value).join(' ')
 
-// Speed sits at the foot of the connect plate, so the grid no longer has a separate box for it.
+// Current speed sits at the foot of the subscription plate, next to the traffic used so far; the
+// connect plate keeps only the button.
 const SpeedRow = () => {
   const { t } = useTranslation()
   const visible = useVisibility()
@@ -121,7 +122,6 @@ const ConnectPlate = () => {
             : t('origami.home.state.offHint')}
         </div>
       </div>
-      <SpeedRow />
       {expert && (
         <div
           className="o-seg"
@@ -277,6 +277,7 @@ const SubscriptionPlate = () => {
           {t('origami.home.subscription.renew')}
         </Button>
       )}
+      <SpeedRow />
     </section>
   )
 }
