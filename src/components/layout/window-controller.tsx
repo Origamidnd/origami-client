@@ -1,4 +1,3 @@
-import { Close, CropSquare, FilterNone, Minimize } from '@mui/icons-material'
 import { Box, IconButton } from '@mui/material'
 import {
   forwardRef,
@@ -8,6 +7,12 @@ import {
 } from 'react'
 
 import { useWindowControls } from '@/hooks/use-window'
+import {
+  CloseGlyph,
+  MaximizeGlyph,
+  MinimizeGlyph,
+  RestoreGlyph,
+} from '@/origami/window-glyphs'
 import getSystem from '@/utils/get-system'
 
 const RESIZE_HANDLES = [
@@ -112,21 +117,17 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
         <>
           {/* macOS 风格：关闭 → 最小化 → 全屏 */}
           <IconButton size="small" sx={{ fontSize: 14 }} onClick={close}>
-            <Close fontSize="inherit" color="inherit" />
+            <CloseGlyph />
           </IconButton>
           <IconButton size="small" sx={{ fontSize: 14 }} onClick={minimize}>
-            <Minimize fontSize="inherit" color="inherit" />
+            <MinimizeGlyph />
           </IconButton>
           <IconButton
             size="small"
             sx={{ fontSize: 14 }}
             onClick={toggleMaximize}
           >
-            {maximized ? (
-              <FilterNone fontSize="inherit" color="inherit" />
-            ) : (
-              <CropSquare fontSize="inherit" color="inherit" />
-            )}
+            {maximized ? <RestoreGlyph /> : <MaximizeGlyph />}
           </IconButton>
         </>
       )}
@@ -135,25 +136,21 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
         <>
           {/* Windows 风格：最小化 → 最大化 → 关闭 */}
           <IconButton size="small" sx={{ fontSize: 16 }} onClick={minimize}>
-            <Minimize fontSize="inherit" color="inherit" />
+            <MinimizeGlyph />
           </IconButton>
           <IconButton
             size="small"
             sx={{ fontSize: 16 }}
             onClick={toggleMaximize}
           >
-            {maximized ? (
-              <FilterNone fontSize="inherit" color="inherit" />
-            ) : (
-              <CropSquare fontSize="inherit" color="inherit" />
-            )}
+            {maximized ? <RestoreGlyph /> : <MaximizeGlyph />}
           </IconButton>
           <IconButton
             size="small"
             sx={{ fontSize: 16, ':hover': { bgcolor: 'red', color: 'white' } }}
             onClick={close}
           >
-            <Close fontSize="inherit" color="inherit" />
+            <CloseGlyph />
           </IconButton>
         </>
       )}
@@ -162,25 +159,21 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
         <>
           {/* Linux 桌面常见布局（GNOME/KDE 多为：最小化 → 最大化 → 关闭） */}
           <IconButton size="small" sx={{ fontSize: 16 }} onClick={minimize}>
-            <Minimize fontSize="inherit" color="inherit" />
+            <MinimizeGlyph />
           </IconButton>
           <IconButton
             size="small"
             sx={{ fontSize: 16 }}
             onClick={toggleMaximize}
           >
-            {maximized ? (
-              <FilterNone fontSize="inherit" color="inherit" />
-            ) : (
-              <CropSquare fontSize="inherit" color="inherit" />
-            )}
+            {maximized ? <RestoreGlyph /> : <MaximizeGlyph />}
           </IconButton>
           <IconButton
             size="small"
             sx={{ fontSize: 16, ':hover': { bgcolor: 'red', color: 'white' } }}
             onClick={close}
           >
-            <Close fontSize="inherit" color="inherit" />
+            <CloseGlyph />
           </IconButton>
         </>
       )}

@@ -159,7 +159,8 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
 // Own title bar (Windows/Linux): page colour, Windows-sized buttons, no stock divider.
-.layout .the_titlebar {
+// Same weight as the base ".linux.layout .the_titlebar", whose 10px padding squeezed the buttons.
+:is(.linux, .windows, .unknown).layout .the_titlebar {
   align-items: stretch;
   height: 36px;
   padding: 0;
