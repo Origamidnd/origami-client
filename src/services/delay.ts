@@ -432,8 +432,9 @@ class DelayManager {
         return 'error.main'
       case 'measured':
         // Colour and signal bars intentionally use different grading thresholds.
-        if (delay >= 400) return 'warning.main'
-        if (delay >= 250) return 'primary.main'
+        // OrigamiVPN: the same scale as the ping badges on our pages (src/origami/servers/model.ts).
+        if (delay >= 120) return 'error.main'
+        if (delay >= 60) return 'warning.main'
         return 'success.main'
     }
   }

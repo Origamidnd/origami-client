@@ -36,7 +36,8 @@ const Widget = styled(Box)(() => ({
   borderRadius: '4px',
 }))
 
-const TypeBox = styled('span')(({ theme }) => ({
+// OrigamiVPN: `label` puts "o-type" into the class name for origami.scss.
+const TypeBox = styled('span', { label: 'o-type' })(({ theme }) => ({
   display: 'inline-block',
   border: '1px solid #ccc',
   borderColor: alpha(theme.palette.text.secondary, 0.36),

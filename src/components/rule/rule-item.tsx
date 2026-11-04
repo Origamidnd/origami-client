@@ -1,7 +1,8 @@
 import { styled, Box, Typography } from '@mui/material'
 import { Rule } from 'tauri-plugin-mihomo-api'
 
-const Item = styled(Box)(({ theme }) => ({
+// OrigamiVPN: `label` puts "o-rule" into the class name for origami.scss.
+const Item = styled(Box, { label: 'o-rule' })(({ theme }) => ({
   display: 'flex',
   padding: '4px 16px',
   color: theme.palette.text.primary,

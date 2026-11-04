@@ -169,6 +169,7 @@ export const ProxyRender = memo(function ProxyRender(props: RenderProps) {
         >
           <Chip
             size="small"
+            className="o-count"
             label={`${group.members.length}`}
             sx={{
               mr: toolsOnLeft ? 0 : 1,
@@ -324,7 +325,8 @@ const StyledSubtitle = styled('span')`
   white-space: nowrap;
 `
 
-const StyledTypeBox = styled(Box)(({ theme }) => ({
+// OrigamiVPN: `label` puts "o-type" into the class name for origami.scss.
+const StyledTypeBox = styled(Box, { label: 'o-type' })(({ theme }) => ({
   display: 'inline-block',
   border: '1px solid #ccc',
   borderColor: alpha(theme.palette.primary.main, 0.5),

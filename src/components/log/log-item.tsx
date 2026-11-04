@@ -3,44 +3,47 @@ import type { ReactNode } from 'react'
 
 import type { SearchState } from '@/components/base'
 
-const Item = styled(Box)(({ theme: { palette, typography } }) => ({
-  padding: '8px 0',
-  margin: '0 12px',
-  lineHeight: 1.35,
-  borderBottom: `1px solid ${palette.divider}`,
-  fontSize: '0.875rem',
-  fontFamily: typography.fontFamily,
-  userSelect: 'text',
-  '& .time': {
-    color: palette.text.secondary,
-  },
-  '& .type': {
-    display: 'inline-block',
-    marginLeft: 8,
-    textAlign: 'center',
-    borderRadius: 2,
-    textTransform: 'uppercase',
-    fontWeight: '600',
-  },
-  '& .type[data-type="error"], & .type[data-type="err"]': {
-    color: palette.error.main,
-  },
-  '& .type[data-type="warning"], & .type[data-type="warn"]': {
-    color: palette.warning.main,
-  },
-  '& .type[data-type="info"], & .type[data-type="inf"]': {
-    color: palette.info.main,
-  },
-  '& .data': {
-    color: palette.text.primary,
-    overflowWrap: 'anywhere',
-  },
-  '& .highlight': {
-    backgroundColor: palette.mode === 'dark' ? '#ffeb3b40' : '#ffeb3b90',
-    borderRadius: 2,
-    padding: '0 2px',
-  },
-}))
+// OrigamiVPN: `label` puts "o-log" into the class name for origami.scss.
+const Item = styled(Box, { label: 'o-log' })(
+  ({ theme: { palette, typography } }) => ({
+    padding: '8px 0',
+    margin: '0 12px',
+    lineHeight: 1.35,
+    borderBottom: `1px solid ${palette.divider}`,
+    fontSize: '0.875rem',
+    fontFamily: typography.fontFamily,
+    userSelect: 'text',
+    '& .time': {
+      color: palette.text.secondary,
+    },
+    '& .type': {
+      display: 'inline-block',
+      marginLeft: 8,
+      textAlign: 'center',
+      borderRadius: 2,
+      textTransform: 'uppercase',
+      fontWeight: '600',
+    },
+    '& .type[data-type="error"], & .type[data-type="err"]': {
+      color: palette.error.main,
+    },
+    '& .type[data-type="warning"], & .type[data-type="warn"]': {
+      color: palette.warning.main,
+    },
+    '& .type[data-type="info"], & .type[data-type="inf"]': {
+      color: palette.info.main,
+    },
+    '& .data': {
+      color: palette.text.primary,
+      overflowWrap: 'anywhere',
+    },
+    '& .highlight': {
+      backgroundColor: palette.mode === 'dark' ? '#ffeb3b40' : '#ffeb3b90',
+      borderRadius: 2,
+      padding: '0 2px',
+    },
+  }),
+)
 
 interface Props {
   value: ILogItem

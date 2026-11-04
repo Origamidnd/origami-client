@@ -232,8 +232,10 @@ const Widget = styled(Box)(({ theme: { typography } }) => ({
   borderRadius: '4px',
 }))
 
+// OrigamiVPN: `label` puts "o-type" into the class name for origami.scss.
 const TypeBox = styled(Box, {
   shouldForwardProp: (prop) => prop !== 'component',
+  label: 'o-type',
 })<{ component?: React.ElementType }>(({ theme: { typography } }) => ({
   display: 'inline-block',
   border: '1px solid #ccc',

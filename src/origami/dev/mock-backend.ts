@@ -252,6 +252,98 @@ const runState = {
   serviceNeedsAttention: false,
 }
 
+const MOCK_RULES = [
+  {
+    type: 'ProcessName',
+    payload: 'EscapeFromTarkov.exe',
+    proxy: '⭐ Свои правила',
+    size: -1,
+  },
+  { type: 'DomainSuffix', payload: 'rutracker.org', proxy: 'DIRECT', size: -1 },
+  {
+    type: 'RuleSet',
+    payload: 'ru-blocked',
+    proxy: '🚫 Заблокированные сервисы',
+    size: 48213,
+  },
+  {
+    type: 'DomainSuffix',
+    payload: 'youtube.com',
+    proxy: '▶️ YouTube',
+    size: -1,
+  },
+  { type: 'GeoSite', payload: 'category-ru', proxy: '🇷🇺 Ру-сайты', size: 9031 },
+  { type: 'IPCIDR', payload: '10.0.0.0/8', proxy: 'DIRECT', size: -1 },
+  {
+    type: 'Match',
+    payload: '',
+    proxy: '🌐 Остальные незаблокированные сервисы',
+    size: -1,
+  },
+]
+
+const connectionsStart = Date.now() - 95_000
+const mockConnections = () =>
+  [
+    [
+      'www.youtube.com',
+      'msedge.exe',
+      ['▶️ YouTube', '🎲 Авто-выбор (Лучший пинг)', '🔷 🇫🇮 Финляндия'],
+      'DomainSuffix',
+      'youtube.com',
+    ],
+    [
+      'discord.com',
+      'Discord.exe',
+      ['💬 Discord', '🎲 Авто-выбор (Лучший пинг)', '🔷 🇳🇱 Нидерланды'],
+      'DomainSuffix',
+      'discord.com',
+    ],
+    [
+      'prod.escapefromtarkov.com',
+      'EscapeFromTarkov.exe',
+      ['⭐ Свои правила', '🔷 🇫🇮 Финляндия'],
+      'ProcessName',
+      'EscapeFromTarkov.exe',
+    ],
+    [
+      'gosuslugi.ru',
+      'msedge.exe',
+      ['🇷🇺 Ру-сайты', 'DIRECT'],
+      'GeoSite',
+      'category-ru',
+    ],
+    [
+      'api.openai.com',
+      'msedge.exe',
+      ['🤖 Нейросети (AI)', '🔶 🇺🇸 США'],
+      'RuleSet',
+      'ai',
+    ],
+  ].map(([host, process, chains, rule, payload], i) => {
+    const age = (Date.now() - connectionsStart) / 1000
+    return {
+      id: `c${i}`,
+      metadata: {
+        network: 'tcp',
+        type: 'Tun',
+        host,
+        sourceIP: '198.18.0.1',
+        sourcePort: String(50000 + i),
+        destinationPort: '443',
+        destinationIP: '',
+        process,
+        processPath: `C:\\Program Files\\${process}`,
+      },
+      upload: Math.round(age * 1800 * (i + 1)),
+      download: Math.round(age * 24000 * (5 - i)),
+      start: new Date(connectionsStart + i * 7000).toISOString(),
+      chains: [...(chains as string[])].reverse(),
+      rule,
+      rulePayload: payload,
+    }
+  })
+
 const handlers: Record<string, (args: any) => unknown> = {
   get_verge_config: () => verge,
   patch_verge_config: ({ payload }) => {
@@ -348,6 +440,19 @@ const handlers: Record<string, (args: any) => unknown> = {
     mixedPort: 7897,
   }),
   'plugin:mihomo|get_version': () => ({ meta: true, version: 'v1.19.0' }),
+  // Expert tabs: a few rules and live connections, so the stock pages have something to show.
+  'plugin:mihomo|get_rules': () => ({ rules: MOCK_RULES }),
+  'plugin:mihomo|ws_connections': ({ onMessage }) => {
+    const send = () =>
+      onMessage?.onmessage?.({
+        downloadTotal: 182_000_000,
+        uploadTotal: 9_400_000,
+        connections: mockConnections(),
+      })
+    setTimeout(send, 50)
+    setInterval(send, 1000)
+    return 1
+  },
   'plugin:app|version': () => '0.1.0',
   'plugin:updater|check': () =>
     params.get('update') === '1'

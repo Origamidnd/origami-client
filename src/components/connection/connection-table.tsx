@@ -785,6 +785,7 @@ export const ConnectionTable = (props: Props) => {
               }}
             >
               <div
+                className="o-thead"
                 style={{
                   display: 'flex',
                   borderBottom: `1px solid ${borderColor}`,

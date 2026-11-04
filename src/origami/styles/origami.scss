@@ -1837,3 +1837,118 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     font-size: 12px;
   }
 }
+
+// Expert tabs (stock Clash Verge pages): our look over their markup, without rewriting them.
+// The hooks are class names (`o-count`, `o-thead`) and emotion labels (`-o-type`, `-o-rule`,
+// `-o-log`) added in the stock components, so upstream merges stay small.
+.base-page {
+  // Toolbar actions ("Закрыть всё", "Очистить", "Проверить все") as our outlined buttons.
+  > header .MuiButton-contained {
+    border: 1.5px solid var(--o-line);
+    background: transparent;
+    box-shadow: none;
+    color: var(--o-ink);
+
+    &:hover {
+      border-color: var(--o-accent);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    &.Mui-disabled {
+      border-color: var(--o-crease);
+      color: var(--o-muted);
+    }
+  }
+
+  // Switch groups (Правила / Глобальный / Прямой, Активные / Закрытые) like our segmented switch.
+  .MuiButtonGroup-root {
+    overflow: hidden;
+    border: 1.5px solid var(--o-line);
+    border-radius: 8px;
+    box-shadow: none;
+
+    .MuiButton-root {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      color: var(--o-ink);
+      font-weight: 400;
+
+      + .MuiButton-root {
+        border-left: 1px solid var(--o-crease);
+      }
+
+      &.MuiButton-contained {
+        background: var(--o-ink);
+        color: var(--o-bg);
+      }
+    }
+  }
+}
+
+// Protocol and group type marks (Vless, UDP, Selector): quiet mono tags.
+[class*='-o-type'] {
+  border: 1px solid var(--o-crease) !important;
+  border-radius: 4px !important;
+  color: var(--o-muted) !important;
+  font-family: $mono !important;
+  font-size: 10px !important;
+  letter-spacing: 0.02em;
+}
+
+// Ping on proxy items: the badge shape of our pages; the colour stays the one the item sets.
+.the-delay {
+  padding: 1px 6px !important;
+  border-radius: 6px;
+  background: color-mix(in srgb, currentColor 14%, transparent) !important;
+  font-family: $mono;
+  font-size: 12px !important;
+  line-height: 16px;
+}
+
+// Member count next to a group.
+.o-count.MuiChip-root {
+  height: 20px;
+  border-radius: 6px;
+  background: var(--o-chip) !important;
+  color: var(--o-muted) !important;
+  font-family: $mono;
+  font-size: 11px;
+}
+
+// Connections table header: small mono caps, like our block titles but quiet.
+.o-thead button {
+  color: var(--o-muted) !important;
+  font-family: $mono !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+// Rules list: line number and rule type in mono, the target in ink instead of random colours.
+[class*='-o-rule'] {
+  border-bottom-style: dashed !important;
+
+  > p:first-child,
+  span:first-of-type {
+    font-family: $mono;
+    font-size: 12px;
+  }
+
+  span + span {
+    color: var(--o-ink) !important;
+  }
+}
+
+// Log lines: dashed separators and a mono time stamp.
+[class*='-o-log'] {
+  border-bottom-style: dashed !important;
+
+  .time {
+    font-family: $mono;
+    font-size: 12px;
+  }
+}
