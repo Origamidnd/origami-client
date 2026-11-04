@@ -556,6 +556,26 @@ export interface TranslationResources {
           version: string
         }
       }
+      subscription: {
+        all: string
+        auto: string
+        autoHint: string
+        every: string
+        hideQr: string
+        limit: string
+        neverUpdated: string
+        noLimit: string
+        phone: string
+        phoneHint: string
+        phoneTitle: string
+        servers: string
+        showQr: string
+        split: string
+        term: string
+        traffic: string
+        updatedAgo: string
+        viaBot: string
+      }
       welcome: {
         add: string
         added: string

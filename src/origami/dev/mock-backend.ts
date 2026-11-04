@@ -175,6 +175,7 @@ const profiles = {
           Number(params.get('days') ?? 23) * DAY -
           3600,
       },
+      option: { update_interval: 720, allow_auto_update: true },
       home: 'https://lk.origamivpn.pro',
       announce:
         'Здесь появляются сообщения от OrigamiVPN: плановые работы, новые серверы, важные новости.',
@@ -222,6 +223,12 @@ const handlers: Record<string, (args: any) => unknown> = {
   update_profile: async () => {
     await new Promise((resolve) => setTimeout(resolve, 800))
     profiles.items[0].updated = Math.floor(Date.now() / 1000)
+    return null
+  },
+  patch_profile: ({ index, profile }) => {
+    const item = profiles.items.find((entry) => entry.uid === index)
+    if (item && profile.option)
+      item.option = { ...item.option, ...profile.option }
     return null
   },
   get_runtime_state: () => runState,

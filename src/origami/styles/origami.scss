@@ -856,6 +856,101 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 }
 
+// Subscription tab: four tiles for the current subscription above the stock list.
+.o-subp {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 980px;
+  padding: 12px 0 4px;
+  color: var(--o-ink);
+
+  @media (max-width: 640px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  &__tile {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 6px;
+  }
+
+  &__auto {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 14px;
+
+    .MuiSelect-select {
+      padding-top: 4px;
+      padding-bottom: 4px;
+      font-size: 13px;
+    }
+  }
+
+  &__qr-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 2px;
+  }
+
+  &__qr {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 76px;
+    border: 1px dashed var(--o-line);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--o-muted);
+    cursor: pointer;
+
+    svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    // The code itself: dark modules on white, as scanners expect, whatever the theme.
+    &.is-shown {
+      width: 148px;
+      height: 148px;
+      padding: 8px;
+      border-style: solid;
+      background: #fff;
+
+      svg {
+        width: 132px;
+        height: 132px;
+      }
+    }
+  }
+
+  &__qr-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  &__all {
+    margin: 16px 0 8px;
+  }
+}
+
 // Expert settings: the stock Clash Verge rows in folding sections under our own settings.
 .o-xset {
   overflow: hidden;

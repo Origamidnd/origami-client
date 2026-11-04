@@ -41,6 +41,7 @@ import {
 import { ConfigViewer } from '@/components/setting/mods/config-viewer'
 import { fetchProfilesIntoCache, useProfiles } from '@/hooks/use-profiles'
 import { useExpertMode } from '@/origami/expert-mode'
+import { OrigamiSubscription } from '@/origami/subscription/origami-subscription'
 import {
   createProfile,
   deleteProfile,
@@ -698,194 +699,205 @@ const ProfilePage = () => {
       full
       title={t('profiles.page.title')}
       contentStyle={{ height: '100%' }}
+      // OrigamiVPN: batch edit, runtime config and re-activation are expert tools.
       header={
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {!batchMode ? (
-            <>
-              {/* Batch mode toggle button */}
-              <IconButton
-                size="small"
-                color="inherit"
-                title={t('profiles.page.batch.title')}
-                onClick={toggleBatchMode}
-              >
-                <CheckBoxOutlineBlankRounded />
-              </IconButton>
-
-              <IconButton
-                size="small"
-                color="inherit"
-                title={t('profiles.page.actions.updateAll')}
-                onClick={onUpdateAll}
-              >
-                <RefreshRounded />
-              </IconButton>
-
-              <IconButton
-                size="small"
-                color="inherit"
-                title={t('profiles.page.actions.viewRuntimeConfig')}
-                onClick={() => configRef.current?.open()}
-              >
-                <TextSnippetOutlined />
-              </IconButton>
-
-              <IconButton
-                size="small"
-                color="primary"
-                title={t('profiles.page.actions.reactivate')}
-                onClick={() => onEnhance(true)}
-              >
-                <LocalFireDepartmentRounded />
-              </IconButton>
-
-              {/* 故障检测和紧急恢复按钮 */}
-              {(error || isStale) && (
+        expertMode && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {!batchMode ? (
+              <>
+                {/* Batch mode toggle button */}
                 <IconButton
                   size="small"
-                  color="warning"
-                  title={t(
-                    'profiles.page.feedback.tooltips.forceRefreshStaleData',
-                  )}
-                  onClick={onEmergencyRefresh}
-                  sx={{
-                    animation: 'pulse 2s infinite',
-                    '@keyframes pulse': {
-                      '0%': { opacity: 1 },
-                      '50%': { opacity: 0.5 },
-                      '100%': { opacity: 1 },
-                    },
-                  }}
+                  color="inherit"
+                  title={t('profiles.page.batch.title')}
+                  onClick={toggleBatchMode}
                 >
-                  <ClearRounded />
-                </IconButton>
-              )}
-            </>
-          ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <IconButton
-                size="small"
-                color="inherit"
-                title={
-                  isAllSelected()
-                    ? t('profiles.page.batch.actions.deselectAll')
-                    : t('profiles.page.batch.actions.selectAll')
-                }
-                onClick={
-                  isAllSelected() ? clearAllSelections : selectAllProfiles
-                }
-              >
-                {getSelectionState() === 'all' ? (
-                  <CheckBoxRounded />
-                ) : getSelectionState() === 'partial' ? (
-                  <IndeterminateCheckBoxRounded />
-                ) : (
                   <CheckBoxOutlineBlankRounded />
+                </IconButton>
+
+                <IconButton
+                  size="small"
+                  color="inherit"
+                  title={t('profiles.page.actions.updateAll')}
+                  onClick={onUpdateAll}
+                >
+                  <RefreshRounded />
+                </IconButton>
+
+                <IconButton
+                  size="small"
+                  color="inherit"
+                  title={t('profiles.page.actions.viewRuntimeConfig')}
+                  onClick={() => configRef.current?.open()}
+                >
+                  <TextSnippetOutlined />
+                </IconButton>
+
+                <IconButton
+                  size="small"
+                  color="primary"
+                  title={t('profiles.page.actions.reactivate')}
+                  onClick={() => onEnhance(true)}
+                >
+                  <LocalFireDepartmentRounded />
+                </IconButton>
+
+                {/* 故障检测和紧急恢复按钮 */}
+                {(error || isStale) && (
+                  <IconButton
+                    size="small"
+                    color="warning"
+                    title={t(
+                      'profiles.page.feedback.tooltips.forceRefreshStaleData',
+                    )}
+                    onClick={onEmergencyRefresh}
+                    sx={{
+                      animation: 'pulse 2s infinite',
+                      '@keyframes pulse': {
+                        '0%': { opacity: 1 },
+                        '50%': { opacity: 0.5 },
+                        '100%': { opacity: 1 },
+                      },
+                    }}
+                  >
+                    <ClearRounded />
+                  </IconButton>
                 )}
-              </IconButton>
-              <IconButton
-                size="small"
-                color="error"
-                title={t('profiles.page.batch.actions.delete')}
-                onClick={deleteSelectedProfiles}
-                disabled={selectedProfiles.size === 0}
-              >
-                <DeleteRounded />
-              </IconButton>
-              <Button size="small" variant="outlined" onClick={toggleBatchMode}>
-                {t('profiles.page.batch.actions.done')}
-              </Button>
-              <Box
-                sx={{ flex: 1, textAlign: 'right', color: 'text.secondary' }}
-              >
-                {t('profiles.page.batch.summary.selected')}{' '}
-                {selectedProfiles.size} {t('profiles.page.batch.summary.items')}
+              </>
+            ) : (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <IconButton
+                  size="small"
+                  color="inherit"
+                  title={
+                    isAllSelected()
+                      ? t('profiles.page.batch.actions.deselectAll')
+                      : t('profiles.page.batch.actions.selectAll')
+                  }
+                  onClick={
+                    isAllSelected() ? clearAllSelections : selectAllProfiles
+                  }
+                >
+                  {getSelectionState() === 'all' ? (
+                    <CheckBoxRounded />
+                  ) : getSelectionState() === 'partial' ? (
+                    <IndeterminateCheckBoxRounded />
+                  ) : (
+                    <CheckBoxOutlineBlankRounded />
+                  )}
+                </IconButton>
+                <IconButton
+                  size="small"
+                  color="error"
+                  title={t('profiles.page.batch.actions.delete')}
+                  onClick={deleteSelectedProfiles}
+                  disabled={selectedProfiles.size === 0}
+                >
+                  <DeleteRounded />
+                </IconButton>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={toggleBatchMode}
+                >
+                  {t('profiles.page.batch.actions.done')}
+                </Button>
+                <Box
+                  sx={{ flex: 1, textAlign: 'right', color: 'text.secondary' }}
+                >
+                  {t('profiles.page.batch.summary.selected')}{' '}
+                  {selectedProfiles.size}{' '}
+                  {t('profiles.page.batch.summary.items')}
+                </Box>
               </Box>
-            </Box>
-          )}
-        </Box>
+            )}
+          </Box>
+        )
       }
     >
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{
-          pt: 1,
-          mb: 0.5,
-          mx: '10px',
-          height: '36px',
-          display: 'flex',
-          alignItems: 'center',
-        }}
-      >
-        <BaseStyledTextField
-          value={url}
-          variant="outlined"
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
-              return
-            }
-            if (!url || disabled || loading) {
-              return
-            }
-            event.preventDefault()
-            void onImport()
-          }}
-          placeholder={t('profiles.page.importForm.placeholder')}
-          slotProps={{
-            input: {
-              sx: { pr: 1 },
-              endAdornment: !url ? (
-                <IconButton
-                  size="small"
-                  sx={{ p: 0.5 }}
-                  title={t('profiles.page.importForm.actions.paste')}
-                  onClick={onCopyLink}
-                >
-                  <ContentPasteRounded fontSize="inherit" />
-                </IconButton>
-              ) : (
-                <IconButton
-                  size="small"
-                  sx={{ p: 0.5 }}
-                  title={t('shared.actions.clear')}
-                  onClick={() => setUrl('')}
-                >
-                  <ClearRounded fontSize="inherit" />
-                </IconButton>
-              ),
-            },
-          }}
-        />
-        <Button
-          disabled={!url || disabled}
-          loading={loading}
-          variant="contained"
-          size="small"
-          sx={{ borderRadius: '6px' }}
-          onClick={onImport}
-        >
-          {t('profiles.page.actions.import')}
-        </Button>
-        <Button
-          variant="contained"
-          size="small"
-          sx={{ borderRadius: '6px' }}
-          onClick={() => viewerRef.current?.create()}
-        >
-          {t('shared.actions.new')}
-        </Button>
-      </Stack>
-
       <Box
         sx={{
           pl: '10px',
           pr: '10px',
-          height: 'calc(100% - 48px)',
+          height: '100%',
           overflowY: 'auto',
         }}
       >
+        {/* OrigamiVPN: the current subscription as tiles, then every subscription with the import form. */}
+        <OrigamiSubscription />
+        <div className="o-label o-subp__all">
+          {t('origami.subscription.all')}
+        </div>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            mb: 1,
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <BaseStyledTextField
+            value={url}
+            variant="outlined"
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
+                return
+              }
+              if (!url || disabled || loading) {
+                return
+              }
+              event.preventDefault()
+              void onImport()
+            }}
+            placeholder={t('profiles.page.importForm.placeholder')}
+            slotProps={{
+              input: {
+                sx: { pr: 1 },
+                endAdornment: !url ? (
+                  <IconButton
+                    size="small"
+                    sx={{ p: 0.5 }}
+                    title={t('profiles.page.importForm.actions.paste')}
+                    onClick={onCopyLink}
+                  >
+                    <ContentPasteRounded fontSize="inherit" />
+                  </IconButton>
+                ) : (
+                  <IconButton
+                    size="small"
+                    sx={{ p: 0.5 }}
+                    title={t('shared.actions.clear')}
+                    onClick={() => setUrl('')}
+                  >
+                    <ClearRounded fontSize="inherit" />
+                  </IconButton>
+                ),
+              },
+            }}
+          />
+          <Button
+            disabled={!url || disabled}
+            loading={loading}
+            variant="contained"
+            size="small"
+            sx={{ borderRadius: '6px' }}
+            onClick={onImport}
+          >
+            {t('profiles.page.actions.import')}
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            sx={{ borderRadius: '6px' }}
+            onClick={() => viewerRef.current?.create()}
+          >
+            {t('shared.actions.new')}
+          </Button>
+        </Stack>
+
         <DragDropProvider
           key={profileDndRevision}
           sensors={[profilePointerSensor, KeyboardSensor]}
