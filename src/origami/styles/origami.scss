@@ -550,24 +550,37 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
 .o-ping {
+  display: inline-block;
+  flex: none;
   padding: 2px 8px;
   border-radius: 6px;
+  background: var(--o-chip);
+  color: var(--o-muted);
+  font-family: $mono;
   font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+  // A mono space is a full cell wide; pull "27 мс" together so it reads as one value.
   word-spacing: -0.3em;
 
-  &.is-good {
+  &.is-fast {
     background: var(--o-ok-bg);
     color: var(--o-ok-text);
   }
 
   &.is-mid {
-    background: var(--o-pale);
-    color: var(--o-ink);
+    background: var(--o-warn-bg);
+    color: var(--o-warn-text);
   }
 
-  &.is-bad {
-    background: var(--o-chip);
-    color: var(--o-danger);
+  &.is-slow,
+  &.is-dead {
+    background: var(--o-danger-bg);
+    color: var(--o-danger-text);
+  }
+
+  &.is-plain {
+    color: var(--o-ink);
   }
 }
 
@@ -669,11 +682,6 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
 .o-check {
-  // Ping values ("233 мс"): a mono space is a full cell wide, keep number and unit together.
-  .o-mono {
-    word-spacing: -0.3em;
-  }
-
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1438,8 +1446,13 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     font: 400 12px Onest, system-ui, sans-serif;
     cursor: pointer;
 
-    .o-srv__ping {
-      margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    .o-ping {
+      margin-right: -4px;
+      padding: 0 6px;
     }
 
     &:hover {
@@ -1452,33 +1465,11 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
       color: var(--o-on-action);
       font-weight: 500;
 
-      .o-srv__ping {
+      // On the filled chip the badge keeps its shape but reads on the orange.
+      .o-ping {
+        background: rgb(255 255 255 / 0.28);
         color: var(--o-on-action);
       }
-    }
-  }
-
-  &__ping {
-    font-family: $mono;
-    font-size: 12px;
-    // A mono space is a full cell wide; pull "27 мс" together so it reads as one value.
-    word-spacing: -0.3em;
-
-    &.is-fast {
-      color: var(--o-ok);
-    }
-
-    &.is-mid {
-      color: var(--o-warn);
-    }
-
-    &.is-slow,
-    &.is-dead {
-      color: var(--o-danger);
-    }
-
-    &.is-wait {
-      color: var(--o-muted);
     }
   }
 

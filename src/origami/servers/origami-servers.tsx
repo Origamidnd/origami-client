@@ -29,6 +29,7 @@ import { DEFAULT_DELAY_TIMEOUT } from '@/utils/delay'
 import { openExternalUrl } from '@/utils/open-external-url'
 
 import { ORIGAMI_LINKS } from '../links'
+import { PingBadge } from '../ping-badge'
 import { ReportDialog } from '../report/report-dialog'
 import type { FocusGroupState } from '../use-focus-group'
 import { useRefreshSubscription } from '../use-refresh-subscription'
@@ -44,7 +45,6 @@ import {
   fastestVariant,
   groupCountries,
   parseServerName,
-  pingLevel,
   PLAIN_VARIANT,
   serviceTitle,
   type CountryOption,
@@ -97,27 +97,10 @@ const nodeDelay = (node: ProxyNodeView | undefined) => {
 const Ping = ({
   delay,
   checking,
-  unit = true,
 }: {
   delay: number | null | undefined
   checking: boolean
-  unit?: boolean
-}) => {
-  const { t } = useTranslation()
-  if (checking) return <span className="o-srv__ping is-wait">…</span>
-  const level = pingLevel(delay)
-  return (
-    <span className={`o-srv__ping is-${level}`}>
-      {level === 'dead'
-        ? t('origami.servers.noAnswer')
-        : level === 'unknown'
-          ? ''
-          : unit
-            ? t('origami.home.server.ping', { ms: delay })
-            : delay}
-    </span>
-  )
-}
+}) => <PingBadge delay={delay} checking={checking} />
 
 const BLOCK_ORDER: ServerCategory[] = ['main', 'extra', 'other']
 const GAMES_ORDER: ServerCategory[] = ['other', 'main', 'extra']
@@ -520,15 +503,11 @@ export const OrigamiServers = () => {
 
             <p className="o-srv__legend o-hint">
               {t('origami.servers.legend')}{' '}
-              <span className="o-srv__ping is-fast">
+              <span className="o-ping is-fast">
                 {t('origami.servers.fast')}
-              </span>
-              {' · '}
-              <span className="o-srv__ping is-mid">
-                {t('origami.servers.mid')}
-              </span>
-              {' · '}
-              <span className="o-srv__ping is-slow">
+              </span>{' '}
+              <span className="o-ping is-mid">{t('origami.servers.mid')}</span>{' '}
+              <span className="o-ping is-slow">
                 {t('origami.servers.slow')}
               </span>
             </p>

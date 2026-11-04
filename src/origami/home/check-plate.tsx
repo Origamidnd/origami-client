@@ -15,6 +15,7 @@ import { cmdTestDelay } from '@/services/cmds'
 import { exitCountryName } from '../check/exit-country'
 import { CHECK_TARGETS, isReachable } from '../check/targets'
 import { useCopyDiagnostics } from '../check/use-copy-diagnostics'
+import { PingBadge } from '../ping-badge'
 import { ReportDialog } from '../report/report-dialog'
 
 import { useConnection } from './use-connection'
@@ -167,13 +168,13 @@ export const CheckPlate = () => {
                   <HighlightOffRounded fontSize="small" />
                 )}
                 <span className="o-check__name">{target.name}</span>
-                <span className="o-mono o-hint">
-                  {delay === undefined
-                    ? ''
-                    : ok
-                      ? t('origami.home.server.ping', { ms: delay })
-                      : t('origami.check.unreachable')}
-                </span>
+                {delay === undefined ? null : ok ? (
+                  <PingBadge delay={delay} tone="plain" />
+                ) : (
+                  <span className="o-ping is-dead">
+                    {t('origami.check.unreachable')}
+                  </span>
+                )}
               </li>
             )
           })}

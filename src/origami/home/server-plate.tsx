@@ -5,15 +5,9 @@ import { useNavigate } from 'react-router'
 import { useProxiesData } from '@/providers/app-data-context'
 
 import { resolveCurrent } from '../current-server'
+import { PingBadge } from '../ping-badge'
 import { withoutEmoji } from '../servers/service-names'
 import type { FocusGroupState } from '../use-focus-group'
-
-const delayTone = (delay?: number) => {
-  if (!delay || delay <= 0 || delay >= 10000) return 'is-bad'
-  if (delay < 200) return 'is-good'
-  if (delay < 500) return 'is-mid'
-  return 'is-bad'
-}
 
 export const ServerPlate = () => {
   const { t } = useTranslation()
@@ -40,11 +34,11 @@ export const ServerPlate = () => {
         )}
       </div>
       {current?.delay !== undefined && (
-        <span className={`o-ping o-mono ${delayTone(current.delay)}`}>
-          {current.delay > 0 && current.delay < 10000
-            ? t('origami.home.server.ping', { ms: current.delay })
-            : t('origami.home.server.timeout')}
-        </span>
+        <PingBadge
+          delay={
+            current.delay > 0 && current.delay < 10000 ? current.delay : null
+          }
+        />
       )}
       <ChevronRightRounded className="o-server__chevron" />
     </button>
