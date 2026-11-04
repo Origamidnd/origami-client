@@ -258,9 +258,22 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   padding: 16px;
 }
 
+// Block titles: the same small mono caps as the settings sections and server categories.
 .o-label {
-  font-size: 12px;
+  font-family: $mono;
+  font-size: 11px;
   line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--o-accent);
+}
+
+// Captions inside a block (download / upload speed) stay quiet.
+.o-speed .o-label {
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: normal;
+  text-transform: none;
   color: var(--o-muted);
 }
 
