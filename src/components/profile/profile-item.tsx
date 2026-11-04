@@ -3,14 +3,16 @@ import {
   CheckBoxOutlineBlankRounded,
   CheckBoxRounded,
   DragIndicatorRounded,
+  ExpandMoreRounded,
+  MoreVertRounded,
   RefreshRounded,
 } from '@mui/icons-material'
 import {
   Box,
+  Button,
   CircularProgress,
   IconButton,
   keyframes,
-  LinearProgress,
   Menu,
   MenuItem,
   Typography,
@@ -19,6 +21,7 @@ import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
 import {
   memo,
+  type ReactNode,
   useCallback,
   useEffect,
   useReducer,
@@ -32,6 +35,7 @@ import { EditorViewer } from '@/components/profile/editor-viewer'
 import { GroupsEditorViewer } from '@/components/profile/groups-editor-viewer'
 import { RulesEditorViewer } from '@/components/profile/rules-editor-viewer'
 import { useEditorDocument } from '@/hooks/use-editor-document'
+import { useExpertMode } from '@/origami/expert-mode'
 import {
   getNextUpdateTime,
   readProfileFile,
@@ -76,6 +80,10 @@ export interface ProfileItemProps {
   onSelectionChange?: () => void
   timerUpdateRevision: number
   completedUpdateRevision: number
+  /** OrigamiVPN: tiles folded under the row; a click on the row opens or closes them. */
+  details?: ReactNode
+  expanded?: boolean
+  onToggle?: () => void
 }
 
 const ProfileItemBase = (props: ProfileItemProps) => {
@@ -95,7 +103,11 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     onSelectionChange,
     timerUpdateRevision,
     completedUpdateRevision,
+    details,
+    expanded,
+    onToggle,
   } = props
+  const expertMode = useExpertMode()
 
   const [element, setElement] = useState<Element | null>(null)
   const handleRef = useRef<HTMLButtonElement | null>(null)
@@ -247,11 +259,6 @@ const ProfileItemBase = (props: ProfileItemProps) => {
   const { upload = 0, download = 0, total = 0 } = extra ?? {}
   const from = parseUrl(itemData.url!)
   const description = itemData.desc
-  const expire = parseExpire(extra?.expire)
-  const progress = Math.min(
-    Math.round(((download + upload) * 100) / (total + 0.01)) + 1,
-    100,
-  )
 
   const loading = loadingCache.has(itemData.uid!)
 
@@ -436,6 +443,12 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     updateViaProxy: 'profiles.components.menu.updateViaProxy',
     delete: 'shared.actions.delete',
   } as const
+  // OrigamiVPN: without expert mode the menu keeps only what the row and tiles do not show.
+  const SIMPLE_MENU: string[] = [
+    menuLabels.update,
+    menuLabels.updateViaProxy,
+    menuLabels.delete,
+  ]
 
   const urlModeMenu: ContextMenuItem[] = [
     ...(hasHome
@@ -584,13 +597,6 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     },
   ]
 
-  const boxStyle = {
-    height: 26,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  }
-
   const handleSaveProfileDocument = useLockFn(async () => {
     const currentValue = profileDocument.value
     const result = await mutate(() => saveProfileFile(uid!, currentValue), {
@@ -638,18 +644,29 @@ const ProfileItemBase = (props: ProfileItemProps) => {
     scriptDocument.markSaved(currentValue)
   })
 
+  // OrigamiVPN: the card is a single row; a click folds our tiles (`details`) open under it, and
+  // switching to the subscription moved to its own button.
+  const onRowClick = (e: React.MouseEvent) => {
+    if (activating) {
+      e.preventDefault()
+      e.stopPropagation()
+      return
+    }
+    if (details && onToggle) onToggle()
+    else onSelect(false)
+  }
+
   return (
-    <Box ref={setElement} sx={{ position: 'relative', borderRadius: '8px' }}>
+    <Box
+      ref={setElement}
+      className={`o-prow${expanded ? ' is-open' : ''}`}
+      sx={{ position: 'relative', borderRadius: '8px' }}
+    >
       <ProfileBox
         aria-selected={selected}
-        onClick={(e) => {
-          if (activating) {
-            e.preventDefault()
-            e.stopPropagation()
-            return
-          }
-          onSelect(false)
-        }}
+        aria-expanded={details ? !!expanded : undefined}
+        className="o-prow__head"
+        onClick={onRowClick}
         onContextMenu={(event) => {
           const { clientX, clientY } = event
           setPosition({ top: clientY, left: clientX })
@@ -680,167 +697,119 @@ const ProfileItemBase = (props: ProfileItemProps) => {
             />
           </Box>
         )}
-        <Box sx={{ position: 'relative' }}>
-          <Box sx={{ display: 'flex', justifyContent: 'start' }}>
-            {batchMode && (
-              <IconButton
-                size="small"
-                sx={{ padding: '2px', marginRight: '4px', marginLeft: '-8px' }}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (onSelectionChange) {
-                    onSelectionChange()
-                  }
-                }}
-              >
-                {isSelected ? (
-                  <CheckBoxRounded color="primary" />
-                ) : (
-                  <CheckBoxOutlineBlankRounded />
-                )}
-              </IconButton>
+        {batchMode && (
+          <IconButton
+            size="small"
+            sx={{ padding: '2px' }}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (onSelectionChange) {
+                onSelectionChange()
+              }
+            }}
+          >
+            {isSelected ? (
+              <CheckBoxRounded color="primary" />
+            ) : (
+              <CheckBoxOutlineBlankRounded />
             )}
-            <Box
-              ref={handleRef}
-              sx={{
-                display: 'flex',
-                margin: 'auto 0',
-                ...(batchMode && { marginLeft: '-4px' }),
-              }}
-            >
-              <DragIndicatorRounded
-                sx={[
-                  { cursor: 'move', marginLeft: '-6px' },
-                  ({ palette: { text } }) => {
-                    return { color: text.primary }
-                  },
-                ]}
-              />
-            </Box>
-
-            <Typography
-              sx={{
-                width: batchMode ? 'calc(100% - 56px)' : 'calc(100% - 36px)',
-                fontSize: '18px',
-                fontWeight: '600',
-                lineHeight: '26px',
-              }}
-              variant="h6"
-              component="h2"
-              noWrap
-              title={name!}
-            >
-              {name}
-            </Typography>
-          </Box>
-
-          {hasUrl && (
-            <IconButton
-              title={t('shared.actions.refresh')}
-              sx={{
-                position: 'absolute',
-                p: '3px',
-                top: -1,
-                right: -5,
-                animation: loading ? `1s linear infinite ${round}` : 'none',
-              }}
-              size="small"
-              color="inherit"
-              disabled={loading}
-              onClick={(e) => {
-                e.stopPropagation()
-                if (activating || loading) {
-                  return
-                }
-                onUpdate(1)
-              }}
-            >
-              <RefreshRounded color="inherit" />
-            </IconButton>
-          )}
-        </Box>
-        <Box sx={boxStyle}>
-          {
-            <>
-              {description ? (
-                <Typography
-                  noWrap
-                  title={description}
-                  sx={{ fontSize: '14px' }}
-                >
-                  {description}
-                </Typography>
-              ) : (
-                hasUrl && (
-                  <Typography
-                    noWrap
-                    title={`${t('shared.labels.from')} ${from}`}
-                  >
-                    {from}
-                  </Typography>
-                )
-              )}
-              {hasUrl && (
-                <Box
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    ml: 'auto',
-                  }}
-                >
-                  <Typography
-                    noWrap
-                    component="span"
-                    title={
-                      showNextUpdate
-                        ? t('profiles.components.profileItem.tooltips.showLast')
-                        : `${t('shared.labels.updateTime')}: ${parseExpire(updated!)}\n${t('profiles.components.profileItem.tooltips.showNext')}`
-                    }
-                    sx={{
-                      fontSize: 14,
-                      textAlign: 'right',
-                      cursor: 'pointer',
-                      display: 'inline-block',
-                      borderBottom: '1px dashed transparent',
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        borderBottomColor: 'primary.main',
-                        color: 'primary.main',
-                      },
-                    }}
-                    onClick={toggleUpdateTimeDisplay}
-                  >
-                    {showNextUpdate
-                      ? nextUpdateTime
-                      : updated! > 0
-                        ? dayjs(updated! * 1000).fromNow()
-                        : ''}
-                  </Typography>
-                </Box>
-              )}
-            </>
-          }
-        </Box>
-        {hasExtra ? (
-          <Box sx={{ ...boxStyle, fontSize: 14 }}>
-            <span title={t('shared.labels.usedTotal')}>
-              {parseTraffic(upload + download)} / {parseTraffic(total)}
-            </span>
-            <span title={t('shared.labels.expireTime')}>{expire}</span>
-          </Box>
-        ) : (
-          <Box sx={{ ...boxStyle, fontSize: 12, justifyContent: 'flex-end' }}>
-            <span title={t('shared.labels.updateTime')}>
-              {parseExpire(updated!)}
-            </span>
-          </Box>
+          </IconButton>
         )}
-        <LinearProgress
-          variant="determinate"
-          value={progress}
-          style={{ opacity: total > 0 ? 1 : 0 }}
-        />
+        <Box
+          ref={handleRef}
+          className="o-prow__drag"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DragIndicatorRounded fontSize="small" />
+        </Box>
+
+        <div className="o-prow__name">
+          <Typography component="h2" noWrap title={name!}>
+            {name}
+          </Typography>
+          <span className="o-prow__from">
+            {(description || hasUrl) && (
+              <span title={description || `${t('shared.labels.from')} ${from}`}>
+                {description || from}
+              </span>
+            )}
+            {hasUrl && !!updated && (
+              <button
+                type="button"
+                className="o-prow__time"
+                title={
+                  showNextUpdate
+                    ? t('profiles.components.profileItem.tooltips.showLast')
+                    : `${t('shared.labels.updateTime')}: ${parseExpire(updated!)}\n${t('profiles.components.profileItem.tooltips.showNext')}`
+                }
+                onClick={toggleUpdateTimeDisplay}
+              >
+                {showNextUpdate
+                  ? nextUpdateTime
+                  : dayjs(updated! * 1000).fromNow()}
+              </button>
+            )}
+          </span>
+        </div>
+
+        <div className="o-prow__meta">
+          {hasExtra && (
+            <span title={t('shared.labels.usedTotal')}>
+              {parseTraffic(upload + download).join(' ')}
+              {total > 0 && ` / ${parseTraffic(total).join(' ')}`}
+            </span>
+          )}
+          {extra?.expire ? (
+            <span title={t('shared.labels.expireTime')}>
+              {t('origami.home.subscription.until', {
+                date: dayjs(extra.expire * 1000).format('DD.MM.YYYY'),
+              })}
+            </span>
+          ) : null}
+        </div>
+
+        {selected ? (
+          <span className="o-prow__badge">
+            {t('origami.subscription.active')}
+          </span>
+        ) : (
+          <Button
+            variant="outlined"
+            size="small"
+            disabled={activating}
+            onClick={(e) => {
+              e.stopPropagation()
+              onSelect(false)
+            }}
+          >
+            {t('origami.subscription.use')}
+          </Button>
+        )}
+
+        <IconButton
+          size="small"
+          color="inherit"
+          title={t('origami.subscription.more')}
+          onClick={(e) => {
+            e.stopPropagation()
+            const rect = e.currentTarget.getBoundingClientRect()
+            setPosition({ top: rect.bottom, left: rect.left })
+            setAnchorEl(e.currentTarget)
+          }}
+        >
+          {loading ? (
+            <RefreshRounded
+              fontSize="small"
+              sx={{ animation: `1s linear infinite ${round}` }}
+            />
+          ) : (
+            <MoreVertRounded fontSize="small" />
+          )}
+        </IconButton>
+        {details && <ExpandMoreRounded className="o-prow__chevron" />}
       </ProfileBox>
+
+      {expanded && details}
 
       <Menu
         open={!!anchorEl}
@@ -855,29 +824,31 @@ const ProfileItemBase = (props: ProfileItemProps) => {
           e.preventDefault()
         }}
       >
-        {(hasUrl ? urlModeMenu : fileModeMenu).map((item) => (
-          <MenuItem
-            key={item.label}
-            onClick={item.handler}
-            disabled={item.disabled}
-            sx={[
-              {
-                minWidth: 120,
-              },
-              (theme) => {
-                return {
-                  color:
-                    item.label === menuLabels.delete
-                      ? theme.palette.error.main
-                      : undefined,
-                }
-              },
-            ]}
-            dense
-          >
-            {t(item.label)}
-          </MenuItem>
-        ))}
+        {(hasUrl ? urlModeMenu : fileModeMenu)
+          .filter((item) => expertMode || SIMPLE_MENU.includes(item.label))
+          .map((item) => (
+            <MenuItem
+              key={item.label}
+              onClick={item.handler}
+              disabled={item.disabled}
+              sx={[
+                {
+                  minWidth: 120,
+                },
+                (theme) => {
+                  return {
+                    color:
+                      item.label === menuLabels.delete
+                        ? theme.palette.error.main
+                        : undefined,
+                  }
+                },
+              ]}
+              dense
+            >
+              {t(item.label)}
+            </MenuItem>
+          ))}
       </Menu>
       {fileOpen && (
         <EditorViewer

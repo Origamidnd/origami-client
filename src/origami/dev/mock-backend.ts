@@ -182,6 +182,26 @@ const profiles = {
       support: 'https://t.me/Origami_Dragons',
       selected: [{ name: 'OrigamiVPN', now: servers[0][0] }],
     },
+    // A second subscription, so the subscription tab shows several rows (`?subs=1` hides it).
+    ...(params.get('subs') === '1'
+      ? []
+      : [
+          {
+            uid: 'R2',
+            type: 'remote',
+            name: 'OrigamiVPN - Обход БС',
+            url: 'https://sub.origamivpn.pro/example-bs',
+            updated: Math.floor(Date.now() / 1000) - 26 * 3600,
+            extra: {
+              upload: 0.2e9,
+              download: 3.4e9,
+              total: 50e9,
+              expire: Math.floor(Date.now() / 1000) + 9 * DAY,
+            },
+            option: { update_interval: 1440, allow_auto_update: true },
+            selected: [],
+          },
+        ]),
   ],
 }
 
@@ -220,10 +240,15 @@ const handlers: Record<string, (args: any) => unknown> = {
   },
   get_profiles: () =>
     params.get('empty') ? { current: null, items: [] } : profiles,
-  update_profile: async () => {
+  update_profile: async ({ index }) => {
     await new Promise((resolve) => setTimeout(resolve, 800))
-    profiles.items[0].updated = Math.floor(Date.now() / 1000)
+    const item = profiles.items.find((entry) => entry.uid === index)
+    if (item) item.updated = Math.floor(Date.now() / 1000)
     return null
+  },
+  patch_profiles_config: ({ profiles: selection }) => {
+    if (selection.current) profiles.current = selection.current
+    return { status: 'valid' }
   },
   patch_profile: ({ index, profile }) => {
     const item = profiles.items.find((entry) => entry.uid === index)

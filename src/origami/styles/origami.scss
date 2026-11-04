@@ -856,7 +856,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 }
 
-// Subscription tab: four tiles for the current subscription above the stock list.
+// Subscription tab: four tiles folded open under a subscription row.
 .o-subp {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -946,8 +946,117 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     min-width: 0;
   }
 
-  &__all {
-    margin: 16px 0 8px;
+  &__add {
+    max-width: 980px;
+    margin: 20px 0 8px;
+  }
+}
+
+// Subscription row: the stock profile card squeezed into one line.
+.o-prow {
+  // Two classes, to win over the card's own styled `display: block` and padding.
+  & &__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 56px;
+    padding: 8px 10px 8px 6px;
+    color: var(--o-muted);
+
+    &:hover {
+      border-color: var(--o-accent);
+    }
+  }
+
+  &__drag {
+    display: flex;
+    flex: none;
+    color: var(--o-muted);
+    cursor: move;
+  }
+
+  &__name {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 22px;
+    }
+  }
+
+  &__from {
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 13px;
+    white-space: nowrap;
+
+    > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    > * + *::before {
+      content: '·';
+      margin-right: 6px;
+    }
+  }
+
+  &__time {
+    flex: none;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--o-accent);
+    }
+  }
+
+  &__meta {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: flex-end;
+    font-family: $mono;
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+
+    @media (max-width: 720px) {
+      display: none;
+    }
+  }
+
+  &__badge {
+    flex: none;
+    padding: 3px 10px;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    color: var(--o-accent);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  &__chevron {
+    flex: none;
+    transition: transform 0.2s;
+  }
+
+  &.is-open &__chevron {
+    transform: rotate(180deg);
+  }
+
+  > .o-subp {
+    padding: 8px 0 8px;
   }
 }
 

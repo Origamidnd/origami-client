@@ -11,6 +11,8 @@ import { useTranslation } from 'react-i18next'
 
 import { Switch } from '@/components/base'
 import { useProfiles } from '@/hooks/use-profiles'
+import { patchProfile } from '@/services/cmds'
+import { mutate } from '@/services/mutate'
 import { showNotice } from '@/services/notice-service'
 import { openExternalUrl } from '@/utils/open-external-url'
 import parseTraffic from '@/utils/parse-traffic'
@@ -34,17 +36,20 @@ const pluralDays = (
   return t(`origami.home.subscription.days.${form}`, { count })
 }
 
-/** Subscription tab: term, traffic, server-list updates and a QR code for other devices. */
-export const OrigamiSubscription = () => {
+// Renew links lead to our cabinet and bot, so other providers' subscriptions go without them.
+const isOrigami = (url?: string | null) => /origamivpn/i.test(url ?? '')
+
+/** Tiles under a subscription row: term, traffic, server-list updates and a QR code for other devices. */
+export const OrigamiSubscription = ({ item }: { item: IProfileItem }) => {
   const { t, i18n } = useTranslation()
-  const { current, patchCurrent } = useProfiles()
-  const { refresh, updating } = useRefreshSubscription()
+  const { mutateProfiles } = useProfiles()
+  const { refresh, updating } = useRefreshSubscription(item)
   const [now] = useState(() => Date.now())
   const [qrShown, setQrShown] = useState(false)
 
-  if (!current || current.type !== 'remote') return null
+  if (item.type !== 'remote') return null
 
-  const extra = current.extra
+  const extra = item.extra
   const stage = expiryStage(extra?.expire, now)
   const left = extra?.expire ? daysLeft(extra.expire, now) : null
   const upload = extra?.upload ?? 0
@@ -53,15 +58,24 @@ export const OrigamiSubscription = () => {
   const total = extra?.total ?? 0
   const share = total > 0 ? Math.min(100, (used / total) * 100) : null
 
-  const option: IProfileOption = current.option ?? {}
+  const option: IProfileOption = item.option ?? {}
   // The core runs the update timer only with an interval set, so no interval means off.
   const autoUpdate =
     (option.allow_auto_update ?? true) && !!option.update_interval
   const interval = option.update_interval || DEFAULT_INTERVAL
 
   const patchOption = async (patch: IProfileOption) => {
+    const uid = item.uid
+    if (!uid) return
     try {
-      await patchCurrent({ option: { ...option, ...patch } })
+      await mutate(
+        () => patchProfile(uid, { option: { ...option, ...patch } }),
+        {
+          id: `patch-profile:${uid}`,
+          errorNotice: false,
+        },
+      )
+      await mutateProfiles()
     } catch (error) {
       showNotice.error(error)
     }
@@ -87,23 +101,25 @@ export const OrigamiSubscription = () => {
             })}
           </p>
         ) : null}
-        <div className="o-subp__actions">
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() => void openExternalUrl(ORIGAMI_LINKS.cabinet)}
-          >
-            {t('origami.home.subscription.renew')}
-          </Button>
-          <Button
-            variant="outlined"
-            size="small"
-            endIcon={<NorthEastRounded fontSize="small" />}
-            onClick={() => void openExternalUrl(ORIGAMI_LINKS.bot)}
-          >
-            {t('origami.subscription.viaBot')}
-          </Button>
-        </div>
+        {isOrigami(item.url) && (
+          <div className="o-subp__actions">
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => void openExternalUrl(ORIGAMI_LINKS.cabinet)}
+            >
+              {t('origami.home.subscription.renew')}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              endIcon={<NorthEastRounded fontSize="small" />}
+              onClick={() => void openExternalUrl(ORIGAMI_LINKS.bot)}
+            >
+              {t('origami.subscription.viaBot')}
+            </Button>
+          </div>
+        )}
       </section>
 
       <section className="o-plate o-subp__tile">
@@ -130,9 +146,9 @@ export const OrigamiSubscription = () => {
       <section className="o-plate o-subp__tile">
         <div className="o-label">{t('origami.subscription.servers')}</div>
         <div className="o-value">
-          {current.updated
+          {item.updated
             ? t('origami.subscription.updatedAgo', {
-                time: dayjs(current.updated * 1000).fromNow(),
+                time: dayjs(item.updated * 1000).fromNow(),
               })
             : t('origami.subscription.neverUpdated')}
         </div>
@@ -194,8 +210,8 @@ export const OrigamiSubscription = () => {
             aria-label={t('origami.subscription.showQr')}
             onClick={() => setQrShown(!qrShown)}
           >
-            {qrShown && current.url ? (
-              <QRCodeSVG value={current.url} size={132} level="M" />
+            {qrShown && item.url ? (
+              <QRCodeSVG value={item.url} size={132} level="M" />
             ) : (
               <QrCode2Rounded />
             )}

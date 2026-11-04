@@ -557,12 +557,14 @@ export interface TranslationResources {
         }
       }
       subscription: {
-        all: string
+        active: string
+        add: string
         auto: string
         autoHint: string
         every: string
         hideQr: string
         limit: string
+        more: string
         neverUpdated: string
         noLimit: string
         phone: string
@@ -574,6 +576,8 @@ export interface TranslationResources {
         term: string
         traffic: string
         updatedAgo: string
+        urlPlaceholder: string
+        use: string
         viaBot: string
       }
       welcome: {

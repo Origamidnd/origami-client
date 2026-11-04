@@ -324,6 +324,10 @@
     "showQr": "Show QR code",
     "hideQr": "Hide",
     "viaBot": "In the Telegram bot",
-    "all": "All subscriptions"
+    "active": "Active",
+    "use": "Use",
+    "more": "More",
+    "add": "Add subscription",
+    "urlPlaceholder": "Subscription link"
   }
 }

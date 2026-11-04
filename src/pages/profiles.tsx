@@ -95,6 +95,8 @@ const ProfilePage = () => {
   >(null)
   const [loading, setLoading] = useState(false)
 
+  // OrigamiVPN: subscription rows with their tiles open; until the user folds one, the current one.
+  const [openRowsState, setOpenRowsState] = useState<string[] | null>(null)
   const [batchMode, setBatchMode] = useState(false)
   const [selectedProfiles, setSelectedProfiles] = useState<Set<string>>(
     () => new Set(),
@@ -122,6 +124,15 @@ const ProfilePage = () => {
   useEffect(() => {
     currentProfileRef.current = profiles.current!
   }, [profiles])
+
+  const openRows = openRowsState ?? (profiles.current ? [profiles.current] : [])
+  const toggleRow = (uid: string) =>
+    setOpenRowsState((prev) => {
+      const base = prev ?? openRows
+      return base.includes(uid)
+        ? base.filter((item) => item !== uid)
+        : [...base, uid]
+    })
 
   useEffect(() => {
     const unlisten = getCurrentWindow().onDragDropEvent(async (event) => {
@@ -823,81 +834,7 @@ const ProfilePage = () => {
           overflowY: 'auto',
         }}
       >
-        {/* OrigamiVPN: the current subscription as tiles, then every subscription with the import form. */}
-        <OrigamiSubscription />
-        <div className="o-label o-subp__all">
-          {t('origami.subscription.all')}
-        </div>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{
-            mb: 1,
-            height: '36px',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <BaseStyledTextField
-            value={url}
-            variant="outlined"
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
-                return
-              }
-              if (!url || disabled || loading) {
-                return
-              }
-              event.preventDefault()
-              void onImport()
-            }}
-            placeholder={t('profiles.page.importForm.placeholder')}
-            slotProps={{
-              input: {
-                sx: { pr: 1 },
-                endAdornment: !url ? (
-                  <IconButton
-                    size="small"
-                    sx={{ p: 0.5 }}
-                    title={t('profiles.page.importForm.actions.paste')}
-                    onClick={onCopyLink}
-                  >
-                    <ContentPasteRounded fontSize="inherit" />
-                  </IconButton>
-                ) : (
-                  <IconButton
-                    size="small"
-                    sx={{ p: 0.5 }}
-                    title={t('shared.actions.clear')}
-                    onClick={() => setUrl('')}
-                  >
-                    <ClearRounded fontSize="inherit" />
-                  </IconButton>
-                ),
-              },
-            }}
-          />
-          <Button
-            disabled={!url || disabled}
-            loading={loading}
-            variant="contained"
-            size="small"
-            sx={{ borderRadius: '6px' }}
-            onClick={onImport}
-          >
-            {t('profiles.page.actions.import')}
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            sx={{ borderRadius: '6px' }}
-            onClick={() => viewerRef.current?.create()}
-          >
-            {t('shared.actions.new')}
-          </Button>
-        </Stack>
-
+        {/* OrigamiVPN: one row per subscription, its tiles fold open under it; the import form below. */}
         <DragDropProvider
           key={profileDndRevision}
           sensors={[profilePointerSensor, KeyboardSensor]}
@@ -905,14 +842,11 @@ const ProfilePage = () => {
         >
           <Box
             sx={{
-              mb: 1.5,
-              display: 'grid',
-              overflow: 'hidden',
-              // Up to 4 columns until a column would pass 480px, then more; 24px is the 3 gaps from `gap: 1`.
-              gridTemplateColumns:
-                'repeat(auto-fill, minmax(clamp(260px, calc((100% - 24px) / 4), 480px), 1fr))',
+              display: 'flex',
+              flexDirection: 'column',
               gap: 1,
-              px: 0.5,
+              maxWidth: 980,
+              pt: 1,
             }}
           >
             {profileItems.map((item, index) => (
@@ -948,10 +882,93 @@ const ProfilePage = () => {
                 batchMode={batchMode}
                 isSelected={selectedProfiles.has(item.uid!)}
                 onSelectionChange={() => toggleProfileSelection(item.uid!)}
+                details={
+                  item.type === 'remote' ? (
+                    <OrigamiSubscription item={item} />
+                  ) : undefined
+                }
+                expanded={openRows.includes(item.uid!)}
+                onToggle={() => toggleRow(item.uid!)}
               />
             ))}
           </Box>
         </DragDropProvider>
+        <div className="o-label o-subp__add">
+          {t('origami.subscription.add')}
+        </div>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{
+            mb: 1,
+            height: '36px',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <BaseStyledTextField
+            value={url}
+            variant="outlined"
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
+                return
+              }
+              if (!url || disabled || loading) {
+                return
+              }
+              event.preventDefault()
+              void onImport()
+            }}
+            placeholder={t('origami.subscription.urlPlaceholder')}
+            slotProps={{
+              input: {
+                sx: { pr: 1 },
+                endAdornment: !url ? (
+                  <IconButton
+                    size="small"
+                    sx={{ p: 0.5 }}
+                    title={t('profiles.page.importForm.actions.paste')}
+                    onClick={onCopyLink}
+                  >
+                    <ContentPasteRounded fontSize="inherit" />
+                  </IconButton>
+                ) : (
+                  <IconButton
+                    size="small"
+                    sx={{ p: 0.5 }}
+                    title={t('shared.actions.clear')}
+                    onClick={() => setUrl('')}
+                  >
+                    <ClearRounded fontSize="inherit" />
+                  </IconButton>
+                ),
+              },
+            }}
+          />
+          <Button
+            disabled={!url || disabled}
+            loading={loading}
+            variant="contained"
+            size="small"
+            sx={{ borderRadius: '6px' }}
+            onClick={onImport}
+          >
+            {t('profiles.page.actions.import')}
+          </Button>
+          {/* OrigamiVPN: a hand-made local profile is an expert tool. */}
+          {expertMode && (
+            <Button
+              variant="contained"
+              size="small"
+              sx={{ borderRadius: '6px' }}
+              onClick={() => viewerRef.current?.create()}
+            >
+              {t('shared.actions.new')}
+            </Button>
+          )}
+        </Stack>
+
         {expertMode && (
           <>
             <Divider
