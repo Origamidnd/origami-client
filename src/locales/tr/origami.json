@@ -320,7 +320,7 @@
     "autoHint": "New servers and countries show up on their own.",
     "phone": "Other devices",
     "phoneTitle": "Phone, tablet or TV",
-    "phoneHint": "Scan the QR code in Happ or another app. It opens on a click, so the link stays out of screen recordings.",
+    "phoneHint": "Scan the QR code in Happ or another app. It opens on a click.",
     "showQr": "Show QR code",
     "hideQr": "Hide",
     "viaBot": "In the Telegram bot",
