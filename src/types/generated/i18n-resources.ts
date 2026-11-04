@@ -376,6 +376,7 @@ export interface TranslationResources {
       }
       recovery: {
         restarted: string
+        restartedStartup: string
       }
       reminder: {
         expired: string

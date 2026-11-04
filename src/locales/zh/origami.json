@@ -304,7 +304,8 @@
     "fixed": "Done, the VPN works again"
   },
   "recovery": {
-    "restarted": "The network changed or the computer woke up: the VPN reconnected"
+    "restarted": "The network changed or the computer woke up: the VPN reconnected",
+    "restartedStartup": "VPN did not answer after start: reconnected it"
   },
   "subscription": {
     "term": "Term",
