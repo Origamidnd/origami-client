@@ -30,9 +30,11 @@ import { UpdateViewer } from './mods/update-viewer'
 
 interface Props {
   onError?: (err: Error) => void
+  // OrigamiVPN: inside the expert sections, without the rows our own settings already have.
+  embedded?: boolean
 }
 
-const SettingVergeAdvanced = ({ onError: _ }: Props) => {
+const SettingVergeAdvanced = ({ onError: _, embedded = false }: Props) => {
   const { t } = useTranslation()
 
   const configRef = useRef<DialogRef>(null)
@@ -126,10 +128,12 @@ const SettingVergeAdvanced = ({ onError: _ }: Props) => {
         label={t('settings.components.verge.advanced.fields.openLogsDir')}
       />
 
-      <SettingItem
-        onClick={onCheckUpdate}
-        label={t('settings.components.verge.advanced.fields.checkUpdates')}
-      />
+      {!embedded && (
+        <SettingItem
+          onClick={onCheckUpdate}
+          label={t('settings.components.verge.advanced.fields.checkUpdates')}
+        />
+      )}
 
       <SettingItem
         onClick={() => {
@@ -152,15 +156,17 @@ const SettingVergeAdvanced = ({ onError: _ }: Props) => {
         onClick={() => liteModeRef.current?.open()}
       />
 
-      <SettingItem
-        onClick={() => {
-          void mutate(() => exitApp(), {
-            id: 'exit-app',
-            errorNotice: false,
-          }).catch(() => {})
-        }}
-        label={t('settings.components.verge.advanced.fields.exit')}
-      />
+      {!embedded && (
+        <SettingItem
+          onClick={() => {
+            void mutate(() => exitApp(), {
+              id: 'exit-app',
+              errorNotice: false,
+            }).catch(() => {})
+          }}
+          label={t('settings.components.verge.advanced.fields.exit')}
+        />
+      )}
 
       <SettingItem
         label={t('settings.components.verge.advanced.fields.exportDiagnostics')}
@@ -172,18 +178,22 @@ const SettingVergeAdvanced = ({ onError: _ }: Props) => {
         }
       ></SettingItem>
 
-      <SettingItem
-        label={t('settings.components.verge.advanced.fields.vergeVersion')}
-        extra={
-          <TooltipIcon
-            icon={ContentCopyRounded}
-            onClick={copyVersion}
-            title={t('settings.components.verge.advanced.actions.copyVersion')}
-          />
-        }
-      >
-        <Typography sx={{ py: '7px', pr: 1 }}>v{version}</Typography>
-      </SettingItem>
+      {!embedded && (
+        <SettingItem
+          label={t('settings.components.verge.advanced.fields.vergeVersion')}
+          extra={
+            <TooltipIcon
+              icon={ContentCopyRounded}
+              onClick={copyVersion}
+              title={t(
+                'settings.components.verge.advanced.actions.copyVersion',
+              )}
+            />
+          }
+        >
+          <Typography sx={{ py: '7px', pr: 1 }}>v{version}</Typography>
+        </SettingItem>
+      )}
     </SettingList>
   )
 }

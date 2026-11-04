@@ -79,7 +79,8 @@ const Section = ({
 )
 
 /** Settings for everyone; the stock sections stay behind expert mode. */
-export const OrigamiSettings = () => {
+/** `children` go right under the expert switch: the stock settings, when expert mode is on. */
+export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
   const { t } = useTranslation()
   const { verge, patchVerge } = useVerge()
   const { decorated, toggleDecorations } = useWindowDecorations()
@@ -335,6 +336,8 @@ export const OrigamiSettings = () => {
           />
         </Row>
       </section>
+
+      {children}
 
       <div className="o-set__foot">
         <span className="o-hint">

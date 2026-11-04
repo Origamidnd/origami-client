@@ -26,6 +26,8 @@ import { UpdateViewer } from './mods/update-viewer'
 
 interface Props {
   onError?: (err: Error) => void
+  // OrigamiVPN: inside the expert sections, without the rows our own settings already have.
+  embedded?: boolean
 }
 
 const OS = getSystem()
@@ -51,7 +53,7 @@ const languageOptions = supportedLanguages.map((code) => {
   return { code, label }
 })
 
-const SettingVergeBasic = ({ onError }: Props) => {
+const SettingVergeBasic = ({ onError, embedded = false }: Props) => {
   const { t } = useTranslation()
 
   const { verge, patchVerge, mutateVerge } = useVerge()
@@ -100,36 +102,42 @@ const SettingVergeBasic = ({ onError }: Props) => {
       <UpdateViewer ref={updateRef} />
       <BackupViewer ref={backupRef} />
 
-      <SettingItem label={t('settings.components.verge.basic.fields.language')}>
-        <GuardState
-          value={language ?? 'en'}
-          onCatch={onError}
-          onFormat={(e: any) => e.target.value}
-          onChange={(e) => onChangeData({ language: e })}
-          onGuard={(e) => patchVerge({ language: e })}
+      {!embedded && (
+        <SettingItem
+          label={t('settings.components.verge.basic.fields.language')}
         >
-          <Select size="small" sx={{ width: 110, '> div': { py: '7.5px' } }}>
-            {languageOptions.map(({ code, label }) => (
-              <MenuItem key={code} value={code}>
-                {label}
-              </MenuItem>
-            ))}
-          </Select>
-        </GuardState>
-      </SettingItem>
+          <GuardState
+            value={language ?? 'en'}
+            onCatch={onError}
+            onFormat={(e: any) => e.target.value}
+            onChange={(e) => onChangeData({ language: e })}
+            onGuard={(e) => patchVerge({ language: e })}
+          >
+            <Select size="small" sx={{ width: 110, '> div': { py: '7.5px' } }}>
+              {languageOptions.map(({ code, label }) => (
+                <MenuItem key={code} value={code}>
+                  {label}
+                </MenuItem>
+              ))}
+            </Select>
+          </GuardState>
+        </SettingItem>
+      )}
 
-      <SettingItem
-        label={t('settings.components.verge.basic.fields.themeMode')}
-      >
-        <GuardState
-          value={theme_mode}
-          onCatch={onError}
-          onChange={(e) => onChangeData({ theme_mode: e })}
-          onGuard={(e) => patchVerge({ theme_mode: e })}
+      {!embedded && (
+        <SettingItem
+          label={t('settings.components.verge.basic.fields.themeMode')}
         >
-          <ThemeModeSwitch />
-        </GuardState>
-      </SettingItem>
+          <GuardState
+            value={theme_mode}
+            onCatch={onError}
+            onChange={(e) => onChangeData({ theme_mode: e })}
+            onGuard={(e) => patchVerge({ theme_mode: e })}
+          >
+            <ThemeModeSwitch />
+          </GuardState>
+        </SettingItem>
+      )}
 
       {OS !== 'linux' && (
         <SettingItem

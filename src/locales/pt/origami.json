@@ -4,7 +4,8 @@
     "support": "Support",
     "cabinet": "Account",
     "update": "Update {{version}}",
-    "external": "Opens in the browser or Telegram"
+    "external": "Opens in the browser or Telegram",
+    "groups": "Groups"
   },
   "home": {
     "state": {
@@ -170,6 +171,24 @@
     "titlebar": {
       "title": "System window frame",
       "hint": "The standard Windows title bar instead of the OrigamiVPN one"
+    },
+    "expertSections": {
+      "connection": {
+        "title": "Connection mode",
+        "hint": "TUN and system proxy, with their fine settings"
+      },
+      "core": {
+        "title": "Core and network",
+        "hint": "DNS, ports, IPv6, LAN access, the Mihomo core and GeoIP data"
+      },
+      "interface": {
+        "title": "Interface",
+        "hint": "Tray, hotkeys, start page, appearance"
+      },
+      "service": {
+        "title": "Files and maintenance",
+        "hint": "Backups, config and log folders, lite mode"
+      }
     }
   },
   "servers": {
@@ -214,7 +233,9 @@
     "report": "report the block to me",
     "or": "or",
     "autoVariant": "Switch to the fastest variant automatically",
-    "autoVariantSwitched": "{{service}}: switched to {{server}}, it is faster now"
+    "autoVariantSwitched": "{{service}}: switched to {{server}}, it is faster now",
+    "refreshSub": "Update subscription",
+    "refreshingSub": "Updating subscription"
   },
   "report": {
     "open": "A site or game not working?",

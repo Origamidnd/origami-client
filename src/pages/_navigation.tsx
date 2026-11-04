@@ -1,3 +1,4 @@
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
 import DnsOutlinedIcon from '@mui/icons-material/DnsOutlined'
 import ForkRightOutlinedIcon from '@mui/icons-material/ForkRightOutlined'
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined'
@@ -22,7 +23,7 @@ import { navigationItems } from './_navigation-meta'
 import ConnectionsPage from './connections'
 import LogsPage from './logs'
 import ProfilePage from './profiles'
-import ProxyPage from './proxies'
+import ServersPage, { ProxyPage } from './proxies'
 import RulesPage from './rules'
 import SettingPage from './settings'
 import UnlockPage from './unlock'
@@ -43,12 +44,17 @@ export const navItems: NavigationItem[] = [
   {
     ...navigationItems.proxies,
     icon: [<WifiOutlinedIcon key="mui" />, <ProxiesSvg key="svg" />],
-    Component: ProxyPage,
+    Component: ServersPage,
   },
   {
     ...navigationItems.profiles,
     icon: [<DnsOutlinedIcon key="mui" />, <ProfilesSvg key="svg" />],
     Component: ProfilePage,
+  },
+  {
+    ...navigationItems.groups,
+    icon: [<AccountTreeOutlinedIcon key="mui" />, <ProxiesSvg key="svg" />],
+    Component: ProxyPage,
   },
   {
     ...navigationItems.connections,

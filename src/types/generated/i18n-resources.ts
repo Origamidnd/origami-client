@@ -367,6 +367,7 @@ export interface TranslationResources {
         cabinet: string
         expert: string
         external: string
+        groups: string
         support: string
         update: string
       }
@@ -463,6 +464,8 @@ export interface TranslationResources {
         mid: string
         noAnswer: string
         or: string
+        refreshingSub: string
+        refreshSub: string
         report: string
         services: string
         slow: string
@@ -483,6 +486,24 @@ export interface TranslationResources {
         expert: {
           hint: string
           title: string
+        }
+        expertSections: {
+          connection: {
+            hint: string
+            title: string
+          }
+          core: {
+            hint: string
+            title: string
+          }
+          interface: {
+            hint: string
+            title: string
+          }
+          service: {
+            hint: string
+            title: string
+          }
         }
         footer: string
         help: {

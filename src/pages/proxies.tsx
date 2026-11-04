@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next'
 import { BaseDialog, BasePage, TooltipIcon } from '@/components/base'
 import { ProviderButton } from '@/components/proxy/provider-button'
 import { ProxyGroups } from '@/components/proxy/proxy-groups'
-import { useExpertMode } from '@/origami/expert-mode'
 import { OrigamiServers } from '@/origami/servers/origami-servers'
 import {
   useAppRefreshers,
@@ -28,7 +27,7 @@ const MODE_SET = new Set<string>(MODES)
 const isMode = (value: unknown): value is Mode =>
   typeof value === 'string' && MODE_SET.has(value)
 
-const ProxyPage = () => {
+export const ProxyPage = () => {
   const { t } = useTranslation()
 
   // 从 localStorage 恢复链式代理按钮状态
@@ -165,7 +164,8 @@ const ProxyPage = () => {
             />
           </Box>
         ) : (
-          t('proxies.page.title.default')
+          // OrigamiVPN: this page is the expert "Groups" tab, "Servers" is the simple one.
+          t('origami.nav.groups')
         )
       }
       header={
@@ -228,7 +228,7 @@ const ProxyPage = () => {
   )
 }
 
-// OrigamiVPN: people get the simple Servers tab, expert mode keeps the stock one.
-const ServersPage = () => (useExpertMode() ? <ProxyPage /> : <OrigamiServers />)
+// OrigamiVPN: the simple Servers tab in both modes; the stock page is the expert "Groups" tab.
+const ServersPage = () => <OrigamiServers />
 
 export default ServersPage

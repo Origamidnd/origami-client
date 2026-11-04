@@ -1,6 +1,5 @@
 import { PowerSettingsNewRounded, RefreshRounded } from '@mui/icons-material'
 import { Button, IconButton } from '@mui/material'
-import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -11,18 +10,15 @@ import { CurrentProxyCard } from '@/components/home/current-proxy-card'
 import { useProfiles } from '@/hooks/use-profiles'
 import { useTrafficData } from '@/hooks/use-traffic-data'
 import { useVisibility } from '@/hooks/use-visibility'
-import { useAppRefreshers } from '@/providers/app-data-context'
-import { updateProfile } from '@/services/cmds'
-import { mutate } from '@/services/mutate'
 import { showNotice } from '@/services/notice-service'
 import { requestService } from '@/services/service-request'
 import { openExternalUrl } from '@/utils/open-external-url'
 import parseTraffic from '@/utils/parse-traffic'
 
-import { explainSubscriptionError } from '../errors'
 import { useExpertMode } from '../expert-mode'
 import { ORIGAMI_LINKS } from '../links'
 import { expiryStage, needsRenew } from '../subscription-status'
+import { useRefreshSubscription } from '../use-refresh-subscription'
 
 import { AnnouncePlate } from './announce-plate'
 import { CheckPlate } from './check-plate'
@@ -191,31 +187,9 @@ const pluralDays = (
 const SubscriptionPlate = () => {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
-  const { current, mutateProfiles } = useProfiles()
-  const { refreshAll } = useAppRefreshers()
+  const { current } = useProfiles()
   const [now] = useState(() => Date.now())
-  const [updating, setUpdating] = useState(false)
-
-  const refresh = useLockFn(async () => {
-    const uid = current?.uid
-    if (!uid) return
-    setUpdating(true)
-    try {
-      await mutate(() => updateProfile(uid, current.option ?? undefined), {
-        id: `update-profile:${uid}`,
-        errorNotice: false,
-      })
-      await mutateProfiles()
-      await refreshAll()
-      showNotice.success('origami.home.subscription.refreshed')
-    } catch (error) {
-      const reason = explainSubscriptionError(error)
-      if (reason) showNotice.error(reason)
-      else showNotice.error(error)
-    } finally {
-      setUpdating(false)
-    }
-  })
+  const { refresh, updating } = useRefreshSubscription()
 
   if (!current || current.type !== 'remote') {
     return (

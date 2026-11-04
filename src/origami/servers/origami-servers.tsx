@@ -1,4 +1,8 @@
-import { HelpOutlineRounded, RefreshRounded } from '@mui/icons-material'
+import {
+  CloudSyncRounded,
+  HelpOutlineRounded,
+  RefreshRounded,
+} from '@mui/icons-material'
 import { Button, Tooltip } from '@mui/material'
 import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
@@ -27,6 +31,7 @@ import { openExternalUrl } from '@/utils/open-external-url'
 import { ORIGAMI_LINKS } from '../links'
 import { ReportDialog } from '../report/report-dialog'
 import type { FocusGroupState } from '../use-focus-group'
+import { useRefreshSubscription } from '../use-refresh-subscription'
 
 import {
   pendingSwitches,
@@ -117,7 +122,7 @@ const Ping = ({
 const BLOCK_ORDER: ServerCategory[] = ['main', 'extra', 'other']
 const GAMES_ORDER: ServerCategory[] = ['other', 'main', 'extra']
 
-/** Simple Servers tab: every service keeps its own server; the stock tab stays in expert mode. */
+/** Servers tab: every service keeps its own server; the stock groups page is the expert Groups tab. */
 export const OrigamiServers = () => {
   const { t } = useTranslation()
   const { proxyView } = useProxiesData()
@@ -184,6 +189,13 @@ export const OrigamiServers = () => {
     } finally {
       setChecking(false)
     }
+  })
+
+  // New servers can come with the subscription, so they get their numbers right away.
+  const { refresh, updating, canRefresh } = useRefreshSubscription()
+  const refreshAndCheck = useLockFn(async () => {
+    await refresh()
+    await runCheck()
   })
 
   // Pick by fresh numbers: check again when the last check is old.
@@ -345,6 +357,19 @@ export const OrigamiServers = () => {
               ? t('origami.servers.checking')
               : t('origami.servers.check')}
           </Button>
+          {canRefresh && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<CloudSyncRounded fontSize="small" />}
+              disabled={updating || checking}
+              onClick={() => void refreshAndCheck()}
+            >
+              {updating
+                ? t('origami.servers.refreshingSub')
+                : t('origami.servers.refreshSub')}
+            </Button>
+          )}
           {checkedAt && !checking && (
             <span className="o-hint">
               {t('origami.servers.checkedAt', {
