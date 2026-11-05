@@ -13,6 +13,7 @@ import { useProfiles } from '@/hooks/use-profiles'
 import { useUpdate } from '@/hooks/use-update'
 import { openExternalUrl } from '@/utils/open-external-url'
 
+import { useProgramTrafficWatch } from './apps/use-program-traffic'
 import { CoreTroubleDialog } from './core-trouble/core-trouble-dialog'
 import { setExpertMode, useExpertMode } from './expert-mode'
 import { ORIGAMI_LINKS } from './links'
@@ -50,6 +51,7 @@ export const OrigamiSidebarFooter = () => {
   useExpiryReminder()
   useAutoVariantWatch()
   useNetworkRecovery()
+  useProgramTrafficWatch()
   const { current } = useProfiles()
   const supportUrl = current?.support ?? ORIGAMI_LINKS.support
 

@@ -8,6 +8,8 @@ export const navigationItems = {
     label: 'layout.components.navigation.tabs.profiles',
     path: '/profile',
   },
+  // OrigamiVPN: which programs use the internet and how; for everyone, not only in expert mode.
+  programs: { label: 'origami.nav.programs', path: '/programs' },
   // OrigamiVPN: the stock proxy-groups page, an expert tab next to Connections and Rules.
   groups: { label: 'origami.nav.groups', path: '/groups' },
   connections: {

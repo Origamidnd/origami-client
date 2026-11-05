@@ -48,6 +48,8 @@ export const upsertRoute = (
 // The VPN core and this client show up in the connection list too; they are not what people mean.
 const OWN_PROCESSES = /^(verge-mihomo|mihomo|clash|origamivpn|clash-verge)/i
 
+export const isOwnProcess = (name: string) => OWN_PROCESSES.test(name)
+
 /** Programs seen in recent connections, busiest first, without the ones already routed. */
 export const recentProcesses = (
   connections: IConnectionsItem[],

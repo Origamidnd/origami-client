@@ -5,7 +5,8 @@
     "cabinet": "Account",
     "update": "Update {{version}}",
     "external": "Opens in the browser or Telegram",
-    "groups": "Groups"
+    "groups": "Groups",
+    "programs": "Programs"
   },
   "home": {
     "state": {
@@ -359,5 +360,29 @@
     "serverHint": "Where the programs and sites you sent through VPN go.",
     "count": "Rules: {{count}}",
     "none": "None yet"
+  },
+  "programs": {
+    "title": "Programs",
+    "lead": "Which programs use the internet and how they go: through VPN or direct. You can choose the way for each.",
+    "period": "Traffic is approximate, counted since the app started and while VPN is on.",
+    "auto": "As usual",
+    "unknown": "Unknown program",
+    "unknownHint": "The program cannot be identified",
+    "empty": "Nothing yet. Programs appear here as soon as they use the internet.",
+    "off": "VPN is off. Turn it on and programs will appear here.",
+    "foot": "Program not listed, or want a rule for a site?",
+    "footLink": "Open \"Own rules\"",
+    "way": {
+      "vpn": "through VPN",
+      "vpnVia": "through VPN: {{server}}",
+      "direct": "direct",
+      "both": "partly direct, partly through VPN",
+      "idle": "not online now"
+    },
+    "set": {
+      "auto": "{{name}}: back to the common rules",
+      "direct": "{{name}}: now direct",
+      "vpn": "{{name}}: now through VPN"
+    }
   }
 }

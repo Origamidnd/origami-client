@@ -1,4 +1,5 @@
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
+import AppsOutlinedIcon from '@mui/icons-material/AppsOutlined'
 import DnsOutlinedIcon from '@mui/icons-material/DnsOutlined'
 import ForkRightOutlinedIcon from '@mui/icons-material/ForkRightOutlined'
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined'
@@ -17,6 +18,7 @@ import ProxiesSvg from '@/assets/image/itemicon/proxies.svg?react'
 import RulesSvg from '@/assets/image/itemicon/rules.svg?react'
 import SettingsSvg from '@/assets/image/itemicon/settings.svg?react'
 import UnlockSvg from '@/assets/image/itemicon/unlock.svg?react'
+import OrigamiPrograms from '@/origami/apps/origami-programs'
 import OrigamiHomePage from '@/origami/home/origami-home'
 
 import { navigationItems } from './_navigation-meta'
@@ -50,6 +52,11 @@ export const navItems: NavigationItem[] = [
     ...navigationItems.profiles,
     icon: [<DnsOutlinedIcon key="mui" />, <ProfilesSvg key="svg" />],
     Component: ProfilePage,
+  },
+  {
+    ...navigationItems.programs,
+    icon: [<AppsOutlinedIcon key="mui" />, <ProxiesSvg key="svg" />],
+    Component: OrigamiPrograms,
   },
   {
     ...navigationItems.groups,

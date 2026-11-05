@@ -448,6 +448,12 @@ const handlers: Record<string, (args: any) => unknown> = {
       : [],
   // Expert tabs: a few rules and live connections, so the stock pages have something to show.
   'plugin:mihomo|get_rules': () => ({ rules: MOCK_RULES }),
+  'plugin:mihomo|get_connections': () => ({
+    downloadTotal: 182_000_000,
+    uploadTotal: 9_400_000,
+    connections: mockConnections(),
+  }),
+  'plugin:mihomo|close_connection': () => null,
   'plugin:mihomo|ws_connections': ({ onMessage }) => {
     const send = () =>
       onMessage?.onmessage?.({

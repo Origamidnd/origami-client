@@ -368,11 +368,36 @@ export interface TranslationResources {
         expert: string
         external: string
         groups: string
+        programs: string
         support: string
         update: string
       }
       notices: {
         profileKept: string
+      }
+      programs: {
+        auto: string
+        empty: string
+        foot: string
+        footLink: string
+        lead: string
+        off: string
+        period: string
+        set: {
+          auto: string
+          direct: string
+          vpn: string
+        }
+        title: string
+        unknown: string
+        unknownHint: string
+        way: {
+          both: string
+          direct: string
+          idle: string
+          vpn: string
+          vpnVia: string
+        }
       }
       recovery: {
         restarted: string

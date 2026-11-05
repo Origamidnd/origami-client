@@ -1952,3 +1952,60 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     font-size: 12px;
   }
 }
+
+// Programs tab: traffic per program and a way for each.
+.o-apps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 980px;
+  padding: 4px 4px 24px;
+  color: var(--o-ink);
+
+  .o-srv__lead,
+  .o-srv__foot {
+    margin: 0;
+  }
+
+  &__list {
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
+      padding: 8px 16px;
+
+      + li {
+        border-top: 1px dashed var(--o-crease);
+      }
+    }
+  }
+
+  &__name {
+    display: flex;
+    flex: 1 1 200px;
+    flex-direction: column;
+    min-width: 0;
+
+    b {
+      overflow: hidden;
+      font-weight: 500;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  &__bytes {
+    flex: none;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  &__nochoice {
+    flex: none;
+  }
+}

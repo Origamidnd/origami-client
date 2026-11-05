@@ -26,7 +26,7 @@ import {
 
 const isWindows = navigator.userAgent.includes('Windows')
 
-const Seg = <T extends string>({
+export const Seg = <T extends string>({
   value,
   options,
   onChange,
