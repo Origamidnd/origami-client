@@ -7,11 +7,12 @@ import {
   getVersion,
 } from 'tauri-plugin-mihomo-api'
 
-import { useProxiesData } from '@/providers/app-data-context'
+import { useAppRefreshers, useProxiesData } from '@/providers/app-data-context'
 import { cmdTestDelay, origamiSetLinkState, restartCore } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
 
 import { isReachable } from './check/targets'
+import { notifyCoreReloaded } from './core-reload-signal'
 import { resolveCurrent } from './current-server'
 import { useConnection } from './home/use-connection'
 import { getLinkState, type LinkState, setLinkState } from './link-state'
@@ -144,6 +145,7 @@ export const watchRecovery = (
   isConnected: () => boolean,
   target: EventTarget = window,
   getGroup: () => string | undefined = () => undefined,
+  onLinkBack: () => void = () => {},
 ) => {
   let lastTick = Date.now()
   let lastRun = 0
@@ -165,8 +167,10 @@ export const watchRecovery = (
       noInternetSince = null
       vpnSilentSince = null
     }
-    if (state === getLinkState()) return
+    const previous = getLinkState()
+    if (state === previous) return
     setLinkState(state)
+    if (state === 'ok') onLinkBack()
     origamiSetLinkState(state).catch(() => {
       // The tray keeps its icon until the next change.
     })
@@ -272,12 +276,16 @@ export const watchRecovery = (
 export const useNetworkRecovery = () => {
   const { connected } = useConnection()
   const { proxyView } = useProxiesData()
+  const { refreshProxy } = useAppRefreshers()
   const connectedRef = useRef(connected)
   connectedRef.current = connected
+  const current = proxyView ? resolveCurrent(proxyView) : null
   const groupRef = useRef<string | undefined>(undefined)
-  groupRef.current = proxyView
-    ? resolveCurrent(proxyView)?.group.name
-    : undefined
+  groupRef.current = current?.group.name
+  const serverRef = useRef<string | undefined>(undefined)
+  serverRef.current = current?.name
+  const refreshRef = useRef(refreshProxy)
+  refreshRef.current = refreshProxy
 
   useEffect(
     () =>
@@ -285,6 +293,15 @@ export const useNetworkRecovery = () => {
         () => connectedRef.current,
         window,
         () => groupRef.current,
+        () => {
+          // During the outage every test failed: Auto is back on its first server, and the home
+          // screen still says the current one does not answer.
+          notifyCoreReloaded()
+          const server = serverRef.current
+          if (server) {
+            void passes(server, PROBE_URL).finally(() => refreshRef.current())
+          }
+        },
       ),
     [],
   )

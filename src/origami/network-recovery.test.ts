@@ -160,6 +160,24 @@ it('says there is no internet within a minute and clears it when the internet re
   stop()
 })
 
+it('asks for fresh numbers once when the internet returns', async () => {
+  const onLinkBack = vi.fn()
+  const stop = watchRecovery(
+    () => true,
+    { addEventListener: vi.fn(), removeEventListener: vi.fn() } as never,
+    () => GROUP,
+    onLinkBack,
+  )
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  expect(onLinkBack).not.toHaveBeenCalled()
+  net.internet = false
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  net.internet = true
+  await vi.advanceTimersByTimeAsync(2 * MIN)
+  expect(onLinkBack).toHaveBeenCalledOnce()
+  stop()
+})
+
 it('does not restart the core during an outage of 20 minutes', async () => {
   const stop = watch()
   await vi.advanceTimersByTimeAsync(40 * 1000)

@@ -82,7 +82,12 @@ export const CheckPlate = () => {
       }
       // Every service failing says little: advice to change the server is wrong with no internet.
       if (!results.some((delay) => isReachable(delay))) {
-        setNoInternet((await diagnoseLink()) === 'noInternet')
+        const offline = (await diagnoseLink()) === 'noInternet'
+        setNoInternet(offline)
+        if (offline) {
+          setExit(null)
+          return results
+        }
       }
       const info = await getIpInfo().catch(() => null)
       setExit(
