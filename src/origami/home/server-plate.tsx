@@ -32,6 +32,7 @@ export const ServerPlate = () => {
             {t('origami.home.server.via', { group: withoutEmoji(current.via) })}
           </div>
         )}
+        <div className="o-hint">{t('origami.home.server.hint')}</div>
       </div>
       {current?.delay !== undefined && (
         <PingBadge

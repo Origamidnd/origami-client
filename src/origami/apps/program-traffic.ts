@@ -81,6 +81,14 @@ export const programWay = (stat: ProgramStat): ProgramWay => {
   return 'idle'
 }
 
+/** The given order; programs new since it was taken go last. */
+export const keepOrder = (list: ProgramStat[], order: string[]) => {
+  const place = new Map(order.map((name, index) => [name, index]))
+  const at = (stat: ProgramStat) => place.get(stat.name) ?? order.length
+  // A stable sort, so the new ones stay busiest first among themselves.
+  return [...list].sort((a, b) => at(a) - at(b))
+}
+
 /** Busiest first; programs that have used no traffic yet go last, by name. */
 export const sortPrograms = (programs: Iterable<ProgramStat>) =>
   [...programs].sort(

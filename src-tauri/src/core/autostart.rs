@@ -10,6 +10,9 @@ use tauri_plugin_autostart::ManagerExt as _;
 #[cfg(target_os = "windows")]
 use tauri_plugin_clash_verge_sysinfo::is_current_app_handle_admin;
 
+/// OrigamiVPN: marks a start made by the system at logon, so that no window pops up.
+pub const AUTOSTART_ARG: &str = "--autostart";
+
 pub async fn update_launch() -> Result<()> {
     let enable_auto_launch = { Config::verge().await.latest_arc().enable_auto_launch };
     let is_enable = enable_auto_launch.unwrap_or(false);

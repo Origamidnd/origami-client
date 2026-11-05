@@ -93,6 +93,8 @@ tray:
     systemProxy: 系統代理
     tun: 虛擬網路介面卡
     profile: 訂閱
+    origamiNoInternet: No internet
+    origamiDown: VPN passes no traffic
   origamiOpen: 開啟 OrigamiVPN
   origamiConnect: 連線
   origamiDisconnect: 中斷連線

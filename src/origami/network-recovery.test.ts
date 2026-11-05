@@ -1,73 +1,133 @@
-import { closeAllConnections } from 'tauri-plugin-mihomo-api'
+import {
+  closeAllConnections,
+  delayProxyByName,
+  getVersion,
+} from 'tauri-plugin-mihomo-api'
 import { beforeEach, expect, it, vi } from 'vitest'
 
-import { cmdTestDelay, origamiSetLinkOk, restartCore } from '@/services/cmds'
+import { origamiSetLinkState, restartCore } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
 
+import { getLinkState, setLinkState } from './link-state'
 import { recoverNetwork, watchRecovery } from './network-recovery'
 
 vi.mock('tauri-plugin-mihomo-api', () => ({
   closeAllConnections: vi.fn(async () => {}),
+  delayProxyByName: vi.fn(),
   flushDNS: vi.fn(async () => {}),
   flushFakeIp: vi.fn(async () => {}),
+  getVersion: vi.fn(async () => ({ version: 'v1' })),
 }))
 vi.mock('@/services/cmds', () => ({
-  cmdTestDelay: vi.fn(),
-  origamiSetLinkOk: vi.fn(async () => null),
+  cmdTestDelay: vi.fn(async () => 100),
+  origamiSetLinkState: vi.fn(async () => null),
   restartCore: vi.fn(async () => {}),
 }))
 vi.mock('@/services/notice-service', () => ({ showNotice: { info: vi.fn() } }))
+vi.mock('@/providers/app-data-context', () => ({ useProxiesData: vi.fn() }))
 vi.mock('./home/use-connection', () => ({ useConnection: vi.fn() }))
+
+const GROUP = 'Blocked'
+
+// What answers right now: the VPN through the group, the internet through DIRECT, and the core.
+const net = { vpn: true, internet: true }
 
 beforeEach(() => {
   vi.useFakeTimers()
-  vi.mocked(cmdTestDelay).mockReset()
-  vi.mocked(restartCore).mockClear()
+  net.vpn = true
+  net.internet = true
+  setLinkState('ok')
+  vi.mocked(getVersion).mockReset()
+  vi.mocked(getVersion).mockResolvedValue({ version: 'v1' } as never)
+  vi.mocked(delayProxyByName).mockReset()
+  vi.mocked(delayProxyByName).mockImplementation(async (proxy) => {
+    if (proxy === 'DIRECT' ? net.internet : net.vpn && net.internet) {
+      return { delay: 100 } as never
+    }
+    throw new Error('Timeout')
+  })
+  vi.mocked(restartCore).mockReset()
+  vi.mocked(restartCore).mockResolvedValue(null as never)
   vi.mocked(closeAllConnections).mockClear()
-  vi.mocked(origamiSetLinkOk).mockClear()
+  vi.mocked(origamiSetLinkState).mockClear()
+  vi.mocked(showNotice.info).mockClear()
 })
 
-const run = async () => {
-  const result = recoverNetwork()
+const run = async (force = false) => {
+  const result = recoverNetwork(GROUP, { force })
   await vi.runAllTimersAsync()
   return result
 }
 
+const fixedByRestart = () =>
+  vi.mocked(restartCore).mockImplementation(async () => {
+    net.vpn = true
+    return null as never
+  })
+
+const watch = () =>
+  watchRecovery(
+    () => true,
+    { addEventListener: vi.fn(), removeEventListener: vi.fn() } as never,
+    () => GROUP,
+  )
+
+const MIN = 60 * 1000
+
 it('only drops the DNS cache when the link works', async () => {
-  vi.mocked(cmdTestDelay).mockResolvedValue(120)
   expect(await run()).toBe('ok')
   expect(closeAllConnections).not.toHaveBeenCalled()
   expect(restartCore).not.toHaveBeenCalled()
 })
 
-it('restarts the core when traffic still does not go through', async () => {
-  vi.mocked(cmdTestDelay)
-    .mockResolvedValueOnce(10000)
-    .mockResolvedValueOnce(10000)
-    .mockResolvedValueOnce(90)
+it('restarts the core when the internet is there and the VPN still passes nothing', async () => {
+  net.vpn = false
+  fixedByRestart()
   expect(await run()).toBe('restarted')
+  expect(closeAllConnections).toHaveBeenCalledOnce()
   expect(restartCore).toHaveBeenCalledOnce()
 })
 
-it('reports offline when even the restart does not help', async () => {
-  vi.mocked(cmdTestDelay).mockResolvedValue(10000)
-  expect(await run()).toBe('offline')
+it('reports a failure when even the restart does not help', async () => {
+  net.vpn = false
+  expect(await run()).toBe('failed')
 })
 
-const fakeWindow = () => ({
-  addEventListener: vi.fn(),
-  removeEventListener: vi.fn(),
+it('touches nothing without internet: a running game must survive the outage', async () => {
+  net.internet = false
+  expect(await run()).toBe('noInternet')
+  expect(closeAllConnections).not.toHaveBeenCalled()
+  expect(restartCore).not.toHaveBeenCalled()
 })
 
-it('checks once about half a minute after start and restarts a silent core', async () => {
-  vi.mocked(cmdTestDelay)
-    .mockResolvedValueOnce(10000)
-    .mockResolvedValueOnce(10000)
-    .mockResolvedValueOnce(90)
-  const stop = watchRecovery(() => true, fakeWindow() as never)
+it('restarts a silent core without closing anything first', async () => {
+  vi.mocked(getVersion).mockRejectedValue(new Error('pipe'))
+  net.vpn = false
+  fixedByRestart()
+  expect(await run()).toBe('restarted')
+  expect(closeAllConnections).not.toHaveBeenCalled()
+})
+
+it('counts a core that does not even answer as silent', async () => {
+  vi.mocked(getVersion).mockImplementation(() => new Promise(() => {}))
+  net.vpn = false
+  fixedByRestart()
+  expect(await run()).toBe('restarted')
+})
+
+it('still restarts without internet when forced', async () => {
+  net.internet = false
+  expect(await run(true)).toBe('noInternet')
+  expect(restartCore).toHaveBeenCalledOnce()
+})
+
+it('checks once about half a minute after start and restarts a silent VPN', async () => {
+  const stop = watch()
+  net.vpn = false
+  fixedByRestart()
   await vi.advanceTimersByTimeAsync(20 * 1000)
-  expect(cmdTestDelay).not.toHaveBeenCalled()
-  await vi.advanceTimersByTimeAsync(30 * 1000)
+  expect(delayProxyByName).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(40 * 1000)
   expect(restartCore).toHaveBeenCalledOnce()
   expect(showNotice.info).toHaveBeenCalledWith(
     'origami.recovery.restartedStartup',
@@ -75,54 +135,90 @@ it('checks once about half a minute after start and restarts a silent core', asy
   stop()
 })
 
-it('skips the start check while the VPN is off', async () => {
-  const stop = watchRecovery(() => false, fakeWindow() as never)
-  await vi.advanceTimersByTimeAsync(60 * 1000)
-  expect(cmdTestDelay).not.toHaveBeenCalled()
+it('skips the checks while the VPN is off', async () => {
+  const stop = watchRecovery(
+    () => false,
+    { addEventListener: vi.fn(), removeEventListener: vi.fn() } as never,
+    () => GROUP,
+  )
+  await vi.advanceTimersByTimeAsync(MIN)
+  expect(delayProxyByName).not.toHaveBeenCalled()
   stop()
 })
 
-it('paints the tray red after two failed minute probes and back when traffic returns', async () => {
-  vi.mocked(cmdTestDelay).mockResolvedValue(120)
-  const stop = watchRecovery(() => true, fakeWindow() as never)
-  // The start check passes; then the link breaks.
+it('says there is no internet within a minute and clears it when the internet returns', async () => {
+  const stop = watch()
   await vi.advanceTimersByTimeAsync(40 * 1000)
-  vi.mocked(cmdTestDelay).mockResolvedValue(10000)
-  await vi.advanceTimersByTimeAsync(60 * 1000)
-  expect(origamiSetLinkOk).not.toHaveBeenCalled()
-  await vi.advanceTimersByTimeAsync(60 * 1000)
-  expect(origamiSetLinkOk).toHaveBeenLastCalledWith(false)
-  vi.mocked(cmdTestDelay).mockResolvedValue(90)
-  await vi.advanceTimersByTimeAsync(60 * 1000)
-  expect(origamiSetLinkOk).toHaveBeenLastCalledWith(true)
+  net.internet = false
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  expect(getLinkState()).toBe('noInternet')
+  expect(origamiSetLinkState).toHaveBeenLastCalledWith('noInternet')
+  net.internet = true
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  expect(getLinkState()).toBe('ok')
+  expect(origamiSetLinkState).toHaveBeenLastCalledWith('ok')
   stop()
 })
 
-it('restarts a core that hangs while running and says so', async () => {
-  vi.mocked(cmdTestDelay).mockResolvedValue(120)
-  const stop = watchRecovery(() => true, fakeWindow() as never)
+it('does not restart the core during an outage of 20 minutes', async () => {
+  const stop = watch()
   await vi.advanceTimersByTimeAsync(40 * 1000)
-  // Fails until the restart, then works.
-  vi.mocked(cmdTestDelay).mockResolvedValue(10000)
-  vi.mocked(restartCore).mockImplementation(async () => {
-    vi.mocked(cmdTestDelay).mockResolvedValue(90)
-    return null as never
-  })
-  await vi.advanceTimersByTimeAsync(140 * 1000)
+  net.internet = false
+  await vi.advanceTimersByTimeAsync(20 * MIN)
+  expect(restartCore).not.toHaveBeenCalled()
+  expect(closeAllConnections).not.toHaveBeenCalled()
+  stop()
+})
+
+it('tries a restart only after a very long outage', async () => {
+  const stop = watch()
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  net.internet = false
+  await vi.advanceTimersByTimeAsync(32 * MIN)
+  expect(restartCore).toHaveBeenCalledOnce()
+  stop()
+})
+
+it('gives the VPN time after the internet is back before restarting', async () => {
+  const stop = watch()
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  net.internet = false
+  await vi.advanceTimersByTimeAsync(5 * MIN)
+  net.internet = true
+  net.vpn = false
+  await vi.advanceTimersByTimeAsync(2 * MIN)
+  expect(getLinkState()).toBe('down')
+  expect(restartCore).not.toHaveBeenCalled()
+  fixedByRestart()
+  await vi.advanceTimersByTimeAsync(5 * MIN)
   expect(restartCore).toHaveBeenCalledOnce()
   expect(showNotice.info).toHaveBeenCalledWith('origami.recovery.restartedHang')
-  expect(origamiSetLinkOk).toHaveBeenLastCalledWith(true)
-  vi.mocked(restartCore).mockImplementation(async () => null as never)
+  expect(getLinkState()).toBe('ok')
+  stop()
+})
+
+it('restarts a frozen core within a minute and says so', async () => {
+  const stop = watch()
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  vi.mocked(getVersion).mockImplementation(() => new Promise(() => {}))
+  net.vpn = false
+  vi.mocked(restartCore).mockImplementation(async () => {
+    vi.mocked(getVersion).mockResolvedValue({ version: 'v1' } as never)
+    net.vpn = true
+    return null as never
+  })
+  await vi.advanceTimersByTimeAsync(MIN)
+  expect(restartCore).toHaveBeenCalledOnce()
+  expect(showNotice.info).toHaveBeenCalledWith('origami.recovery.restartedHang')
   stop()
 })
 
 it('waits longer and longer between restarts while nothing helps', async () => {
-  vi.mocked(cmdTestDelay).mockResolvedValue(120)
-  const stop = watchRecovery(() => true, fakeWindow() as never)
+  const stop = watch()
   await vi.advanceTimersByTimeAsync(40 * 1000)
-  vi.mocked(cmdTestDelay).mockResolvedValue(10000)
-  // 20 minutes without internet: attempts about 2, 7 and 17 minutes in, not one every few minutes.
-  await vi.advanceTimersByTimeAsync(20 * 60 * 1000)
+  net.vpn = false
+  // 25 minutes: attempts about 5, 10 and 20 minutes in, not one every few minutes.
+  await vi.advanceTimersByTimeAsync(25 * MIN)
   expect(vi.mocked(restartCore).mock.calls.length).toBe(3)
   stop()
 })

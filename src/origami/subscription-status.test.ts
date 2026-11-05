@@ -25,8 +25,9 @@ describe('expiryStage', () => {
     expect(expiryStage(inDays(-1), NOW)).toBe('expired')
   })
 
-  it('counts partial days up and never below zero', () => {
-    expect(daysLeft(inDays(2.1), NOW)).toBe(3)
+  it('counts partial days down like the panel and never below zero', () => {
+    expect(daysLeft(inDays(2.9), NOW)).toBe(2)
+    expect(daysLeft(inDays(0.5), NOW)).toBe(0)
     expect(daysLeft(inDays(-5), NOW)).toBe(0)
   })
 

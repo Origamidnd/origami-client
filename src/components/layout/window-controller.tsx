@@ -7,6 +7,7 @@ import {
 } from 'react'
 
 import { useWindowControls } from '@/hooks/use-window'
+import { useTrayHint } from '@/origami/tray-hint'
 import {
   CloseGlyph,
   MaximizeGlyph,
@@ -78,6 +79,7 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
     toggleFullscreen,
     toggleMaximize,
   } = useWindowControls()
+  const { guardedClose, trayHint } = useTrayHint(close)
 
   useImperativeHandle(
     ref,
@@ -113,10 +115,11 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
         },
       }}
     >
+      {trayHint}
       {OS === 'macos' && (
         <>
           {/* macOS 风格：关闭 → 最小化 → 全屏 */}
-          <IconButton size="small" sx={{ fontSize: 14 }} onClick={close}>
+          <IconButton size="small" sx={{ fontSize: 14 }} onClick={guardedClose}>
             <CloseGlyph />
           </IconButton>
           <IconButton size="small" sx={{ fontSize: 14 }} onClick={minimize}>
@@ -148,7 +151,7 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
           <IconButton
             size="small"
             sx={{ fontSize: 16, ':hover': { bgcolor: 'red', color: 'white' } }}
-            onClick={close}
+            onClick={guardedClose}
           >
             <CloseGlyph />
           </IconButton>
@@ -171,7 +174,7 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
           <IconButton
             size="small"
             sx={{ fontSize: 16, ':hover': { bgcolor: 'red', color: 'white' } }}
-            onClick={close}
+            onClick={guardedClose}
           >
             <CloseGlyph />
           </IconButton>

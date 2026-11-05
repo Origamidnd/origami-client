@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   addSnapshot,
   emptyTraffic,
+  keepOrder,
   programWay,
   sortPrograms,
 } from './program-traffic'
@@ -100,5 +101,31 @@ describe('sortPrograms', () => {
       { name: 'big', direct: 5, vpn: 5, activeDirect: 0, activeVpn: 0 },
     ])
     expect(list.map((item) => item.name)).toEqual(['big', 'small'])
+  })
+})
+
+describe('keepOrder', () => {
+  const stat = (name: string, bytes: number) => ({
+    name,
+    direct: bytes,
+    vpn: 0,
+    activeDirect: 0,
+    activeVpn: 0,
+  })
+
+  it('holds the rows where they were while the traffic changes the sums', () => {
+    const list = sortPrograms([stat('game', 50), stat('browser', 10)])
+    const held = keepOrder(
+      sortPrograms([stat('game', 50), stat('browser', 99)]),
+      list.map((item) => item.name),
+    )
+    expect(held.map((item) => item.name)).toEqual(['game', 'browser'])
+  })
+
+  it('adds programs new since then at the end', () => {
+    const held = keepOrder(sortPrograms([stat('new', 500), stat('game', 50)]), [
+      'game',
+    ])
+    expect(held.map((item) => item.name)).toEqual(['game', 'new'])
   })
 })

@@ -93,6 +93,8 @@ tray:
     systemProxy: وكيل النظام
     tun: TUN
     profile: ملف تعريفي
+    origamiNoInternet: No internet
+    origamiDown: VPN passes no traffic
   origamiOpen: فتح OrigamiVPN
   origamiConnect: اتصال
   origamiDisconnect: قطع الاتصال

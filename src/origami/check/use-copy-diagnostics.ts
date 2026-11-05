@@ -6,8 +6,6 @@ import { useProfiles } from '@/hooks/use-profiles'
 import { useSystemState } from '@/hooks/use-system-state'
 import { useProxiesData } from '@/providers/app-data-context'
 import { getClashLogs, getSystemInfo } from '@/services/cmds'
-import { showNotice } from '@/services/notice-service'
-import { openExternalUrl } from '@/utils/open-external-url'
 import { version } from '@root/package.json'
 
 import { resolveCurrent } from '../current-server'
@@ -16,6 +14,7 @@ import { ORIGAMI_LINKS } from '../links'
 import { daysLeft } from '../subscription-status'
 
 import { buildDiagnostics } from './diagnostics'
+import { showDiagnosticsCopied } from './diagnostics-copied-store'
 
 // Plain words for support; the raw kind is kept in brackets for searching upstream issues.
 const SERVICE_STATES: Record<string, string> = {
@@ -31,7 +30,7 @@ export interface CheckResults {
   exit?: { country: string; asn: string }
 }
 
-/** Copies the support report and opens the support chat; the home check adds its latest results. */
+/** Copies the support report and says what to do with it; the home check adds its latest results. */
 export const useCopyDiagnostics = () => {
   const { connected, mode } = useConnection()
   const { current } = useProfiles()
@@ -82,7 +81,6 @@ export const useCopyDiagnostics = () => {
         .map((log) => `${log.time ?? ''} ${log.payload}`.trim()),
     })
     await writeText(text)
-    showNotice.success('origami.check.copied')
-    void openExternalUrl(current?.support ?? ORIGAMI_LINKS.support)
+    showDiagnosticsCopied(current?.support ?? ORIGAMI_LINKS.support)
   })
 }

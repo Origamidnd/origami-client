@@ -374,6 +374,11 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     }
   }
 
+  &.is-trouble {
+    background: var(--o-warn);
+    color: #fff;
+  }
+
   &.is-busy {
     background: var(--o-chip);
     color: var(--o-ink);
@@ -405,6 +410,24 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     &.is-on {
       color: var(--o-ok-text);
     }
+
+    &.is-trouble {
+      color: var(--o-warn-text);
+    }
+  }
+}
+
+.o-offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 16px;
+
+  &__actions {
+    display: flex;
+    gap: 8px;
   }
 }
 

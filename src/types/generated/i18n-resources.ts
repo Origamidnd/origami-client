@@ -268,10 +268,15 @@ export interface TranslationResources {
         again: string
         allGood: string
         connectFirst: string
-        copied: string
+        copiedClose: string
+        copiedOpen: string
+        copiedText: string
+        copiedTitle: string
         diagnostics: string
         exit: string
         idle: string
+        noInternet: string
+        noInternetHint: string
         run: string
         running: string
         someFailed: string
@@ -307,6 +312,12 @@ export interface TranslationResources {
           dismiss: string
           support: string
         }
+        autostart: {
+          hint: string
+          no: string
+          title: string
+          yes: string
+        }
         mode: {
           label: string
           proxy: string
@@ -316,6 +327,7 @@ export interface TranslationResources {
           tunServiceHint: string
         }
         server: {
+          hint: string
           none: string
           ping: string
           timeout: string
@@ -335,6 +347,10 @@ export interface TranslationResources {
           connecting: string
           disconnect: string
           disconnecting: string
+          down: string
+          downHint: string
+          noInternet: string
+          noInternetHint: string
           off: string
           offHint: string
           on: string
@@ -352,6 +368,7 @@ export interface TranslationResources {
           }
           empty: string
           expired: string
+          lessThanDay: string
           noExpire: string
           refresh: string
           refreshed: string
@@ -502,8 +519,11 @@ export interface TranslationResources {
         check: string
         checkedAll: string
         checkedAt: string
+        checkedMore: string
         checkedNoAddress: string
         checkedNoAddressDead: string
+        checkedNoInternet: string
+        checkedNoneAnswer: string
         checkedSome: string
         checking: string
         chosen: string
@@ -634,6 +654,11 @@ export interface TranslationResources {
         urlPlaceholder: string
         use: string
         viaBot: string
+      }
+      trayHint: {
+        ok: string
+        text: string
+        title: string
       }
       welcome: {
         add: string

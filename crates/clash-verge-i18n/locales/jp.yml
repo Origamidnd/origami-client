@@ -93,6 +93,8 @@ tray:
     systemProxy: システムプロキシ
     tun: TUN
     profile: プロファイル
+    origamiNoInternet: No internet
+    origamiDown: VPN passes no traffic
   origamiOpen: OrigamiVPN を開く
   origamiConnect: 接続
   origamiDisconnect: 切断

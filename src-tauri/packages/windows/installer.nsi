@@ -1302,6 +1302,11 @@ Section Uninstall
   ; We do this when not updating (to preserve the registry value on updates)
   ${If} $UpdateMode <> 1
     DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "${PRODUCTNAME}"
+    ; The app starts through these scheduled tasks, not through the Run key above.
+    nsExec::Exec 'schtasks.exe /Delete /TN "OrigamiVPN" /F'
+    Pop $0
+    nsExec::Exec 'schtasks.exe /Delete /TN "OrigamiVPN (Admin)" /F'
+    Pop $0
   ${EndIf}
 
   ; Delete app data if the checkbox is selected
@@ -1320,6 +1325,11 @@ Section Uninstall
     SetShellVarContext current
     RmDir /r "$APPDATA\${BUNDLEID}"
     RmDir /r "$LOCALAPPDATA\${BUNDLEID}"
+    ; The core run by the service keeps its cache here: the servers picked and, by user, its logs.
+    ReadEnvStr $R7 "ProgramData"
+    ${If} $R7 != ""
+      RmDir /r "$R7\clash-verge-service"
+    ${EndIf}
   ${EndIf}
 
   !ifmacrodef NSIS_HOOK_POSTUNINSTALL

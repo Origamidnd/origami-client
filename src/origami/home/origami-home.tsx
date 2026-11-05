@@ -16,17 +16,18 @@ import { openExternalUrl } from '@/utils/open-external-url'
 import parseTraffic from '@/utils/parse-traffic'
 
 import { useExpertMode } from '../expert-mode'
+import { useLinkState } from '../link-state'
 import { ORIGAMI_LINKS } from '../links'
-import { expiryStage, needsRenew } from '../subscription-status'
+import { daysLeft, expiryStage, needsRenew } from '../subscription-status'
 import { useRefreshSubscription } from '../use-refresh-subscription'
+import { useUsageRefresh } from '../use-usage-refresh'
 
 import { AnnouncePlate } from './announce-plate'
+import { AutostartOffer } from './autostart-offer'
 import { CheckPlate } from './check-plate'
 import { ServerPlate } from './server-plate'
 import { type ConnectMode, useConnection } from './use-connection'
 import { Welcome } from './welcome'
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 const formatBytes = (value: number) => parseTraffic(value).join(' ')
 
@@ -88,7 +89,9 @@ const ConnectPlate = () => {
     { id: 'tun', label: t('origami.home.mode.tun') },
   ]
 
-  const state = busy ? 'busy' : connected ? 'on' : 'off'
+  const link = useLinkState()
+  const trouble = connected && !busy && link !== 'ok' ? link : null
+  const state = busy ? 'busy' : trouble ? 'trouble' : connected ? 'on' : 'off'
 
   return (
     <section className="o-plate o-connect">
@@ -112,14 +115,18 @@ const ConnectPlate = () => {
             ? connected
               ? t('origami.home.state.disconnecting')
               : t('origami.home.state.connecting')
-            : connected
-              ? t('origami.home.state.on')
-              : t('origami.home.state.off')}
+            : trouble
+              ? t(`origami.home.state.${trouble}`)
+              : connected
+                ? t('origami.home.state.on')
+                : t('origami.home.state.off')}
         </div>
         <div className="o-hint">
-          {connected
-            ? t('origami.home.state.onHint')
-            : t('origami.home.state.offHint')}
+          {trouble
+            ? t(`origami.home.state.${trouble}Hint`)
+            : connected
+              ? t('origami.home.state.onHint')
+              : t('origami.home.state.offHint')}
         </div>
       </div>
       {expert && (
@@ -190,6 +197,7 @@ const SubscriptionPlate = () => {
   const { current } = useProfiles()
   const [now] = useState(() => Date.now())
   const { refresh, updating } = useRefreshSubscription()
+  useUsageRefresh(current)
 
   if (!current || current.type !== 'remote') {
     return (
@@ -209,9 +217,7 @@ const SubscriptionPlate = () => {
 
   const extra = current.extra
   const expire = extra?.expire ? dayjs(extra.expire * 1000) : null
-  const daysLeft = expire
-    ? Math.max(0, Math.ceil((expire.valueOf() - now) / DAY_MS))
-    : null
+  const left = extra?.expire ? daysLeft(extra.expire, now) : null
   const used = (extra?.upload ?? 0) + (extra?.download ?? 0)
   const total = extra?.total ?? 0
   const share = total > 0 ? Math.min(100, (used / total) * 100) : null
@@ -242,9 +248,11 @@ const SubscriptionPlate = () => {
       <div className="o-big">
         {stage === 'expired'
           ? t('origami.home.subscription.expired')
-          : daysLeft === null
+          : left === null
             ? t('origami.home.subscription.noExpire')
-            : pluralDays(daysLeft, i18n.language, t as never)}
+            : left === 0
+              ? t('origami.home.subscription.lessThanDay')
+              : pluralDays(left, i18n.language, t as never)}
       </div>
       {expire && (
         <div className="o-hint">
@@ -297,6 +305,7 @@ const OrigamiHomePage = () => {
       ) : (
         <div className="o-home">
           <AnnouncePlate />
+          <AutostartOffer />
           <div className="o-home__grid">
             <ConnectPlate />
             <div className="o-home__side">

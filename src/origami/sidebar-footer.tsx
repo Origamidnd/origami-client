@@ -14,11 +14,13 @@ import { useUpdate } from '@/hooks/use-update'
 import { openExternalUrl } from '@/utils/open-external-url'
 
 import { useProgramTrafficWatch } from './apps/use-program-traffic'
+import { DiagnosticsCopiedDialog } from './check/diagnostics-copied'
 import { CoreTroubleDialog } from './core-trouble/core-trouble-dialog'
 import { setExpertMode, useExpertMode } from './expert-mode'
 import { ORIGAMI_LINKS } from './links'
 import { useNetworkRecovery } from './network-recovery'
 import { useAutoVariantWatch } from './servers/auto-variant'
+import { useAutoWarmup } from './servers/auto-warmup'
 import { useExpiryReminder } from './use-expiry-reminder'
 
 // Replaces the stock red "New" badge that sat on top of the logo.
@@ -51,6 +53,7 @@ export const OrigamiSidebarFooter = () => {
   useExpiryReminder()
   useAutoVariantWatch()
   useNetworkRecovery()
+  useAutoWarmup()
   useProgramTrafficWatch()
   const { current } = useProfiles()
   const supportUrl = current?.support ?? ORIGAMI_LINKS.support
@@ -71,6 +74,7 @@ export const OrigamiSidebarFooter = () => {
   return (
     <div className="origami-nav-footer">
       <CoreTroubleDialog />
+      <DiagnosticsCopiedDialog />
       <UpdateItem />
       <button
         type="button"

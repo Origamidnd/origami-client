@@ -93,6 +93,8 @@ tray:
     systemProxy: Системный прокси
     tun: TUN
     profile: Профиль
+    origamiNoInternet: Нет интернета
+    origamiDown: VPN не пропускает трафик
   origamiOpen: Открыть OrigamiVPN
   origamiConnect: Подключить
   origamiDisconnect: Отключить

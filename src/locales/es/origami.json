@@ -17,7 +17,11 @@
       "offHint": "Click to turn the VPN on",
       "onHint": "Click to turn it off",
       "connect": "Connect",
-      "disconnect": "Disconnect"
+      "disconnect": "Disconnect",
+      "noInternet": "No internet",
+      "noInternetHint": "The VPN is on and will work by itself once the network is back",
+      "down": "VPN not responding",
+      "downHint": "The internet works but the server is silent. Try another server"
     },
     "mode": {
       "label": "Connection mode",
@@ -47,7 +51,8 @@
       "updated": "updated {{time}}",
       "refresh": "Update subscription",
       "refreshed": "Subscription updated",
-      "expired": "Ended"
+      "expired": "Ended",
+      "lessThanDay": "Less than a day"
     },
     "speed": {
       "down": "Download",
@@ -58,7 +63,8 @@
       "none": "Servers are not loaded yet",
       "via": "Auto select: {{group}}",
       "ping": "{{ms}} ms",
-      "timeout": "no response"
+      "timeout": "no response",
+      "hint": "For blocked sites. Services may have a country of their own"
     },
     "announce": {
       "support": "Contact support",
@@ -67,6 +73,12 @@
     "service": {
       "missing": "The OrigamiVPN service is not installed. The VPN cannot start without it: it routes all of the computer's traffic through the protected connection.",
       "install": "Install service"
+    },
+    "autostart": {
+      "title": "Start the VPN with your computer?",
+      "hint": "Otherwise the VPN will not come back after a reboot. You can change this in the settings.",
+      "yes": "Yes, start it",
+      "no": "No thanks"
     }
   },
   "welcome": {
@@ -105,13 +117,18 @@
     "running": "Checking…",
     "allGood": "Everything works",
     "someFailed": "Some services do not open",
-    "exit": "Your internet exit country: {{country}}",
+    "exit": "Regular sites go through: {{country}}. YouTube and other services may have a country of their own",
     "run": "Check",
     "again": "Again",
     "unreachable": "does not open",
     "tryOther": "Try another server. If that does not help, send the diagnostics to support.",
     "diagnostics": "Copy diagnostics for support",
-    "copied": "Diagnostics copied. Paste them into the support chat"
+    "noInternet": "No internet",
+    "noInternetHint": "Check your Wi-Fi or cable. When the network is back, I will check again by myself.",
+    "copiedTitle": "Diagnostics copied",
+    "copiedText": "Open the support chat and paste it as a message (Ctrl+V). It holds neither your subscription link nor your full IP.",
+    "copiedOpen": "Open support chat",
+    "copiedClose": "Close"
   },
   "settings": {
     "sections": {
@@ -200,7 +217,7 @@
     "check": "Check ping",
     "checking": "Checking…",
     "checkedAt": "checked at {{time}}",
-    "checkedAll": "Checked. All servers answer",
+    "checkedAll": "Checked. All countries are reachable",
     "checkedSome": "Checked. No answer from: {{names}}",
     "noAnswer": "no answer",
     "direct": "Without VPN",
@@ -240,7 +257,10 @@
     "noAddress": "address not found",
     "noAddressHint": "The IP address of this server could not be found: DNS is broken at your provider or in the subscription. The server itself may be fine. Try another server or refresh the subscription.",
     "checkedNoAddress": "Checked. Address not found: {{names}}. This is a DNS problem, not the server.{{dead}}",
-    "checkedNoAddressDead": " Not answering: {{names}}"
+    "checkedNoAddressDead": " Not answering: {{names}}",
+    "checkedNoInternet": "No server answered: it looks like there is no internet",
+    "checkedNoneAnswer": "No server answered although the internet works. Contact support",
+    "checkedMore": "{{names}} and {{count}} more"
   },
   "report": {
     "open": "A site or game not working?",
@@ -384,5 +404,10 @@
       "direct": "{{name}}: now direct",
       "vpn": "{{name}}: now through VPN"
     }
+  },
+  "trayHint": {
+    "title": "The VPN keeps working",
+    "text": "The window closes and the app stays in the tray by the clock; the icon may hide under the ^ arrow. To quit completely, right-click the icon.",
+    "ok": "Got it"
   }
 }

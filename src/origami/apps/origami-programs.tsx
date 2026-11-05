@@ -1,7 +1,7 @@
 import { useLockFn } from 'ahooks'
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
-import { closeConnection, getConnections } from 'tauri-plugin-mihomo-api'
 
 import { BasePage } from '@/components/base'
 import { useVerge } from '@/hooks/use-verge'
@@ -15,23 +15,18 @@ import { parseServerName } from '../servers/model'
 import { withoutEmoji } from '../servers/service-names'
 import type { FocusGroupState } from '../use-focus-group'
 
-import { type ProgramStat, programWay, sortPrograms } from './program-traffic'
+import {
+  keepOrder,
+  type ProgramStat,
+  programWay,
+  sortPrograms,
+} from './program-traffic'
+import { type ProgramChoice, reconnectProgram } from './reconnect'
 import { useProgramTraffic } from './use-program-traffic'
 
 const formatBytes = (value: number) => parseTraffic(value).join(' ')
 
-type Choice = 'auto' | 'direct' | 'vpn'
-
 const MAX_ROWS = 50
-
-/** Closes what a program has open, so a new way applies at once and not on its next connection. */
-const reconnectProgram = async (name: string) => {
-  const { connections } = await getConnections()
-  const own = (connections ?? []).filter(
-    (item) => item.metadata.process?.toLowerCase() === name.toLowerCase(),
-  )
-  await Promise.allSettled(own.map((item) => closeConnection(item.id)))
-}
 
 /** Which programs use the internet, how they go and how much; each can be sent another way. */
 export const OrigamiPrograms = () => {
@@ -42,15 +37,15 @@ export const OrigamiPrograms = () => {
   const { programs } = useProgramTraffic()
   const routes = verge?.origami_routes ?? []
 
-  const choiceOf = (name: string): Choice => {
+  const choiceOf = (name: string): ProgramChoice => {
     const route = routes.find(
       (item) =>
         item.kind === 'app' && item.value?.toLowerCase() === name.toLowerCase(),
     )
-    return (route?.via as Choice | undefined) ?? 'auto'
+    return (route?.via as ProgramChoice | undefined) ?? 'auto'
   }
 
-  const setChoice = useLockFn(async (name: string, choice: Choice) => {
+  const setChoice = useLockFn(async (name: string, choice: ProgramChoice) => {
     const next =
       choice === 'auto'
         ? routes.filter(
@@ -63,9 +58,7 @@ export const OrigamiPrograms = () => {
         : upsertRoute(routes, { kind: 'app', value: name, via: choice })
     try {
       await patchVerge({ origami_routes: next })
-      await reconnectProgram(name).catch(() => {
-        // Its open connections keep the old way until they end.
-      })
+      void reconnectProgram(name, choice)
       showNotice.success(`origami.programs.set.${choice}`, { name })
     } catch (error) {
       showNotice.error(error)
@@ -89,7 +82,13 @@ export const OrigamiPrograms = () => {
       })
     }
   }
-  const list = sortPrograms(rows.values()).slice(0, MAX_ROWS)
+  const sorted = sortPrograms(rows.values()).slice(0, MAX_ROWS)
+  // The busiest go first, but a row must not jump away from under the cursor: that sent a click to
+  // another program. The order is held while the pointer is over the list.
+  const heldOrderRef = useRef<string[] | null>(null)
+  const list = heldOrderRef.current
+    ? keepOrder(sorted, heldOrderRef.current)
+    : sorted
 
   const describe = (stat: ProgramStat) => {
     const way = programWay(stat)
@@ -127,7 +126,15 @@ export const OrigamiPrograms = () => {
             </p>
           </section>
         ) : (
-          <ul className="o-plate o-apps__list">
+          <ul
+            className="o-plate o-apps__list"
+            onMouseEnter={() => {
+              heldOrderRef.current = list.map((stat) => stat.name)
+            }}
+            onMouseLeave={() => {
+              heldOrderRef.current = null
+            }}
+          >
             {list.map((stat) => (
               <li key={stat.name || 'unknown'}>
                 <span className="o-apps__name">

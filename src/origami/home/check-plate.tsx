@@ -15,6 +15,8 @@ import { cmdTestDelay } from '@/services/cmds'
 import { exitCountryName } from '../check/exit-country'
 import { CHECK_TARGETS, isReachable } from '../check/targets'
 import { useCopyDiagnostics } from '../check/use-copy-diagnostics'
+import { useLinkState } from '../link-state'
+import { diagnoseLink } from '../network-recovery'
 import { PingBadge } from '../ping-badge'
 import { ReportDialog } from '../report/report-dialog'
 
@@ -30,6 +32,8 @@ const AUTO_CHECK_DELAY_MS = 2000
 // automatic check tries again before calling anything broken. A real block fails every time.
 const AUTO_CHECK_ATTEMPTS = 3
 const AUTO_CHECK_RETRY_MS = 3000
+// While the result says there is no internet, how often to look whether it is back.
+const NO_INTERNET_RECHECK_MS = 15 * 1000
 
 const sleep = (ms: number) =>
   new Promise<void>((resolve) => window.setTimeout(resolve, ms))
@@ -41,11 +45,13 @@ export const CheckPlate = () => {
   const [running, setRunning] = useState(false)
   const [delays, setDelays] = useState<Record<string, number | undefined>>({})
   const [exit, setExit] = useState<ExitInfo | null>(null)
+  const [noInternet, setNoInternet] = useState(false)
   const wasConnectedRef = useRef(connected)
 
   const run = useLockFn(async (auto = false) => {
     setRunning(true)
     setDelays({})
+    setNoInternet(false)
     try {
       // A manual check shows each service as it answers; the automatic one only its final try.
       const probe = () =>
@@ -73,6 +79,10 @@ export const CheckPlate = () => {
             CHECK_TARGETS.map((target, index) => [target.id, results[index]]),
           ),
         )
+      }
+      // Every service failing says little: advice to change the server is wrong with no internet.
+      if (!results.some((delay) => isReachable(delay))) {
+        setNoInternet((await diagnoseLink()) === 'noInternet')
       }
       const info = await getIpInfo().catch(() => null)
       setExit(
@@ -108,6 +118,26 @@ export const CheckPlate = () => {
     return () => window.clearTimeout(timer)
   }, [connected])
 
+  // A red result must not outlive the outage that caused it.
+  const link = useLinkState()
+  const wasLinkRef = useRef(link)
+  const anyFailedRef = useRef(false)
+  useEffect(() => {
+    const cameBack = link === 'ok' && wasLinkRef.current !== 'ok'
+    wasLinkRef.current = link
+    if (cameBack && connected && anyFailedRef.current) void runRef.current(true)
+  }, [link, connected])
+
+  useEffect(() => {
+    if (!noInternet || !connected) return
+    const timer = window.setInterval(() => {
+      void diagnoseLink().then((verdict) => {
+        if (verdict !== 'noInternet') void runRef.current(true)
+      })
+    }, NO_INTERNET_RECHECK_MS)
+    return () => window.clearInterval(timer)
+  }, [noInternet, connected])
+
   const copyDiagnostics = useCopyDiagnostics()
   const [reportOpen, setReportOpen] = useState(false)
 
@@ -116,6 +146,7 @@ export const CheckPlate = () => {
     (target) =>
       delays[target.id] !== undefined && !isReachable(delays[target.id]),
   )
+  anyFailedRef.current = failed.length > 0
 
   return (
     <section className="o-plate o-check">
@@ -129,11 +160,13 @@ export const CheckPlate = () => {
                 ? connected
                   ? t('origami.check.idle')
                   : t('origami.check.connectFirst')
-                : failed.length === 0
-                  ? t('origami.check.allGood')
-                  : t('origami.check.someFailed')}
+                : noInternet
+                  ? t('origami.check.noInternet')
+                  : failed.length === 0
+                    ? t('origami.check.allGood')
+                    : t('origami.check.someFailed')}
           </div>
-          {exit?.country && !running && (
+          {exit?.country && !running && !noInternet && (
             <div className="o-hint">
               {t('origami.check.exit', { country: exit.country })}
             </div>
@@ -183,7 +216,11 @@ export const CheckPlate = () => {
       {!running && (
         <div className="o-check__foot">
           {failed.length > 0 && (
-            <p className="o-hint">{t('origami.check.tryOther')}</p>
+            <p className="o-hint">
+              {noInternet
+                ? t('origami.check.noInternetHint')
+                : t('origami.check.tryOther')}
+            </p>
           )}
           <Button
             size="small"

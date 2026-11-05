@@ -136,6 +136,34 @@ pub async fn create_profile(item: ProfileCreate, file_data: Option<std::string::
     }
 }
 
+/// OrigamiVPN: fetches the subscription only for its usage numbers. Nothing else of the profile
+/// changes and the core is not reloaded, so this can run while someone plays or watches.
+#[tauri::command]
+#[specta::specta]
+pub async fn origami_refresh_usage(uid: std::string::String) -> CmdResult {
+    let uid: String = uid.into();
+    let (url, option) = {
+        let profiles = Config::profiles().await;
+        let profiles = profiles.latest_arc();
+        let item = profiles.get_item(&uid).stringify_err()?;
+        (item.url.clone(), item.option.clone())
+    };
+    let Some(url) = url else {
+        return Ok(());
+    };
+    let fresh = PrfItem::from_url(&url, None, None, option.as_ref())
+        .await
+        .stringify_err()?;
+    if fresh.extra.is_none() {
+        return Ok(());
+    }
+    let patch = PrfItem {
+        extra: fresh.extra,
+        ..Default::default()
+    };
+    profiles_patch_item_safe(&uid, &patch).await.stringify_err()
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn update_profile(index: std::string::String, option: Option<PrfOption>) -> CmdResult {

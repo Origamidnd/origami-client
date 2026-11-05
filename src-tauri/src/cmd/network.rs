@@ -174,6 +174,6 @@ async fn core_resolves(host: &str) -> bool {
 /// OrigamiVPN: the UI's link probe reports whether traffic goes through; false paints the tray red.
 #[tauri::command]
 #[specta::specta]
-pub async fn origami_set_link_ok(ok: bool) {
-    crate::core::tray::set_link_ok(ok).await;
+pub async fn origami_set_link_state(state: String) {
+    crate::core::tray::set_link_state(&state).await;
 }

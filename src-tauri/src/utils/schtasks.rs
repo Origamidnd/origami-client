@@ -174,6 +174,7 @@ fn build_task_xml(mode: TaskMode) -> Result<String> {
   <Actions Context="Author">
     <Exec>
       <Command>{}</Command>
+      <Arguments>--autostart</Arguments>
     </Exec>
   </Actions>
 </Task>

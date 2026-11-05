@@ -14,7 +14,7 @@ use crate::{
         service::{SERVICE_MANAGER, ServiceManager},
         tray::Tray,
     },
-    core::{auto_backup::AutoBackupManager, lightweight::auto_lightweight_boot},
+    core::{auto_backup::AutoBackupManager, autostart::AUTOSTART_ARG, lightweight::auto_lightweight_boot},
     feat,
     process::AsyncHandler,
     utils::{init, server, window_manager::WindowManager},
@@ -90,6 +90,7 @@ async fn resolve_setup() {
         init_auto_lightweight_boot(),
         init_auto_backup(),
         init_silent_updater(),
+        init_autostart(),
     );
 
     Handle::refresh_clash();
@@ -236,14 +237,29 @@ async fn refresh_tray_menu() {
     logging_error!(Type::Setup, Tray::global().update_part().await);
 }
 
+/// OrigamiVPN: started by the system at logon, not by a person, so no window pops up.
+fn started_by_autostart() -> bool {
+    std::env::args().any(|arg| arg == AUTOSTART_ARG)
+}
+
 async fn init_window() {
-    let is_silent_start = Config::verge().await.data_arc().enable_silent_start.unwrap_or(false);
+    let is_silent_start =
+        Config::verge().await.data_arc().enable_silent_start.unwrap_or(false) || started_by_autostart();
     WindowManager::create_window(!is_silent_start).await;
+}
+
+/// OrigamiVPN: a new install has autostart on before anything patches the setting, and an older
+/// task may lack the argument or point at another path, so the entry is written on every start.
+async fn init_autostart() {
+    if Config::verge().await.latest_arc().enable_auto_launch == Some(true) {
+        logging_error!(Type::Setup, crate::core::autostart::update_launch().await);
+    }
 }
 
 #[cfg(target_os = "macos")]
 async fn resolve_dock_show() {
-    let is_silent_start = Config::verge().await.data_arc().enable_silent_start.unwrap_or(false);
+    let is_silent_start =
+        Config::verge().await.data_arc().enable_silent_start.unwrap_or(false) || started_by_autostart();
     if is_silent_start {
         Handle::global().set_activation_policy_accessory();
     }

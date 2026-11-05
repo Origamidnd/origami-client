@@ -92,7 +92,9 @@ export const OrigamiSubscription = ({ item }: { item: IProfileItem }) => {
             ? t('origami.home.subscription.expired')
             : left === null
               ? t('origami.home.subscription.noExpire')
-              : pluralDays(left, i18n.language, t as never)}
+              : left === 0
+                ? t('origami.home.subscription.lessThanDay')
+                : pluralDays(left, i18n.language, t as never)}
         </div>
         {extra?.expire ? (
           <p className="o-hint">

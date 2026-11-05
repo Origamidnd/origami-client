@@ -30,6 +30,7 @@ import { DEFAULT_DELAY_TIMEOUT } from '@/utils/delay'
 import { openExternalUrl } from '@/utils/open-external-url'
 
 import { ORIGAMI_LINKS } from '../links'
+import { diagnoseLink } from '../network-recovery'
 import { PingBadge } from '../ping-badge'
 import { ReportDialog } from '../report/report-dialog'
 import { OwnRoutes } from '../routes/own-routes'
@@ -60,8 +61,10 @@ import {
   isServer,
   memberName,
   readDelay,
-  serverLabel,
+  countriesOf,
   serverOptions,
+  shortList,
+  silentCountries,
   type Service,
 } from './services'
 
@@ -172,8 +175,7 @@ export const OrigamiServers = () => {
       writeCheckedAt(now)
       setCheckedAt(now)
       applySwitches(pendingSwitches(services))
-      // Name the silent ones: a country row shows its best variant, so a bare count looked wrong.
-      // An address that does not resolve is told apart: the server may be fine, its name is not.
+      const names = servers.map(memberName)
       const silent = servers
         .filter((member) => readDelay(member) === null)
         .map(memberName)
@@ -182,25 +184,38 @@ export const OrigamiServers = () => {
           ? await origamiUnresolvedServers(silent).catch(() => [])
           : [],
       )
-      const dead = silent
-        .filter((name) => !unresolvedCache.has(name))
-        .map(serverLabel)
-      const noAddress = silent
-        .filter((name) => unresolvedCache.has(name))
-        .map(serverLabel)
+      if (names.length > 1 && silent.length === names.length) {
+        const verdict = await diagnoseLink()
+        showNotice.info(
+          verdict === 'noInternet'
+            ? 'origami.servers.checkedNoInternet'
+            : 'origami.servers.checkedNoneAnswer',
+        )
+        return
+      }
+      // By country: one silent variant of a country that works is no news, the row shows it anyway.
+      const list = (items: string[]) => {
+        const { shown, more } = shortList(items)
+        return more
+          ? t('origami.servers.checkedMore', {
+              names: shown.join(', '),
+              count: more,
+            })
+          : shown.join(', ')
+      }
+      const dead = silentCountries(names, silent)
+      const noAddress = countriesOf(
+        silent.filter((name) => unresolvedCache.has(name)),
+      )
       if (noAddress.length) {
         showNotice.info('origami.servers.checkedNoAddress', {
-          names: noAddress.join(', '),
+          names: list(noAddress),
           dead: dead.length
-            ? t('origami.servers.checkedNoAddressDead', {
-                names: dead.join(', '),
-              })
+            ? t('origami.servers.checkedNoAddressDead', { names: list(dead) })
             : '',
         })
       } else if (dead.length) {
-        showNotice.info('origami.servers.checkedSome', {
-          names: dead.join(', '),
-        })
+        showNotice.info('origami.servers.checkedSome', { names: list(dead) })
       } else {
         showNotice.success('origami.servers.checkedAll')
       }

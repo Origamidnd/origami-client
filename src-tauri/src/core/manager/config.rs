@@ -149,6 +149,8 @@ impl CoreManager {
         Config::generate().await?;
         let outcome = self.validate_and_apply_draft().await?;
         if outcome.is_valid() {
+            // OrigamiVPN: a reload starts Auto over on its first server, the UI checks it again.
+            handle::Handle::refresh_clash();
             Ok(())
         } else {
             Err(anyhow!("{outcome}"))

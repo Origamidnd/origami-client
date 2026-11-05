@@ -8,6 +8,8 @@ import {
 } from '@/types/proxy-view'
 import { DEFAULT_DELAY_TIMEOUT } from '@/utils/delay'
 
+import { parseServerName } from './model'
+
 // Delays measured by the simple Servers tab and the background variant check share one key,
 // separate from the stock page's groups.
 export const CHECK_KEY = 'origami-servers'
@@ -63,6 +65,27 @@ export const isServer = (member: InteractableProxyMember) =>
 // "🔷 🇪🇪 Эстония (Hysteria2)" -> "Эстония (Hysteria2)" for notices.
 export const serverLabel = (name: string) =>
   name.replace(/^[^\p{L}\p{N}]+/u, '').trim() || name
+
+/** The countries behind these servers, each once, in order of appearance. */
+export const countriesOf = (names: string[]) => [
+  ...new Set(names.map((name) => serverLabel(parseServerName(name).base))),
+]
+
+/** The countries where no variant answered; one silent variant of a working country is no news. */
+export const silentCountries = (names: string[], silent: string[]) => {
+  const silentSet = new Set(silent)
+  const answering = new Set(
+    countriesOf(names.filter((name) => !silentSet.has(name))),
+  )
+  return countriesOf(silent).filter((country) => !answering.has(country))
+}
+
+const SHORT_LIST = 3
+
+export const shortList = (items: string[]) => ({
+  shown: items.slice(0, SHORT_LIST),
+  more: Math.max(0, items.length - SHORT_LIST),
+})
 
 /** null when the server did not answer, undefined when it was not checked yet. */
 export const readDelay = (

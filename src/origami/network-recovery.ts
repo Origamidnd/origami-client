@@ -1,15 +1,20 @@
 import { useEffect, useRef } from 'react'
 import {
   closeAllConnections,
+  delayProxyByName,
   flushDNS,
   flushFakeIp,
+  getVersion,
 } from 'tauri-plugin-mihomo-api'
 
-import { cmdTestDelay, origamiSetLinkOk, restartCore } from '@/services/cmds'
+import { useProxiesData } from '@/providers/app-data-context'
+import { cmdTestDelay, origamiSetLinkState, restartCore } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
 
 import { isReachable } from './check/targets'
+import { resolveCurrent } from './current-server'
 import { useConnection } from './home/use-connection'
+import { getLinkState, type LinkState, setLinkState } from './link-state'
 
 const TICK_MS = 15 * 1000
 // A tick that comes this late means the computer was asleep.
@@ -20,34 +25,98 @@ const MIN_INTERVAL_MS = 30 * 1000
 // One check a little after start: a core left over from an install over a running app can be up
 // but pass no traffic until it is restarted.
 const STARTUP_CHECK_MS = 30 * 1000
-// The tray turns red after this many failed probes in a row, one a minute while the VPN is on.
-const LINK_PROBE_MS = 60 * 1000
+// While the VPN is on the link is probed all the time; a failed probe is repeated soon, and only
+// the second failure in a row changes what the app says.
+const LINK_PROBE_MS = 30 * 1000
+const LINK_CONFIRM_MS = 10 * 1000
 const LINK_FAILS = 2
-// A core can hang while running, so a broken link also starts recovery. With the internet itself
-// down that would restart the core for nothing, so the pause doubles after each attempt that fails.
+// Restarting the core recreates the network adapter, which cuts the UDP of a running game until
+// the game is restarted, so it is the last resort. A silent core gets it at once. With the internet
+// there and the VPN silent it waits a while: the server may simply be down. With no internet at all
+// it would not help, so only a very long outage gets it, in case the core has hung in a way that
+// looks like one. The pause then doubles after each attempt that fails.
+const VPN_SILENT_RESTART_MS = 5 * 60 * 1000
+const NO_INTERNET_RESTART_MS = 30 * 60 * 1000
 const HANG_RETRY_MS = 5 * 60 * 1000
 const HANG_RETRY_MAX_MS = 30 * 60 * 1000
+
 const PROBE_URL = 'https://www.gstatic.com/generate_204'
+// Google for most of the world, Yandex for a network where Google is cut.
+const DIRECT_URLS = [PROBE_URL, 'https://ya.ru']
+const PROBE_TIMEOUT_MS = 6000
+const API_DEADLINE_MS = 4000
+// The request itself may hang when the core is frozen.
+const PROBE_DEADLINE_MS = PROBE_TIMEOUT_MS + 3000
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-const probe = async () =>
-  isReachable(await cmdTestDelay(PROBE_URL).catch(() => undefined))
+const withDeadline = <T>(work: Promise<T>, ms: number) => {
+  let timer: ReturnType<typeof setTimeout>
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('deadline')), ms)
+  })
+  return Promise.race([work, deadline]).finally(() => clearTimeout(timer))
+}
+
+const passes = async (proxy: string, url: string) => {
+  try {
+    const { delay } = await withDeadline(
+      delayProxyByName(proxy, url, PROBE_TIMEOUT_MS),
+      PROBE_DEADLINE_MS,
+    )
+    return delay > 0
+  } catch {
+    return false
+  }
+}
+
+/** Through the group most traffic takes: the rules may send the probe's own site past the VPN. */
+const probe = async (group: string | undefined) =>
+  group
+    ? passes(group, PROBE_URL)
+    : isReachable(await cmdTestDelay(PROBE_URL).catch(() => undefined))
+
+export type LinkVerdict = 'coreSilent' | 'noInternet' | 'vpnSilent'
+
+/** Why a probe failed: the core does not answer, nothing goes even directly, or only the VPN fails. */
+export const diagnoseLink = async (): Promise<LinkVerdict> => {
+  try {
+    await withDeadline(getVersion(), API_DEADLINE_MS)
+  } catch {
+    return 'coreSilent'
+  }
+  const direct = await Promise.all(
+    DIRECT_URLS.map((url) => passes('DIRECT', url)),
+  )
+  return direct.some(Boolean) ? 'vpnSilent' : 'noInternet'
+}
+
+export type RecoveryResult = 'ok' | 'restarted' | 'noInternet' | 'failed'
 
 /**
  * After a wake from sleep or a network change, DNS answers and old connections may point at the
  * previous network. While the VPN is on this drops the DNS cache, and if the link through the core
- * does not work, closes the stale connections, checks again and restarts the core once.
+ * does not work and the internet is there, closes the stale connections, checks again and restarts
+ * the core once. Without internet it leaves everything alone: when the internet is back a running
+ * game goes on by itself. `force` restarts the core anyway.
  */
-export const recoverNetwork = async () => {
+export const recoverNetwork = async (
+  group?: string,
+  { force = false }: { force?: boolean } = {},
+): Promise<RecoveryResult> => {
   await Promise.allSettled([flushDNS(), flushFakeIp()])
-  if (await probe()) return 'ok'
-  await Promise.allSettled([closeAllConnections()])
-  await sleep(SETTLE_MS)
-  if (await probe()) return 'ok'
+  if (await probe(group)) return 'ok'
+  const verdict = await diagnoseLink()
+  if (verdict === 'noInternet' && !force) return 'noInternet'
+  if (verdict !== 'coreSilent') {
+    await Promise.allSettled([closeAllConnections()])
+    await sleep(SETTLE_MS)
+    if (await probe(group)) return 'ok'
+  }
   await restartCore()
   await sleep(SETTLE_MS)
-  return (await probe()) ? 'restarted' : 'offline'
+  if (await probe(group)) return 'restarted'
+  return (await diagnoseLink()) === 'noInternet' ? 'noInternet' : 'failed'
 }
 
 type Reason = 'network' | 'startup' | 'hang'
@@ -58,40 +127,52 @@ const RESTARTED_NOTICE: Record<Reason, string> = {
   hang: 'origami.recovery.restartedHang',
 }
 
+const RESULT_STATE: Record<RecoveryResult, LinkState> = {
+  ok: 'ok',
+  restarted: 'ok',
+  noInternet: 'noInternet',
+  failed: 'down',
+}
+
 type EventTarget = Pick<Window, 'addEventListener' | 'removeEventListener'>
 
 /**
  * Runs recovery after a wake from sleep, when the link comes back, and once shortly after start,
- * while the VPN is on. Returns the cleanup.
+ * while the VPN is on, and keeps the link state up to date. Returns the cleanup.
  */
 export const watchRecovery = (
   isConnected: () => boolean,
   target: EventTarget = window,
+  getGroup: () => string | undefined = () => undefined,
 ) => {
   let lastTick = Date.now()
   let lastRun = 0
   let pending: ReturnType<typeof setTimeout> | null = null
+  let confirm: ReturnType<typeof setTimeout> | null = null
   let running = false
-  let linkOk = true
+  let probing = false
   let fails = 0
   let hangRetryMs = HANG_RETRY_MS
   let nextHangRun = 0
+  let noInternetSince: number | null = null
+  let vpnSilentSince: number | null = null
 
-  const report = (ok: boolean) => {
-    if (ok) {
+  const report = (state: LinkState) => {
+    if (state === 'ok') {
       fails = 0
       hangRetryMs = HANG_RETRY_MS
       nextHangRun = 0
+      noInternetSince = null
+      vpnSilentSince = null
     }
-    if (ok === linkOk) return
-    linkOk = ok
-    origamiSetLinkOk(ok).catch(() => {
-      // The tray keeps its icon; the next probe reports again.
-      linkOk = !ok
+    if (state === getLinkState()) return
+    setLinkState(state)
+    origamiSetLinkState(state).catch(() => {
+      // The tray keeps its icon until the next change.
     })
   }
 
-  const schedule = (reason: Reason = 'network') => {
+  const schedule = (reason: Reason = 'network', force = false) => {
     if (pending) clearTimeout(pending)
     pending = setTimeout(() => {
       pending = null
@@ -99,9 +180,9 @@ export const watchRecovery = (
       if (running || !isConnected() || now - lastRun < MIN_INTERVAL_MS) return
       lastRun = now
       running = true
-      recoverNetwork()
+      recoverNetwork(getGroup(), { force })
         .then((result) => {
-          report(result !== 'offline')
+          report(RESULT_STATE[result])
           if (result === 'restarted') {
             showNotice.info(RESTARTED_NOTICE[reason])
           }
@@ -124,32 +205,65 @@ export const watchRecovery = (
   target.addEventListener('online', onOnline)
   const startup = setTimeout(() => schedule('startup'), STARTUP_CHECK_MS)
 
-  const linkProbe = setInterval(() => {
-    if (!isConnected()) {
-      report(true)
+  const tryHangRestart = (force = false) => {
+    const now = Date.now()
+    if (now < nextHangRun) return
+    nextHangRun = now + hangRetryMs
+    hangRetryMs = Math.min(hangRetryMs * 2, HANG_RETRY_MAX_MS)
+    schedule('hang', force)
+  }
+
+  const onFailedLink = async () => {
+    const verdict = await diagnoseLink()
+    const now = Date.now()
+    if (verdict === 'noInternet') {
+      report('noInternet')
+      vpnSilentSince = null
+      noInternetSince ??= now
+      if (now - noInternetSince >= NO_INTERNET_RESTART_MS) tryHangRestart(true)
       return
     }
-    if (running) return
-    void probe().then((ok) => {
-      if (ok) {
-        report(true)
+    report('down')
+    noInternetSince = null
+    if (verdict === 'coreSilent') {
+      tryHangRestart()
+      return
+    }
+    // Counted from here, so the VPN gets its time to come back after the internet does.
+    vpnSilentSince ??= now
+    if (now - vpnSilentSince >= VPN_SILENT_RESTART_MS) tryHangRestart()
+  }
+
+  const checkLink = async () => {
+    if (!isConnected()) {
+      report('ok')
+      return
+    }
+    if (running || probing) return
+    probing = true
+    try {
+      if (await probe(getGroup())) {
+        report('ok')
         return
       }
-      if (++fails < LINK_FAILS) return
-      report(false)
-      const now = Date.now()
-      if (navigator.onLine === false || now < nextHangRun) return
-      nextHangRun = now + hangRetryMs
-      hangRetryMs = Math.min(hangRetryMs * 2, HANG_RETRY_MAX_MS)
-      schedule('hang')
-    })
-  }, LINK_PROBE_MS)
+      if (++fails < LINK_FAILS) {
+        confirm = setTimeout(() => void checkLink(), LINK_CONFIRM_MS)
+        return
+      }
+      await onFailedLink()
+    } finally {
+      probing = false
+    }
+  }
+
+  const linkProbe = setInterval(() => void checkLink(), LINK_PROBE_MS)
 
   return () => {
     clearInterval(tick)
     clearInterval(linkProbe)
     clearTimeout(startup)
     if (pending) clearTimeout(pending)
+    if (confirm) clearTimeout(confirm)
     target.removeEventListener('online', onOnline)
   }
 }
@@ -157,8 +271,21 @@ export const watchRecovery = (
 /** Mounted once, in the sidebar. */
 export const useNetworkRecovery = () => {
   const { connected } = useConnection()
+  const { proxyView } = useProxiesData()
   const connectedRef = useRef(connected)
   connectedRef.current = connected
+  const groupRef = useRef<string | undefined>(undefined)
+  groupRef.current = proxyView
+    ? resolveCurrent(proxyView)?.group.name
+    : undefined
 
-  useEffect(() => watchRecovery(() => connectedRef.current), [])
+  useEffect(
+    () =>
+      watchRecovery(
+        () => connectedRef.current,
+        window,
+        () => groupRef.current,
+      ),
+    [],
+  )
 }

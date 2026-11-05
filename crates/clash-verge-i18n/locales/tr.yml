@@ -93,6 +93,8 @@ tray:
     systemProxy: Sistem Vekil'i
     tun: TUN
     profile: Profil
+    origamiNoInternet: No internet
+    origamiDown: VPN passes no traffic
   origamiOpen: OrigamiVPN'i aç
   origamiConnect: Bağlan
   origamiDisconnect: Bağlantıyı kes

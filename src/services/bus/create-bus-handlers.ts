@@ -1,3 +1,4 @@
+import { notifyCoreReloaded } from '@/origami/core-reload-signal'
 import type { VergeEventPayloads } from '@/services/contract'
 import { forgetShownStartupError } from '@/services/notice-handlers'
 import type { AppStoreAction } from '@/store/app-state'
@@ -60,7 +61,8 @@ export const createEventBus = (deps: BusHandlerDeps) => {
   }
 
   const handlers: BusHandlers = {
-    'verge://refresh-clash-config': () =>
+    'verge://refresh-clash-config': () => {
+      notifyCoreReloaded()
       deps.revalidateKeys([
         'getProxyView',
         'getVersion',
@@ -70,7 +72,8 @@ export const createEventBus = (deps: BusHandlerDeps) => {
         'getRuntimeConfig',
         'getRules',
         'getRuleProviders',
-      ]),
+      ])
+    },
     'verge://refresh-verge-config': () =>
       deps.revalidateKeys(['getVergeConfig', 'getSystemProxy', 'getAutoProxy']),
     'verge://refresh-profiles': () => deps.revalidateKeys(['getProfiles']),

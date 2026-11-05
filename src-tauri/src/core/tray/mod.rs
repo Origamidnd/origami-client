@@ -58,15 +58,25 @@ enum IconKind {
 }
 
 /// OrigamiVPN: set by the UI's link probe; the tray shows a red dot while the VPN is on and this is false.
-static LINK_OK: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+static LINK_STATE: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(LINK_OK);
 
-/// OrigamiVPN: records the link state and redraws the tray icon when it changes.
-pub async fn set_link_ok(ok: bool) {
-    if LINK_OK.swap(ok, std::sync::atomic::Ordering::Relaxed) != ok {
+const LINK_OK: u8 = 0;
+const LINK_NO_INTERNET: u8 = 1;
+const LINK_DOWN: u8 = 2;
+
+/// OrigamiVPN: records the link state and redraws the tray icon and its tooltip when it changes.
+pub async fn set_link_state(state: &str) {
+    let next = match state {
+        "noInternet" => LINK_NO_INTERNET,
+        "down" => LINK_DOWN,
+        _ => LINK_OK,
+    };
+    if LINK_STATE.swap(next, std::sync::atomic::Ordering::Relaxed) != next {
         logging_error!(
             Type::Tray,
             Tray::global().update_icon(&Config::verge().await.latest_arc()).await
         );
+        logging_error!(Type::Tray, Tray::global().update_tooltip().await);
     }
 }
 
@@ -80,7 +90,7 @@ impl TrayState {
     async fn get_tray_icon(verge: &IVerge) -> (bool, Cow<'_, [u8]>) {
         let tun_mode = verge.enable_tun_mode.unwrap_or(false) && crate::core::runstate::RUN_STATE.state().tun_capable();
         let system_mode = verge.enable_system_proxy.unwrap_or(false);
-        let link_ok = LINK_OK.load(std::sync::atomic::Ordering::Relaxed);
+        let link_ok = LINK_STATE.load(std::sync::atomic::Ordering::Relaxed) == LINK_OK;
         let kind = if (tun_mode || system_mode) && !link_ok {
             IconKind::Trouble
         } else if tun_mode {
@@ -335,8 +345,18 @@ impl Tray {
             |(main, rest)| format!("{main}+{}", rest.split('.').next().unwrap_or("")),
         );
 
+        // Said first: it is what someone looking at a red icon wants to know.
+        let link_note = match LINK_STATE.load(std::sync::atomic::Ordering::Relaxed) {
+            LINK_NO_INTERNET if system_proxy || tun_mode => {
+                format!("{}\n", clash_verge_i18n::t!("tray.tooltip.origamiNoInternet"))
+            }
+            LINK_DOWN if system_proxy || tun_mode => format!("{}\n", clash_verge_i18n::t!("tray.tooltip.origamiDown")),
+            _ => std::string::String::new(),
+        };
+
         let tooltip = format!(
-            "OrigamiVPN {}\n{}: {}\n{}: {}\n{}: {}",
+            "{}OrigamiVPN {}\n{}: {}\n{}: {}\n{}: {}",
+            link_note,
             reassembled_version,
             sys_proxy_text,
             switch_str(system_proxy),
