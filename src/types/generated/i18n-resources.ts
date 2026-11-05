@@ -376,6 +376,7 @@ export interface TranslationResources {
       }
       recovery: {
         restarted: string
+        restartedHang: string
         restartedStartup: string
       }
       reminder: {

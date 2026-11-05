@@ -97,3 +97,32 @@ it('paints the tray red after two failed minute probes and back when traffic ret
   expect(origamiSetLinkOk).toHaveBeenLastCalledWith(true)
   stop()
 })
+
+it('restarts a core that hangs while running and says so', async () => {
+  vi.mocked(cmdTestDelay).mockResolvedValue(120)
+  const stop = watchRecovery(() => true, fakeWindow() as never)
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  // Fails until the restart, then works.
+  vi.mocked(cmdTestDelay).mockResolvedValue(10000)
+  vi.mocked(restartCore).mockImplementation(async () => {
+    vi.mocked(cmdTestDelay).mockResolvedValue(90)
+    return null as never
+  })
+  await vi.advanceTimersByTimeAsync(140 * 1000)
+  expect(restartCore).toHaveBeenCalledOnce()
+  expect(showNotice.info).toHaveBeenCalledWith('origami.recovery.restartedHang')
+  expect(origamiSetLinkOk).toHaveBeenLastCalledWith(true)
+  vi.mocked(restartCore).mockImplementation(async () => null as never)
+  stop()
+})
+
+it('waits longer and longer between restarts while nothing helps', async () => {
+  vi.mocked(cmdTestDelay).mockResolvedValue(120)
+  const stop = watchRecovery(() => true, fakeWindow() as never)
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  vi.mocked(cmdTestDelay).mockResolvedValue(10000)
+  // 20 minutes without internet: attempts about 2, 7 and 17 minutes in, not one every few minutes.
+  await vi.advanceTimersByTimeAsync(20 * 60 * 1000)
+  expect(vi.mocked(restartCore).mock.calls.length).toBe(3)
+  stop()
+})

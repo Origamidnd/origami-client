@@ -388,6 +388,7 @@ export const translationKeys = [
   'origami.coreTrouble.fixed',
   'origami.recovery.restarted',
   'origami.recovery.restartedStartup',
+  'origami.recovery.restartedHang',
   'origami.subscription.term',
   'origami.subscription.traffic',
   'origami.subscription.limit',

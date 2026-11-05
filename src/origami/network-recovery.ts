@@ -23,6 +23,10 @@ const STARTUP_CHECK_MS = 30 * 1000
 // The tray turns red after this many failed probes in a row, one a minute while the VPN is on.
 const LINK_PROBE_MS = 60 * 1000
 const LINK_FAILS = 2
+// A core can hang while running, so a broken link also starts recovery. With the internet itself
+// down that would restart the core for nothing, so the pause doubles after each attempt that fails.
+const HANG_RETRY_MS = 5 * 60 * 1000
+const HANG_RETRY_MAX_MS = 30 * 60 * 1000
 const PROBE_URL = 'https://www.gstatic.com/generate_204'
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -46,11 +50,12 @@ export const recoverNetwork = async () => {
   return (await probe()) ? 'restarted' : 'offline'
 }
 
-type Reason = 'network' | 'startup'
+type Reason = 'network' | 'startup' | 'hang'
 
 const RESTARTED_NOTICE: Record<Reason, string> = {
   network: 'origami.recovery.restarted',
   startup: 'origami.recovery.restartedStartup',
+  hang: 'origami.recovery.restartedHang',
 }
 
 type EventTarget = Pick<Window, 'addEventListener' | 'removeEventListener'>
@@ -69,9 +74,15 @@ export const watchRecovery = (
   let running = false
   let linkOk = true
   let fails = 0
+  let hangRetryMs = HANG_RETRY_MS
+  let nextHangRun = 0
 
   const report = (ok: boolean) => {
-    if (ok) fails = 0
+    if (ok) {
+      fails = 0
+      hangRetryMs = HANG_RETRY_MS
+      nextHangRun = 0
+    }
     if (ok === linkOk) return
     linkOk = ok
     origamiSetLinkOk(ok).catch(() => {
@@ -120,8 +131,17 @@ export const watchRecovery = (
     }
     if (running) return
     void probe().then((ok) => {
-      if (ok) report(true)
-      else if (++fails >= LINK_FAILS) report(false)
+      if (ok) {
+        report(true)
+        return
+      }
+      if (++fails < LINK_FAILS) return
+      report(false)
+      const now = Date.now()
+      if (navigator.onLine === false || now < nextHangRun) return
+      nextHangRun = now + hangRetryMs
+      hangRetryMs = Math.min(hangRetryMs * 2, HANG_RETRY_MAX_MS)
+      schedule('hang')
     })
   }, LINK_PROBE_MS)
 
