@@ -320,7 +320,47 @@ const mockConnections = () =>
       'RuleSet',
       'ai',
     ],
-  ].map(([host, process, chains, rule, payload], i) => {
+    [
+      'eu.actual.battle.net',
+      'Wow.exe',
+      ['🎮 Игры', 'DIRECT'],
+      'ProcessNameRegex',
+      'wow',
+      'C:\\Program Files (x86)\\World of Warcraft\\_retail_\\Wow.exe',
+    ],
+    [
+      'account.battle.net',
+      'Battle.net.exe',
+      ['🎮 Игры', 'DIRECT'],
+      'ProcessName',
+      'Battle.net.exe',
+      'C:\\Program Files (x86)\\Battle.net\\Battle.net.exe',
+    ],
+    [
+      'eu.version.battle.net',
+      'Agent.exe',
+      ['🎮 Игры', 'DIRECT'],
+      'ProcessPathRegex',
+      'agent',
+      'C:\\ProgramData\\Battle.net\\Agent\\Agent.9852\\Agent.exe',
+    ],
+    [
+      'example.com',
+      'game.exe',
+      ['🌐 Остальные незаблокированные сервисы', 'DIRECT'],
+      'Match',
+      '',
+      'D:\\Games\\My Game\\bin\\x64\\game.exe',
+    ],
+    [
+      'example.org',
+      'launcher.exe',
+      ['🌐 Остальные незаблокированные сервисы', 'DIRECT'],
+      'Match',
+      '',
+      'C:\\Some Launcher\\launcher.exe',
+    ],
+  ].map(([host, process, chains, rule, payload, path], i) => {
     const age = (Date.now() - connectionsStart) / 1000
     return {
       id: `c${i}`,
@@ -333,10 +373,10 @@ const mockConnections = () =>
         destinationPort: '443',
         destinationIP: '',
         process,
-        processPath: `C:\\Program Files\\${process}`,
+        processPath: path ?? `C:\\Program Files\\${process}`,
       },
       upload: Math.round(age * 1800 * (i + 1)),
-      download: Math.round(age * 24000 * (5 - i)),
+      download: Math.round(age * 24000 * (10 - i)),
       start: new Date(connectionsStart + i * 7000).toISOString(),
       chains: [...(chains as string[])].reverse(),
       rule,
@@ -443,6 +483,12 @@ const handlers: Record<string, (args: any) => unknown> = {
   // `?nodns=1`: every other silent server has an address that does not resolve.
   origami_set_link_state: () => null,
   origami_refresh_usage: () => null,
+  origami_program_publishers: ({ paths }) =>
+    Object.fromEntries(
+      (paths as string[])
+        .filter((path) => /My Game|Some Launcher/.test(path))
+        .map((path) => [path, 'Some Studio']),
+    ),
   origami_unresolved_servers: ({ names }) =>
     params.get('nodns') === '1'
       ? (names as string[]).filter((_, i) => i % 2 === 0)

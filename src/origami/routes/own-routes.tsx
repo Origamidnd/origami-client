@@ -16,6 +16,7 @@ import { showNotice } from '@/services/notice-service'
 
 import { useConnection } from '../home/use-connection'
 
+import { familyOf, folderName, withProgramChoice } from './linked'
 import {
   cleanValue,
   recentProcesses,
@@ -66,6 +67,8 @@ export const OwnRoutes = () => {
   const [via, setVia] = useState<RouteVia>('direct')
   const [value, setValue] = useState('')
   const [saving, setSaving] = useState(false)
+  // The whole path of a file picked from disk, which shows what else belongs to the program.
+  const [pickedPath, setPickedPath] = useState<string | null>(null)
 
   const {
     response: { data: connections },
@@ -99,8 +102,20 @@ export const OwnRoutes = () => {
       )
       return
     }
-    if (await save(upsertRoute(routes, { kind, value: clean, via }))) {
+    const next =
+      kind === 'app'
+        ? withProgramChoice(
+            routes,
+            clean,
+            pickedPath && cleanValue('app', pickedPath) === clean
+              ? pickedPath
+              : null,
+            via,
+          )
+        : upsertRoute(routes, { kind, value: clean, via })
+    if (await save(next)) {
       setValue('')
+      setPickedPath(null)
       showNotice.success('origami.routes.added', { name: clean })
     }
   }
@@ -113,10 +128,23 @@ export const OwnRoutes = () => {
         ? [{ name: t('origami.routes.programs'), extensions: ['exe'] }]
         : undefined,
     })
-    if (typeof file === 'string') setValue(cleanValue('app', file) ?? '')
+    if (typeof file === 'string') {
+      setValue(cleanValue('app', file) ?? '')
+      setPickedPath(file)
+    }
   }
 
   const hasApps = routes.some((route) => route.kind === 'app')
+
+  const kindOf = (route: IOrigamiRoute) => {
+    if (route.kind !== 'app') return t('origami.routes.site')
+    const what =
+      familyOf(route.value ?? '')?.title ??
+      (route.folder ? folderName(route.folder) : null)
+    return what
+      ? t('origami.routes.appLinked', { what })
+      : t('origami.routes.app')
+  }
 
   return (
     <div className="o-routes">
@@ -206,11 +234,7 @@ export const OwnRoutes = () => {
             <li key={`${route.kind}:${route.value}`}>
               <span className="o-routes__name">
                 <b title={route.value}>{route.value}</b>
-                <span className="o-hint">
-                  {route.kind === 'app'
-                    ? t('origami.routes.app')
-                    : t('origami.routes.site')}
-                </span>
+                <span className="o-hint">{kindOf(route)}</span>
               </span>
               <Seg
                 label={t('origami.routes.via')}

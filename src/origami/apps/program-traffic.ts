@@ -3,6 +3,8 @@ import { isOwnProcess } from '../routes/routes'
 export interface ProgramStat {
   /** Process name; empty when the core could not tell which program opened the connection. */
   name: string
+  /** The file, when the core could tell; shows what the program belongs to. */
+  path?: string
   direct: number
   vpn: number
   /** Connections open right now, by how they go. */
@@ -55,6 +57,9 @@ export const addSnapshot = (
       vpn: 0,
       activeDirect: 0,
       activeVpn: 0,
+    }
+    if (connection.metadata.processPath) {
+      stat.path = connection.metadata.processPath
     }
     const node = connection.chains?.[0] ?? ''
     if (isDirect(node)) {

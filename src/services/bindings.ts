@@ -83,6 +83,14 @@ export const commands = {
    */
   origamiRefreshUsage: (uid: string) =>
     __TAURI_INVOKE<null>('origami_refresh_usage', { uid }),
+  /**
+   *  Publisher by path, for the files with a valid signature. Without one a program has no publisher and
+   *  is linked by its folder alone, so any failure here only means that.
+   */
+  origamiProgramPublishers: (paths: string[]) =>
+    __TAURI_INVOKE<{ [key in string]: string }>('origami_program_publishers', {
+      paths,
+    }),
   getProxyView: () => __TAURI_INVOKE<ProxyViewV1_Serialize>('get_proxy_view'),
   getRuntimeYaml: () => __TAURI_INVOKE<string>('get_runtime_yaml'),
   getRuntimeLogs: () => __TAURI_INVOKE<RuntimeLogs>('get_runtime_logs'),
@@ -343,6 +351,14 @@ export type IOrigamiRoute = {
   value?: string
   /**  "direct" or "vpn" */
   via?: string
+  /**  An app's folder: every program in it goes the same way. */
+  folder?: string | null
+  /**  An app's publisher, from its signature: new programs of the same publisher join this route. */
+  publisher?: string | null
+  /**  Other programs of that publisher, by process name. */
+  also_names?: string[] | null
+  /**  The folders of those programs. */
+  also_folders?: string[] | null
 }
 
 /**  Define the `profiles.yaml` schema */

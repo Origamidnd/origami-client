@@ -4,7 +4,10 @@
 //! behaviour. "Through the VPN" goes to a group of our own, so the user picks its server on the
 //! Servers tab like for any other service.
 use crate::config::IOrigamiRoute;
+use regex::{Regex, RegexBuilder};
+use serde::Deserialize;
 use serde_yaml_ng::{Mapping, Sequence, Value};
+use std::sync::LazyLock;
 
 /// The selector "through the VPN" routes use; the UI looks it up by this name.
 pub const OWN_GROUP: &str = "⭐ Свои правила";
@@ -14,12 +17,39 @@ const SOURCE_GROUP: &str = "🚫 Заблокированные сервисы";
 const BUILTIN_OUTBOUNDS: [&str; 5] = ["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"];
 const NOT_SERVER_TYPES: [&str; 4] = ["direct", "reject", "dns", "pass"];
 
+/// Programs that go one way together: the UI reads the same file (src/origami/routes/linked.ts).
+const FAMILIES_JSON: &str = include_str!("../../../src/origami/routes/families.json");
+
+#[derive(Deserialize)]
+struct FamilySource {
+    names: String,
+    paths: String,
+}
+
+struct Family {
+    source: FamilySource,
+    name_test: Regex,
+}
+
+static FAMILIES: LazyLock<Vec<Family>> = LazyLock::new(|| {
+    serde_json::from_str::<Vec<FamilySource>>(FAMILIES_JSON)
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|source| {
+            let name_test = RegexBuilder::new(&source.names).case_insensitive(true).build().ok()?;
+            Some(Family { source, name_test })
+        })
+        .collect()
+});
+
 pub fn use_origami_routes(mut config: Mapping, routes: &[IOrigamiRoute]) -> Mapping {
     let has_group = ensure_own_group(&mut config);
 
+    // A program's own rule goes before the ones that only cover it, so that it can differ from them.
     let lines: Sequence = routes
         .iter()
         .filter_map(|route| rule_line(route, has_group))
+        .chain(routes.iter().flat_map(|route| linked_lines(route, has_group)))
         .map(Value::from)
         .collect();
     if lines.is_empty() {
@@ -46,12 +76,65 @@ pub fn use_origami_routes(mut config: Mapping, routes: &[IOrigamiRoute]) -> Mapp
     config
 }
 
-fn rule_line(route: &IOrigamiRoute, has_group: bool) -> Option<String> {
-    let target = match route.via.as_str() {
-        "direct" => "DIRECT",
-        "vpn" if has_group => OWN_GROUP,
-        _ => return None,
+fn target_of(route: &IOrigamiRoute, has_group: bool) -> Option<&'static str> {
+    match route.via.as_str() {
+        "direct" => Some("DIRECT"),
+        "vpn" if has_group => Some(OWN_GROUP),
+        _ => None,
+    }
+}
+
+/// What goes the same way as an app: its family and its folder.
+fn linked_lines(route: &IOrigamiRoute, has_group: bool) -> Vec<String> {
+    let mut lines = Vec::new();
+    if route.kind != "app" {
+        return lines;
+    }
+    let (Some(target), Some(name)) = (target_of(route, has_group), clean_process(&route.value)) else {
+        return lines;
     };
+    if let Some(family) = FAMILIES.iter().find(|family| family.name_test.is_match(&name)) {
+        lines.push(format!("PROCESS-NAME-REGEX,(?i){},{target}", family.source.names));
+        lines.push(format!("PROCESS-PATH-REGEX,(?i){},{target}", family.source.paths));
+    }
+    let also_names = route.also_names.iter().flatten();
+    lines.extend(
+        also_names
+            .filter_map(|name| clean_process(name))
+            .map(|name| format!("PROCESS-NAME,{name},{target}")),
+    );
+    let folders = route.folder.iter().chain(route.also_folders.iter().flatten());
+    lines.extend(
+        folders
+            .filter_map(|folder| folder_pattern(folder))
+            .map(|pattern| format!("PROCESS-PATH-REGEX,{pattern},{target}")),
+    );
+    lines
+}
+
+/// Everything under a Windows folder, as in `folderPattern` of linked.ts.
+fn folder_pattern(folder: &str) -> Option<String> {
+    let mut chars = folder.chars();
+    let is_windows_path = chars.next().is_some_and(|c| c.is_ascii_alphabetic())
+        && chars.next() == Some(':')
+        && chars.next() == Some('\\')
+        && chars.next().is_some();
+    if !is_windows_path || !valid_field(folder, true) {
+        return None;
+    }
+    let mut pattern = String::from("(?i)^");
+    for c in folder.chars() {
+        if "\\.+*?()|[]{}^$".contains(c) {
+            pattern.push('\\');
+        }
+        pattern.push(c);
+    }
+    pattern.push_str(r"\\.*");
+    Some(pattern)
+}
+
+fn rule_line(route: &IOrigamiRoute, has_group: bool) -> Option<String> {
+    let target = target_of(route, has_group)?;
     match route.kind.as_str() {
         "app" => clean_process(&route.value).map(|name| format!("PROCESS-NAME,{name},{target}")),
         "site" => clean_domain(&route.value).map(|domain| format!("DOMAIN-SUFFIX,{domain},{target}")),
@@ -174,6 +257,7 @@ mod tests {
             kind: kind.into(),
             value: value.into(),
             via: via.into(),
+            ..Default::default()
         }
     }
 
@@ -304,6 +388,83 @@ rules:
         let out = use_origami_routes(base, &[route("app", "a.exe", "vpn"), route("app", "b.exe", "direct")]);
         assert_eq!(rules(&out), ["PROCESS-NAME,b.exe,DIRECT", "MATCH,DIRECT"]);
         assert!(out.get("proxy-groups").is_none());
+    }
+
+    #[test]
+    fn a_program_of_a_family_brings_the_whole_family() {
+        let out = use_origami_routes(config(), &[route("app", "Wow.exe", "direct")]);
+        let lines = rules(&out);
+        assert_eq!(lines[0], "PROCESS-NAME,Wow.exe,DIRECT");
+        assert!(lines[1].starts_with("PROCESS-NAME-REGEX,(?i)^(battle"));
+        assert!(lines[1].ends_with(",DIRECT"));
+        assert!(lines[2].starts_with("PROCESS-PATH-REGEX,(?i).*"));
+        assert_eq!(lines[3], "PROCESS-NAME,steam.exe,DIRECT");
+    }
+
+    #[test]
+    fn the_family_patterns_have_one_field_each() {
+        let sources: Vec<serde_json::Value> = serde_json::from_str(FAMILIES_JSON).unwrap();
+        // None may be lost to a pattern the core could not read.
+        assert_eq!(FAMILIES.len(), sources.len());
+        for (family, source) in FAMILIES.iter().zip(&sources) {
+            assert!(!family.source.names.contains(','));
+            assert!(!family.source.paths.contains(','));
+            // A route on a program known by its path alone is stored under this name.
+            assert!(family.name_test.is_match(source["main"].as_str().unwrap()));
+            assert!(!family.name_test.is_match("steam.exe"));
+            let paths = Regex::new(&format!("(?i){}", family.source.paths)).unwrap();
+            assert!(!paths.is_match(r"C:\Program Files\Other\Agent.exe"));
+        }
+    }
+
+    #[test]
+    fn a_launcher_brings_the_game_of_its_family() {
+        let out = use_origami_routes(config(), &[route("app", "BsgLauncher.exe", "direct")]);
+        let lines = rules(&out);
+        assert!(lines[1].contains("escapefromtarkov"), "{}", lines[1]);
+        assert!(lines[2].contains("battlestate games"), "{}", lines[2]);
+        assert!(!lines[1].contains("battle\\.net"), "{}", lines[1]);
+    }
+
+    #[test]
+    fn a_folder_covers_its_programs_after_the_own_rules() {
+        let mut game = route("app", "game.exe", "direct");
+        game.folder = Some(r"D:\Games\My Game (x64)".into());
+        let out = use_origami_routes(config(), &[game, route("app", "helper.exe", "vpn")]);
+        assert_eq!(
+            &rules(&out)[..3],
+            [
+                "PROCESS-NAME,game.exe,DIRECT",
+                "PROCESS-NAME,helper.exe,⭐ Свои правила",
+                r"PROCESS-PATH-REGEX,(?i)^D:\\Games\\My Game \(x64\)\\.*,DIRECT",
+            ]
+        );
+    }
+
+    #[test]
+    fn programs_of_one_publisher_go_together_with_their_folders() {
+        let mut game = route("app", "game.exe", "direct");
+        game.folder = Some(r"D:\Game".into());
+        game.publisher = Some("Some Studio".into());
+        game.also_names = Some(vec!["launcher.exe".into(), "bad,DIRECT".into()]);
+        game.also_folders = Some(vec![r"C:\Launcher".into(), "/usr/bin".into()]);
+        let out = use_origami_routes(config(), &[game]);
+        assert_eq!(
+            &rules(&out)[..4],
+            [
+                "PROCESS-NAME,game.exe,DIRECT",
+                "PROCESS-NAME,launcher.exe,DIRECT",
+                r"PROCESS-PATH-REGEX,(?i)^D:\\Game\\.*,DIRECT",
+                r"PROCESS-PATH-REGEX,(?i)^C:\\Launcher\\.*,DIRECT",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_folder_that_is_not_a_windows_one_is_dropped() {
+        for folder in ["/usr/bin", "C:", r"C:\", "D:\\a,DIRECT"] {
+            assert_eq!(folder_pattern(folder), None, "{folder}");
+        }
     }
 
     #[test]

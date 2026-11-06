@@ -14,6 +14,7 @@ import { useUpdate } from '@/hooks/use-update'
 import { openExternalUrl } from '@/utils/open-external-url'
 
 import { useProgramTrafficWatch } from './apps/use-program-traffic'
+import { usePublisherJoin } from './apps/use-publisher-join'
 import { DiagnosticsCopiedDialog } from './check/diagnostics-copied'
 import { CoreTroubleDialog } from './core-trouble/core-trouble-dialog'
 import { setExpertMode, useExpertMode } from './expert-mode'
@@ -55,6 +56,7 @@ export const OrigamiSidebarFooter = () => {
   useNetworkRecovery()
   useAutoWarmup()
   useProgramTrafficWatch()
+  usePublisherJoin()
   const { current } = useProfiles()
   const supportUrl = current?.support ?? ORIGAMI_LINKS.support
 

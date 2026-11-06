@@ -360,6 +360,7 @@
   "routes": {
     "kind": "What to route",
     "app": "Program",
+    "appLinked": "程式及關聯項目: {{what}}",
     "site": "Site",
     "via": "How",
     "direct": "Direct",
@@ -403,6 +404,13 @@
       "auto": "{{name}}: back to the common rules",
       "direct": "{{name}}: now direct",
       "vpn": "{{name}}: now through VPN"
+    },
+    "linked": {
+      "family": "與所有 {{family}} 程式一起",
+      "folder": "與 {{folder}} 資料夾中的所有內容一起",
+      "allOf": "所有 {{family}} 程式",
+      "withFolder": "{{name}} 及其資料夾中的所有內容",
+      "joined": "{{name}} 現在與 {{publisher}} 的程式走同一路徑"
     }
   },
   "trayHint": {

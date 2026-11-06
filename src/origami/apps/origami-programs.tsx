@@ -1,5 +1,5 @@
 import { useLockFn } from 'ahooks'
-import { useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
@@ -9,8 +9,24 @@ import { showNotice } from '@/services/notice-service'
 import parseTraffic from '@/utils/parse-traffic'
 
 import { useConnection } from '../home/use-connection'
+import {
+  familyOf,
+  folderName,
+  isLinkablePublisher,
+  type ProgramChoice,
+  programScope,
+  publisherLink,
+  routeOf,
+  withProgramChoice,
+} from '../routes/linked'
 import { Seg } from '../routes/own-routes'
-import { OWN_GROUP, upsertRoute } from '../routes/routes'
+import {
+  learnPublishers,
+  publisherOf,
+  publishersVersion,
+  subscribePublishers,
+} from '../routes/publishers'
+import { OWN_GROUP } from '../routes/routes'
 import { parseServerName } from '../servers/model'
 import { withoutEmoji } from '../servers/service-names'
 import type { FocusGroupState } from '../use-focus-group'
@@ -21,7 +37,7 @@ import {
   programWay,
   sortPrograms,
 } from './program-traffic'
-import { type ProgramChoice, reconnectProgram } from './reconnect'
+import { reconnectProgram } from './reconnect'
 import { useProgramTraffic } from './use-program-traffic'
 
 const formatBytes = (value: number) => parseTraffic(value).join(' ')
@@ -36,34 +52,64 @@ export const OrigamiPrograms = () => {
   const { connected, mode } = useConnection()
   const { programs } = useProgramTraffic()
   const routes = verge?.origami_routes ?? []
+  useSyncExternalStore(subscribePublishers, publishersVersion)
+  const seen = [...programs.values()]
+  const pathsKey = seen.map((stat) => stat.path ?? '').join('|')
+  useEffect(() => {
+    void learnPublishers(pathsKey.split('|'))
+  }, [pathsKey])
 
-  const choiceOf = (name: string): ProgramChoice => {
-    const route = routes.find(
-      (item) =>
-        item.kind === 'app' && item.value?.toLowerCase() === name.toLowerCase(),
-    )
-    return (route?.via as ProgramChoice | undefined) ?? 'auto'
+  /** The publisher that links this program with others, if any. */
+  const publisherHint = (stat: ProgramStat) => {
+    const route = routeOf(routes, stat.name, stat.path)
+    const publisher = route?.publisher ?? publisherOf(stat.path)
+    return isLinkablePublisher(publisher) ? publisher : null
   }
 
-  const setChoice = useLockFn(async (name: string, choice: ProgramChoice) => {
-    const next =
-      choice === 'auto'
-        ? routes.filter(
-            (item) =>
-              !(
-                item.kind === 'app' &&
-                item.value?.toLowerCase() === name.toLowerCase()
-              ),
-          )
-        : upsertRoute(routes, { kind: 'app', value: name, via: choice })
-    try {
-      await patchVerge({ origami_routes: next })
-      void reconnectProgram(name, choice)
-      showNotice.success(`origami.programs.set.${choice}`, { name })
-    } catch (error) {
-      showNotice.error(error)
+  const choiceOf = (stat: ProgramStat) =>
+    (routeOf(routes, stat.name, stat.path)?.via as ProgramChoice | undefined) ??
+    'auto'
+
+  /** What else changes with this program, once it has a choice or belongs to a family. */
+  const linkedHint = (stat: ProgramStat) => {
+    const family = familyOf(stat.name, stat.path)
+    if (family) {
+      return t('origami.programs.linked.family', { family: family.title })
     }
-  })
+    const publisher = publisherHint(stat)
+    if (publisher) {
+      return t('origami.programs.linked.family', { family: publisher })
+    }
+    const folder = routeOf(routes, stat.name, stat.path)?.folder
+    return folder
+      ? t('origami.programs.linked.folder', { folder: folderName(folder) })
+      : null
+  }
+
+  const setChoice = useLockFn(
+    async (stat: ProgramStat, choice: ProgramChoice) => {
+      const { name, path } = stat
+      const link = publisherLink(seen, name, path, publisherOf)
+      const next = withProgramChoice(routes, name, path, choice, link)
+      const family = familyOf(name, path)
+      const folder = routeOf(next, name, path)?.folder
+      const publisher = publisherHint(stat)
+      const label = family
+        ? t('origami.programs.linked.allOf', { family: family.title })
+        : publisher
+          ? t('origami.programs.linked.allOf', { family: publisher })
+          : folder
+            ? t('origami.programs.linked.withFolder', { name })
+            : name
+      try {
+        await patchVerge({ origami_routes: next })
+        void reconnectProgram(programScope(routes, next, name, path), choice)
+        showNotice.success(`origami.programs.set.${choice}`, { name: label })
+      } catch (error) {
+        showNotice.error(error)
+      }
+    },
+  )
 
   // Programs with an own rule stay listed even with no traffic, so the rule can be undone here.
   const rows = new Map(programs)
@@ -135,35 +181,39 @@ export const OrigamiPrograms = () => {
               heldOrderRef.current = null
             }}
           >
-            {list.map((stat) => (
-              <li key={stat.name || 'unknown'}>
-                <span className="o-apps__name">
-                  <b title={stat.name}>
-                    {stat.name || t('origami.programs.unknown')}
-                  </b>
-                  <span className="o-hint">{describe(stat)}</span>
-                </span>
-                <span className="o-apps__bytes o-mono">
-                  {formatBytes(stat.direct + stat.vpn)}
-                </span>
-                {stat.name ? (
-                  <Seg
-                    label={t('origami.routes.via')}
-                    value={choiceOf(stat.name)}
-                    onChange={(choice) => void setChoice(stat.name, choice)}
-                    options={[
-                      ['auto', t('origami.programs.auto')],
-                      ['direct', t('origami.routes.direct')],
-                      ['vpn', t('origami.routes.vpn')],
-                    ]}
-                  />
-                ) : (
-                  <span className="o-hint o-apps__nochoice">
-                    {t('origami.programs.unknownHint')}
+            {list.map((stat) => {
+              const linked = stat.name ? linkedHint(stat) : null
+              return (
+                <li key={stat.name || 'unknown'}>
+                  <span className="o-apps__name">
+                    <b title={stat.name}>
+                      {stat.name || t('origami.programs.unknown')}
+                    </b>
+                    <span className="o-hint">{describe(stat)}</span>
+                    {linked && <span className="o-hint">{linked}</span>}
                   </span>
-                )}
-              </li>
-            ))}
+                  <span className="o-apps__bytes o-mono">
+                    {formatBytes(stat.direct + stat.vpn)}
+                  </span>
+                  {stat.name ? (
+                    <Seg
+                      label={t('origami.routes.via')}
+                      value={choiceOf(stat)}
+                      onChange={(choice) => void setChoice(stat, choice)}
+                      options={[
+                        ['auto', t('origami.programs.auto')],
+                        ['direct', t('origami.routes.direct')],
+                        ['vpn', t('origami.routes.vpn')],
+                      ]}
+                    />
+                  ) : (
+                    <span className="o-hint o-apps__nochoice">
+                      {t('origami.programs.unknownHint')}
+                    </span>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
 

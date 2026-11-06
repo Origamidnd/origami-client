@@ -1,0 +1,37 @@
+[
+  {
+    "id": "blizzard",
+    "title": "Blizzard",
+    "main": "Battle.net.exe",
+    "names": "^(battle\\.net.*|blizzard.*|battlenet\\.overlay\\.runtime|agenthelper|gamesessionmonitor|wow|wowclassic|wowclassict|wowclassicb|wowt|wowb|wow-64|wowvoiceproxy|world of warcraft launcher|overwatch|overwatch launcher|diablo iv|diablo iv launcher|diablo iii|diablo iii64|d2r|hearthstone|sc2|sc2_x64|heroesofthestorm_x64)\\.exe$",
+    "paths": ".*\\\\(battle\\.net|blizzard entertainment|world of warcraft|overwatch|diablo iv|diablo iii|diablo ii resurrected|hearthstone|starcraft|starcraft ii|heroes of the storm|warcraft iii)\\\\.*"
+  },
+  {
+    "id": "riot",
+    "title": "Riot Games",
+    "main": "RiotClientServices.exe",
+    "names": "^(riotclient.*|leagueclient.*|league of legends|valorant|valorant-win64-shipping)\\.exe$",
+    "paths": ".*\\\\(riot games|riot client|riot vanguard|league of legends|valorant)\\\\.*"
+  },
+  {
+    "id": "battlestate",
+    "title": "Battlestate Games",
+    "main": "BsgLauncher.exe",
+    "names": "^(bsglauncher|escapefromtarkov.*)\\.exe$",
+    "paths": ".*\\\\(battlestate games|escape_from_tarkov|escape from tarkov)\\\\.*"
+  },
+  {
+    "id": "wargaming",
+    "title": "Wargaming / Lesta",
+    "main": "lgc.exe",
+    "names": "^(wgc|wgc_api|wgc_renderer_host|lgc|lgc_api|lgc_renderer_host|wargamingerrormonitor|lestaerrormonitor|worldoftanks|wotlauncher|worldofwarships|worldofwarships32|worldofwarships64|wows_launcher|korabli|korabli32|korabli64)\\.exe$",
+    "paths": ".*\\\\(wargaming\\.net|lesta|tanki|korabli|world_of_tanks[^\\\\]*|world_of_warships[^\\\\]*|world of tanks|world of warships)\\\\.*"
+  },
+  {
+    "id": "hoyoverse",
+    "title": "HoYoverse",
+    "main": "HYP.exe",
+    "names": "^(hyp|hoyoplay|genshinimpact|yuanshen|starrail|zenlesszonezero|bh3)\\.exe$",
+    "paths": ".*\\\\(hoyoplay|hoyoverse|genshin impact|star rail|zenlesszonezero|zenless zone zero)\\\\.*"
+  }
+]

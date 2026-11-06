@@ -360,6 +360,7 @@
   "routes": {
     "kind": "What to route",
     "app": "Program",
+    "appLinked": "Program ve bağlantılı olanlar: {{what}}",
     "site": "Site",
     "via": "How",
     "direct": "Direct",
@@ -403,6 +404,13 @@
       "auto": "{{name}}: back to the common rules",
       "direct": "{{name}}: now direct",
       "vpn": "{{name}}: now through VPN"
+    },
+    "linked": {
+      "family": "Tüm {{family}} programlarıyla birlikte",
+      "folder": "{{folder}} klasöründeki her şeyle birlikte",
+      "allOf": "Tüm {{family}} programları",
+      "withFolder": "{{name}} ve klasöründeki her şey",
+      "joined": "{{name}} artık {{publisher}} programlarıyla birlikte gidiyor"
     }
   },
   "trayHint": {

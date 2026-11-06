@@ -25,6 +25,15 @@ const conn = (
 const isDirect = (node: string) => node === 'DIRECT'
 
 describe('addSnapshot', () => {
+  it('remembers where the program lives', () => {
+    const connection = conn('a', 'Agent.exe', 10)
+    connection.metadata.processPath = 'C:\\ProgramData\\Agent.exe'
+    const state = addSnapshot(emptyTraffic(), [connection], isDirect)
+    expect(state.programs.get('Agent.exe')?.path).toBe(
+      'C:\\ProgramData\\Agent.exe',
+    )
+  })
+
   it('counts only what is new between polls', () => {
     let state = addSnapshot(
       emptyTraffic(),

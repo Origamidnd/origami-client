@@ -360,6 +360,7 @@
   "routes": {
     "kind": "What to route",
     "app": "Program",
+    "appLinked": "برنامه و موارد مرتبط: {{what}}",
     "site": "Site",
     "via": "How",
     "direct": "Direct",
@@ -403,6 +404,13 @@
       "auto": "{{name}}: back to the common rules",
       "direct": "{{name}}: now direct",
       "vpn": "{{name}}: now through VPN"
+    },
+    "linked": {
+      "family": "همراه با همه برنامه‌های {{family}}",
+      "folder": "همراه با همه چیز در پوشه {{folder}}",
+      "allOf": "همه برنامه‌های {{family}}",
+      "withFolder": "{{name}} و همه چیز در پوشه آن",
+      "joined": "{{name}} اکنون همراه با برنامه‌های {{publisher}} است"
     }
   },
   "trayHint": {

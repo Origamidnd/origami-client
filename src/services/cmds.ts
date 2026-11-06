@@ -340,6 +340,11 @@ export async function origamiRefreshUsage(uid: string) {
   return commands.origamiRefreshUsage(uid)
 }
 
+/** OrigamiVPN: who signed these program files, by path; a file without a valid signature is left out. */
+export async function origamiProgramPublishers(paths: string[]) {
+  return commands.origamiProgramPublishers(paths)
+}
+
 export async function cmdTestDelay(url: string) {
   return commands.testDelay(url)
 }

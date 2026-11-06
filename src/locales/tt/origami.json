@@ -360,6 +360,7 @@
   "routes": {
     "kind": "What to route",
     "app": "Program",
+    "appLinked": "Программа һәм бәйләнгәннәр: {{what}}",
     "site": "Site",
     "via": "How",
     "direct": "Direct",
@@ -403,6 +404,13 @@
       "auto": "{{name}}: back to the common rules",
       "direct": "{{name}}: now direct",
       "vpn": "{{name}}: now through VPN"
+    },
+    "linked": {
+      "family": "Барлык {{family}} программалары белән бергә",
+      "folder": "{{folder}} папкасындагы бар нәрсә белән бергә",
+      "allOf": "Барлык {{family}} программалары",
+      "withFolder": "{{name}} һәм аның папкасындагы бар нәрсә",
+      "joined": "{{name}} хәзер {{publisher}} программалары белән бергә йөри"
     }
   },
   "trayHint": {

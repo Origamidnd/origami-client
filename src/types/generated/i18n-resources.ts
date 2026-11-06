@@ -398,6 +398,13 @@ export interface TranslationResources {
         foot: string
         footLink: string
         lead: string
+        linked: {
+          allOf: string
+          family: string
+          folder: string
+          joined: string
+          withFolder: string
+        }
         off: string
         period: string
         set: {
@@ -479,6 +486,7 @@ export interface TranslationResources {
         add: string
         added: string
         app: string
+        appLinked: string
         appPlaceholder: string
         badApp: string
         badSite: string

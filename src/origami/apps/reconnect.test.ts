@@ -1,6 +1,7 @@
 import { closeConnection, getConnections } from 'tauri-plugin-mihomo-api'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { ProgramChoice, ProgramScope } from '../routes/linked'
 import { OWN_GROUP } from '../routes/routes'
 
 import { followsChoice, reconnectProgram } from './reconnect'
@@ -10,19 +11,40 @@ vi.mock('tauri-plugin-mihomo-api', () => ({
   getConnections: vi.fn(),
 }))
 
-const usual = { rule: 'RuleSet', chains: ['DIRECT', 'Google'] }
-const ownVpn = { rule: 'ProcessName', chains: ['Турция', 'Авто', OWN_GROUP] }
-const ownDirect = { rule: 'ProcessName', chains: ['DIRECT'] }
+const usual = { rulePayload: 'ru', chains: ['DIRECT', 'Google'] }
+const ownVpn = {
+  rulePayload: 'game.exe',
+  chains: ['Турция', 'Авто', OWN_GROUP],
+}
+const ownDirect = { rulePayload: 'game.exe', chains: ['DIRECT'] }
+const ownFamily = { rulePayload: '(?i)^family', chains: ['DIRECT'] }
+// A rule of the template that also sends a program direct: not ours to undo.
+const theirDirect = { rulePayload: '(?i)^steam', chains: ['DIRECT'] }
+
+const PAYLOADS = new Set(['game.exe', '(?i)^family'])
+
+const scope = (...names: string[]): ProgramScope => ({
+  key: names[0],
+  has: (name) =>
+    !!name && names.some((item) => item.toLowerCase() === name.toLowerCase()),
+  payloads: PAYLOADS,
+})
 
 describe('followsChoice', () => {
   it('tells each way apart', () => {
-    expect(followsChoice(ownVpn, 'vpn')).toBe(true)
-    expect(followsChoice(usual, 'vpn')).toBe(false)
-    expect(followsChoice(ownDirect, 'direct')).toBe(true)
-    expect(followsChoice(usual, 'direct')).toBe(false)
-    expect(followsChoice(usual, 'auto')).toBe(true)
-    expect(followsChoice(ownVpn, 'auto')).toBe(false)
-    expect(followsChoice(ownDirect, 'auto')).toBe(false)
+    const follows = (way: object, choice: ProgramChoice) =>
+      followsChoice(way, choice, PAYLOADS)
+    expect(follows(ownVpn, 'vpn')).toBe(true)
+    expect(follows(usual, 'vpn')).toBe(false)
+    expect(follows(ownDirect, 'direct')).toBe(true)
+    expect(follows(ownFamily, 'direct')).toBe(true)
+    expect(follows(usual, 'direct')).toBe(false)
+    expect(follows(theirDirect, 'direct')).toBe(false)
+    expect(follows(usual, 'auto')).toBe(true)
+    expect(follows(theirDirect, 'auto')).toBe(true)
+    expect(follows(ownVpn, 'auto')).toBe(false)
+    expect(follows(ownDirect, 'auto')).toBe(false)
+    expect(follows(ownFamily, 'auto')).toBe(false)
   })
 })
 
@@ -62,8 +84,24 @@ describe('reconnectProgram', () => {
       ],
       [conn('new', ownVpn)],
     )
-    await run('game.exe', 'vpn')
+    await run(scope('game.exe'), 'vpn')
     expect(vi.mocked(closeConnection).mock.calls).toEqual([['old']])
+  })
+
+  it('closes the other programs of the scope too', async () => {
+    listed(
+      [
+        conn('game', usual),
+        conn('launcher', usual, 'Launcher.exe'),
+        conn('other', usual, 'browser.exe'),
+      ],
+      [],
+    )
+    await run(scope('game.exe', 'launcher.exe'), 'vpn')
+    expect(vi.mocked(closeConnection).mock.calls).toEqual([
+      ['game'],
+      ['launcher'],
+    ])
   })
 
   it('closes again what reopened by the old rule while the core took the new one in', async () => {
@@ -73,29 +111,29 @@ describe('reconnectProgram', () => {
       [conn('c', ownVpn)],
       [conn('c', ownVpn)],
     )
-    await run('game.exe', 'vpn')
+    await run(scope('game.exe'), 'vpn')
     expect(vi.mocked(closeConnection).mock.calls).toEqual([['a'], ['b']])
   })
 
   it('keeps trying when the core does not answer for a moment', async () => {
     vi.mocked(getConnections).mockRejectedValueOnce(new Error('reloading'))
     listed([conn('a', usual)], [conn('b', ownVpn)])
-    await run('game.exe', 'vpn')
+    await run(scope('game.exe'), 'vpn')
     expect(vi.mocked(closeConnection).mock.calls).toEqual([['a']])
   })
 
   it('gives up after a few seconds on a connection that never changes', async () => {
     listed([conn('a', usual)])
-    await run('game.exe', 'vpn')
+    await run(scope('game.exe'), 'vpn')
     expect(vi.mocked(closeConnection).mock.calls.length).toBe(8)
   })
 
   it('stops when the program is switched again', async () => {
     listed([conn('a', usual)])
-    const first = reconnectProgram('game.exe', 'vpn')
+    const first = reconnectProgram(scope('game.exe'), 'vpn')
     await vi.advanceTimersByTimeAsync(100)
     listed([conn('a', ownDirect)])
-    const second = reconnectProgram('game.exe', 'direct')
+    const second = reconnectProgram(scope('game.exe'), 'direct')
     await vi.runAllTimersAsync()
     await Promise.all([first, second])
     expect(vi.mocked(closeConnection).mock.calls).toEqual([['a']])

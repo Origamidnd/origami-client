@@ -253,6 +253,14 @@ pub struct IOrigamiRoute {
     pub value: std::string::String,
     /// "direct" or "vpn"
     pub via: std::string::String,
+    /// An app's folder: every program in it goes the same way.
+    pub folder: Option<std::string::String>,
+    /// An app's publisher, from its signature: new programs of the same publisher join this route.
+    pub publisher: Option<std::string::String>,
+    /// Other programs of that publisher, by process name.
+    pub also_names: Option<Vec<std::string::String>>,
+    /// The folders of those programs.
+    pub also_folders: Option<Vec<std::string::String>>,
 }
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize, specta::Type)]

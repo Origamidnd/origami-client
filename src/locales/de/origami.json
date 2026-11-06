@@ -360,6 +360,7 @@
   "routes": {
     "kind": "What to route",
     "app": "Program",
+    "appLinked": "Programm und verknüpfte: {{what}}",
     "site": "Site",
     "via": "How",
     "direct": "Direct",
@@ -403,6 +404,13 @@
       "auto": "{{name}}: back to the common rules",
       "direct": "{{name}}: now direct",
       "vpn": "{{name}}: now through VPN"
+    },
+    "linked": {
+      "family": "Zusammen mit allen {{family}}-Programmen",
+      "folder": "Zusammen mit allem im Ordner {{folder}}",
+      "allOf": "Alle {{family}}-Programme",
+      "withFolder": "{{name}} und alles in seinem Ordner",
+      "joined": "{{name}} läuft jetzt zusammen mit den {{publisher}}-Programmen"
     }
   },
   "trayHint": {

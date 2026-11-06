@@ -34,6 +34,9 @@ const poll = async (view: ProxyViewV1 | null | undefined) => {
   listeners.forEach((listener) => listener())
 }
 
+/** The programs seen so far, for what runs beside the page. */
+export const seenPrograms = () => [...state.programs.values()]
+
 const usePolling = (intervalMs: number, enabled: boolean) => {
   const { proxyView } = useProxiesData()
   const viewRef = useRef(proxyView)

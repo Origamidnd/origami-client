@@ -360,6 +360,7 @@
   "routes": {
     "kind": "What to route",
     "app": "Program",
+    "appLinked": "Program dan yang terkait: {{what}}",
     "site": "Site",
     "via": "How",
     "direct": "Direct",
@@ -403,6 +404,13 @@
       "auto": "{{name}}: back to the common rules",
       "direct": "{{name}}: now direct",
       "vpn": "{{name}}: now through VPN"
+    },
+    "linked": {
+      "family": "Bersama semua program {{family}}",
+      "folder": "Bersama semua isi folder {{folder}}",
+      "allOf": "Semua program {{family}}",
+      "withFolder": "{{name}} dan semua isi foldernya",
+      "joined": "{{name}} kini berjalan bersama program {{publisher}}"
     }
   },
   "trayHint": {
