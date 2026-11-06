@@ -7,7 +7,8 @@ use std::string::String as StdString;
 const MAX_PATHS: usize = 64;
 
 /// Reads the paths as JSON from stdin, so that no path is ever part of the script. It holds no double
-/// quote and fits one line, since it travels as one command line argument.
+/// quote and fits one line, since it travels as one command line argument. It runs under any execution
+/// policy, so it asks for none: antivirus programs watch for PowerShell started with a bypass.
 #[cfg(any(windows, test))]
 const SCRIPT: &str = "$utf8 = New-Object Text.UTF8Encoding $false; \
 [Console]::InputEncoding = $utf8; [Console]::OutputEncoding = $utf8; \
@@ -55,14 +56,7 @@ fn read_publishers(paths: &[StdString]) -> Option<HashMap<StdString, StdString>>
     let root = std::env::var_os("SystemRoot")?;
     let powershell = std::path::Path::new(&root).join(r"System32\WindowsPowerShell\v1.0\powershell.exe");
     let mut child = Command::new(powershell)
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            SCRIPT,
-        ])
+        .args(["-NoProfile", "-NonInteractive", "-Command", SCRIPT])
         .creation_flags(CREATE_NO_WINDOW)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
