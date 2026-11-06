@@ -27,7 +27,6 @@ import delayManager from '@/services/delay'
 import { showNotice } from '@/services/notice-service'
 import type { ProxyNodeView, ProxyViewV1 } from '@/types/proxy-view'
 import { DEFAULT_DELAY_TIMEOUT } from '@/utils/delay'
-import { openExternalUrl } from '@/utils/open-external-url'
 
 import { ORIGAMI_LINKS } from '../links'
 import { diagnoseLink } from '../network-recovery'
@@ -35,6 +34,7 @@ import { PingBadge } from '../ping-badge'
 import { ReportDialog } from '../report/report-dialog'
 import { OwnRoutes } from '../routes/own-routes'
 import { OWN_GROUP } from '../routes/routes'
+import { openSupportChat } from '../support-chat'
 import type { FocusGroupState } from '../use-focus-group'
 import { useRefreshSubscription } from '../use-refresh-subscription'
 
@@ -602,7 +602,7 @@ export const OrigamiServers = () => {
                 type="button"
                 className="o-srv__link"
                 onClick={() =>
-                  void openExternalUrl(
+                  void openSupportChat(
                     current?.support ?? ORIGAMI_LINKS.support,
                   )
                 }

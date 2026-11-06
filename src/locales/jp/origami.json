@@ -122,13 +122,9 @@
     "again": "Again",
     "unreachable": "does not open",
     "tryOther": "Try another server. If that does not help, send the diagnostics to support.",
-    "diagnostics": "Copy diagnostics for support",
+    "diagnostics": "Send diagnostics",
     "noInternet": "No internet",
-    "noInternetHint": "Check your Wi-Fi or cable. When the network is back, I will check again by myself.",
-    "copiedTitle": "Diagnostics copied",
-    "copiedText": "Open the support chat and paste it as a message (Ctrl+V). It holds neither your subscription link nor your full IP.",
-    "copiedOpen": "Open support chat",
-    "copiedClose": "Close"
+    "noInternetHint": "Check your Wi-Fi or cable. When the network is back, I will check again by myself."
   },
   "settings": {
     "sections": {
@@ -173,7 +169,7 @@
     },
     "help": {
       "diagnostics": "Something not working?",
-      "diagnosticsHint": "Copies a diagnostics report and opens the support chat",
+      "diagnosticsHint": "A report on how the app and connections work comes to me, nothing to copy",
       "diagnosticsButton": "Diagnostics",
       "links": "Channel and site",
       "linksHint": "News, server status, guides",
@@ -310,6 +306,29 @@
     "send": "Send",
     "close": "Close"
   },
+  "sendDiagnostics": {
+    "title": "Send diagnostics",
+    "commentLabel": "What happened (optional)",
+    "commentPlaceholder": "For example, the game dropped when changing location",
+    "pick": "Programs in the last {{minutes}} minutes",
+    "empty": "No connections in the last {{minutes}} minutes. Only the app state and core errors will be sent.",
+    "found": "addresses: {{total}}, failed: {{failed}}",
+    "sendsTitle": "Goes to me in Telegram:",
+    "sends": "app state, core errors and addresses of the ticked programs. From browsers, unless ticked, only failed addresses.",
+    "keepsTitle": "Stays here:",
+    "keeps": "unticked programs, other browser addresses, subscription link, computer user name, your files.",
+    "summary": "Addresses to send: {{count}}",
+    "cancel": "Cancel",
+    "send": "Send",
+    "sentTitle": "Sent",
+    "sent": "Thank you! I will look into it.",
+    "close": "Close",
+    "sentCopied": "The report text is also on your clipboard.",
+    "failedCopied": "The report is copied: open the support chat and paste it as a message (Ctrl+V).",
+    "failedNotCopied": "Open the support chat and tell me what happened.",
+    "openChat": "Open support chat",
+    "retry": "Try again"
+  },
   "notices": {
     "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later."
   },
@@ -321,9 +340,9 @@
     "restart": "Restart",
     "reinstall": "Reinstall the service",
     "refresh": "Update the subscription",
-    "stillBroken": "Did not help? Copy the diagnostics and send them to support.",
+    "stillBroken": "Did not help - send diagnostics and I will look into it.",
     "details": "Details for support",
-    "copy": "Copy diagnostics",
+    "send": "Send diagnostics",
     "close": "Close",
     "restarted": "The VPN stopped and restarted on its own",
     "fixed": "Done, the VPN works again"

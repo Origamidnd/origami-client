@@ -1,7 +1,7 @@
 import {
-  ContentCopyRounded,
   ExpandMoreRounded,
   Telegram,
+  SendRounded,
 } from '@mui/icons-material'
 import { Button, MenuItem, Select } from '@mui/material'
 import { useLockFn } from 'ahooks'
@@ -24,7 +24,7 @@ import { checkUpdateSafe } from '@/services/update'
 import { openExternalUrl } from '@/utils/open-external-url'
 import { version } from '@root/package.json'
 
-import { useCopyDiagnostics } from '../check/use-copy-diagnostics'
+import { openSendDiagnostics } from '../check/send-diagnostics-store'
 import { setExpertMode, useExpertMode } from '../expert-mode'
 import { ORIGAMI_LINKS } from '../links'
 import { usePackageManager } from '../use-package-manager'
@@ -86,7 +86,6 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
   const { decorated, toggleDecorations } = useWindowDecorations()
   const { runState } = useSystemState()
   const expert = useExpertMode()
-  const copyDiagnostics = useCopyDiagnostics()
   const updateRef = useRef<DialogRef>(null)
   const packageManager = usePackageManager()
 
@@ -297,8 +296,8 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
           <Button
             variant="outlined"
             size="small"
-            startIcon={<ContentCopyRounded fontSize="small" />}
-            onClick={() => void copyDiagnostics()}
+            startIcon={<SendRounded fontSize="small" />}
+            onClick={() => openSendDiagnostics()}
           >
             {t('origami.settings.help.diagnosticsButton')}
           </Button>

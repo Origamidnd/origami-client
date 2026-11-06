@@ -268,10 +268,6 @@ export interface TranslationResources {
         again: string
         allGood: string
         connectFirst: string
-        copiedClose: string
-        copiedOpen: string
-        copiedText: string
-        copiedTitle: string
         diagnostics: string
         exit: string
         idle: string
@@ -287,13 +283,13 @@ export interface TranslationResources {
       coreTrouble: {
         close: string
         config: string
-        copy: string
         details: string
         fixed: string
         refresh: string
         reinstall: string
         restart: string
         restarted: string
+        send: string
         serviceCoreStopped: string
         startFailed: string
         stillBroken: string
@@ -506,6 +502,29 @@ export interface TranslationResources {
         sitePlaceholder: string
         via: string
         vpn: string
+      }
+      sendDiagnostics: {
+        cancel: string
+        close: string
+        commentLabel: string
+        commentPlaceholder: string
+        empty: string
+        failedCopied: string
+        failedNotCopied: string
+        found: string
+        keeps: string
+        keepsTitle: string
+        openChat: string
+        pick: string
+        retry: string
+        send: string
+        sends: string
+        sendsTitle: string
+        sent: string
+        sentCopied: string
+        sentTitle: string
+        summary: string
+        title: string
       }
       servers: {
         auto: string

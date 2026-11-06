@@ -167,7 +167,9 @@ export const summarizeProcesses = (
 }
 
 const BROWSERS =
-  /^(chrome|msedge|firefox|opera|opera_gx|brave|browser|yandex|vivaldi|chromium|librewolf|zen|thorium|arc)(\.exe)?$/i
+  /^(chrome|google-chrome|msedge|msedgewebview2|firefox|firefox-bin|opera|opera_gx|brave|brave-browser|browser|yandex|vivaldi|chromium|chromium-browser|librewolf|zen|zen-bin|thorium|arc|iexplore|safari|tor|waterfox|floorp|whale|maxthon)(\.exe)?$/i
+
+export const isBrowser = (name: string) => BROWSERS.test(name)
 
 const normalize = (value: string) =>
   value
@@ -184,7 +186,7 @@ export const preselectProcesses = (
   const wanted = normalize(title)
   const picked = processes.filter((p) => {
     if (!p.name) return false
-    if (kind === 'site') return BROWSERS.test(p.name)
+    if (kind === 'site') return isBrowser(p.name)
     const name = normalize(p.name)
     return !!wanted && (name.includes(wanted) || wanted.includes(name))
   })

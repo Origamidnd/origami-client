@@ -99,6 +99,9 @@ export const commands = {
     __TAURI_INVOKE<{ [key in string]: string }>('origami_game_titles', {
       paths,
     }),
+  /**  Opens a support link; a link that is not a Telegram chat simply opens as it is. */
+  origamiOpenSupportChat: (url: string) =>
+    __TAURI_INVOKE<null>('origami_open_support_chat', { url }),
   getProxyView: () => __TAURI_INVOKE<ProxyViewV1_Serialize>('get_proxy_view'),
   getRuntimeYaml: () => __TAURI_INVOKE<string>('get_runtime_yaml'),
   getRuntimeLogs: () => __TAURI_INVOKE<RuntimeLogs>('get_runtime_logs'),

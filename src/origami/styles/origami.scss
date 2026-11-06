@@ -1673,6 +1673,11 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     padding: 0;
     list-style: none;
 
+    &--scroll {
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
     li {
       display: flex;
       align-items: baseline;

@@ -484,6 +484,7 @@ const handlers: Record<string, (args: any) => unknown> = {
   // `?nodns=1`: every other silent server has an address that does not resolve.
   origami_set_link_state: () => null,
   origami_refresh_usage: () => null,
+  origami_open_support_chat: () => null,
   origami_game_titles: ({ paths }) =>
     Object.fromEntries(
       (paths as string[]).flatMap((path) =>

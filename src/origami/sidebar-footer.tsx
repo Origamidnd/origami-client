@@ -15,13 +15,14 @@ import { openExternalUrl } from '@/utils/open-external-url'
 
 import { useProgramTrafficWatch } from './apps/use-program-traffic'
 import { usePublisherJoin } from './apps/use-publisher-join'
-import { DiagnosticsCopiedDialog } from './check/diagnostics-copied'
+import { SendDiagnosticsDialog } from './check/send-diagnostics'
 import { CoreTroubleDialog } from './core-trouble/core-trouble-dialog'
 import { setExpertMode, useExpertMode } from './expert-mode'
 import { ORIGAMI_LINKS } from './links'
 import { useNetworkRecovery } from './network-recovery'
 import { useAutoVariantWatch } from './servers/auto-variant'
 import { useAutoWarmup } from './servers/auto-warmup'
+import { openSupportChat } from './support-chat'
 import { useExpiryReminder } from './use-expiry-reminder'
 
 // Replaces the stock red "New" badge that sat on top of the logo.
@@ -65,18 +66,20 @@ export const OrigamiSidebarFooter = () => {
       icon: <Telegram fontSize="small" />,
       label: 'origami.nav.support',
       url: supportUrl,
+      open: openSupportChat,
     },
     {
       icon: <AccountCircleOutlined fontSize="small" />,
       label: 'origami.nav.cabinet',
       url: ORIGAMI_LINKS.cabinet,
+      open: openExternalUrl,
     },
   ] as const
 
   return (
     <div className="origami-nav-footer">
       <CoreTroubleDialog />
-      <DiagnosticsCopiedDialog />
+      <SendDiagnosticsDialog />
       <UpdateItem />
       <button
         type="button"
@@ -96,7 +99,7 @@ export const OrigamiSidebarFooter = () => {
           type="button"
           className="origami-nav-footer__item"
           title={t('origami.nav.external')}
-          onClick={() => void openExternalUrl(link.url)}
+          onClick={() => void link.open(link.url)}
         >
           {link.icon}
           <span>{t(link.label)}</span>

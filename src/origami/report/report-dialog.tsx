@@ -15,10 +15,10 @@ import { useTranslation } from 'react-i18next'
 import { useProfiles } from '@/hooks/use-profiles'
 import { useProxiesData } from '@/providers/app-data-context'
 import { getSystemInfo } from '@/services/cmds'
-import { openExternalUrl } from '@/utils/open-external-url'
 import { version } from '@root/package.json'
 
 import { ORIGAMI_LINKS } from '../links'
+import { openSupportChat } from '../support-chat'
 
 import {
   buildPayload,
@@ -307,7 +307,7 @@ export const ReportDialog = ({ open, onClose }: Props) => {
                   type="button"
                   className="o-srv__link"
                   onClick={() =>
-                    void openExternalUrl(
+                    void openSupportChat(
                       current?.support ?? ORIGAMI_LINKS.support,
                     )
                   }

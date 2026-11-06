@@ -350,6 +350,11 @@ export async function origamiGameTitles(paths: string[]) {
   return commands.origamiGameTitles(paths)
 }
 
+/** OrigamiVPN: opens the support chat in the Telegram app when there is one, otherwise in the browser. */
+export async function origamiOpenSupportChat(url: string) {
+  return commands.origamiOpenSupportChat(url)
+}
+
 export async function cmdTestDelay(url: string) {
   return commands.testDelay(url)
 }

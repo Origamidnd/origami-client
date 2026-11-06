@@ -1,4 +1,4 @@
-import { ContentCopyRounded } from '@mui/icons-material'
+import { SendRounded } from '@mui/icons-material'
 import { Button, Dialog, DialogActions, DialogContent } from '@mui/material'
 import { useLockFn } from 'ahooks'
 import { useState } from 'react'
@@ -9,7 +9,7 @@ import { reinstallService, restartCore, updateProfile } from '@/services/cmds'
 import { mutate } from '@/services/mutate'
 import { showNotice } from '@/services/notice-service'
 
-import { useCopyDiagnostics } from '../check/use-copy-diagnostics'
+import { openSendDiagnostics } from '../check/send-diagnostics-store'
 
 import { closeCoreTrouble, useCoreTrouble } from './store'
 
@@ -18,7 +18,6 @@ export const CoreTroubleDialog = () => {
   const { t } = useTranslation()
   const trouble = useCoreTrouble()
   const { current } = useProfiles()
-  const copyDiagnostics = useCopyDiagnostics()
   const [busy, setBusy] = useState(false)
   const [details, setDetails] = useState(false)
 
@@ -105,11 +104,11 @@ export const CoreTroubleDialog = () => {
       </DialogContent>
       <DialogActions>
         <Button
-          startIcon={<ContentCopyRounded />}
+          startIcon={<SendRounded />}
           disabled={busy}
-          onClick={() => void copyDiagnostics()}
+          onClick={() => openSendDiagnostics()}
         >
-          {t('origami.coreTrouble.copy')}
+          {t('origami.coreTrouble.send')}
         </Button>
         <Button disabled={busy} onClick={closeCoreTrouble}>
           {t('origami.coreTrouble.close')}

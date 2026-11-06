@@ -44,6 +44,7 @@ pub fn builder() -> tauri_specta::Builder<tauri::Wry> {
             cmd::origami_refresh_usage,
             cmd::origami_program_publishers,
             cmd::origami_game_titles,
+            cmd::origami_open_support_chat,
             cmd::get_proxy_view,
             cmd::get_runtime_yaml,
             cmd::get_runtime_logs,

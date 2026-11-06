@@ -5,6 +5,7 @@ import { useProxiesData } from '@/providers/app-data-context'
 import type { ProxyViewV1 } from '@/types/proxy-view'
 
 import { useConnection } from '../home/use-connection'
+import { connectionLog } from '../report/connection-log'
 
 import { addSnapshot, emptyTraffic } from './program-traffic'
 
@@ -25,6 +26,10 @@ const directNodes = (view: ProxyViewV1 | null | undefined) =>
 
 const poll = async (view: ProxyViewV1 | null | undefined) => {
   const { connections } = await getConnections()
+  connectionLog.add(
+    (connections ?? []) as unknown as IConnectionsItem[],
+    Date.now(),
+  )
   const direct = directNodes(view)
   state = addSnapshot(
     state,

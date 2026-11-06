@@ -1,8 +1,8 @@
 import {
   CheckCircleOutlineRounded,
-  ContentCopyRounded,
   HighlightOffRounded,
   ReportProblemOutlined,
+  SendRounded,
 } from '@mui/icons-material'
 import { Button } from '@mui/material'
 import { useLockFn } from 'ahooks'
@@ -13,8 +13,8 @@ import { getIpInfo } from '@/services/api'
 import { cmdTestDelay } from '@/services/cmds'
 
 import { exitCountryName } from '../check/exit-country'
+import { openSendDiagnostics } from '../check/send-diagnostics-store'
 import { CHECK_TARGETS, isReachable } from '../check/targets'
-import { useCopyDiagnostics } from '../check/use-copy-diagnostics'
 import { useLinkState } from '../link-state'
 import { diagnoseLink } from '../network-recovery'
 import { PingBadge } from '../ping-badge'
@@ -143,7 +143,6 @@ export const CheckPlate = () => {
     return () => window.clearInterval(timer)
   }, [noInternet, connected])
 
-  const copyDiagnostics = useCopyDiagnostics()
   const [reportOpen, setReportOpen] = useState(false)
 
   const checked = Object.keys(delays).length > 0
@@ -236,9 +235,9 @@ export const CheckPlate = () => {
           </Button>
           <Button
             size="small"
-            startIcon={<ContentCopyRounded fontSize="small" />}
+            startIcon={<SendRounded fontSize="small" />}
             onClick={() =>
-              void copyDiagnostics({ delays, exit: exit ?? undefined })
+              openSendDiagnostics({ delays, exit: exit ?? undefined })
             }
           >
             {t('origami.check.diagnostics')}

@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useProfiles } from '@/hooks/use-profiles'
-import { openExternalUrl } from '@/utils/open-external-url'
+
+import { openSupportChat } from '../support-chat'
 
 const DISMISSED_KEY = 'origami.dismissedAnnounce'
 
@@ -43,7 +44,7 @@ export const AnnouncePlate = () => {
           <button
             type="button"
             className="o-announce__link"
-            onClick={() => void openExternalUrl(current.support!)}
+            onClick={() => void openSupportChat(current.support!)}
           >
             {t('origami.home.announce.support')}
           </button>

@@ -15,6 +15,8 @@ export interface DiagnosticsInput {
   delays: Record<string, number | undefined>
   exit?: { country: string; asn: string }
   coreErrors: string[]
+  /** Ready lines about recent connections, for a report that is pasted by hand. */
+  connections?: string[]
 }
 
 const MAX_CORE_ERRORS = 20
@@ -76,5 +78,9 @@ export const buildDiagnostics = (input: DiagnosticsInput): string => {
   const errors = input.coreErrors.slice(-MAX_CORE_ERRORS)
   lines.push(errors.length ? 'Последние ошибки ядра:' : 'Ошибок ядра нет')
   for (const error of errors) lines.push(`  ${error}`)
+  if (input.connections?.length) {
+    lines.push('Соединения за последние минуты:')
+    for (const line of input.connections) lines.push(`  ${line}`)
+  }
   return lines.join('\n')
 }
