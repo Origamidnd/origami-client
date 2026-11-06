@@ -175,6 +175,7 @@ export const withFailures = (
   failures: TimedFailure[],
 ) => {
   const result = rows.map((row) => ({ ...row }))
+  const logOnly = new Set<LoggedConnection>()
   for (const failure of failures) {
     const row = result.find(
       (item) =>
@@ -185,9 +186,13 @@ export const withFailures = (
     if (row) {
       row.failed = true
       row.error ??= failure.error
+      // A destination that keeps failing shows until when, and how many tries the log alone saw.
+      row.first = Math.min(row.first, failure.at)
+      row.last = Math.max(row.last, failure.at)
+      if (logOnly.has(row)) row.count += 1
       continue
     }
-    result.push({
+    const added: LoggedConnection = {
       process: failure.process,
       host: failure.host,
       port: failure.port,
@@ -203,7 +208,9 @@ export const withFailures = (
       first: failure.at,
       last: failure.at,
       open: false,
-    })
+    }
+    logOnly.add(added)
+    result.push(added)
   }
   return result
 }

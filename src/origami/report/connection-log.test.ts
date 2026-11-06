@@ -245,6 +245,26 @@ describe('core log', () => {
     expect(rows[0].error).toBe('i/o timeout')
   })
 
+  it('shows how long a destination kept failing', () => {
+    const failure = (at: number, process = 'a.exe') => ({
+      network: 'tcp',
+      process,
+      host: 'down.com',
+      port: '443',
+      chain: 'Games',
+      rule: 'Match/',
+      error: 'i/o timeout',
+      at,
+    })
+    const [row] = withFailures(
+      [],
+      [failure(NOW - 3000), failure(NOW - 2000, ''), failure(NOW - 1000, '')],
+    )
+    expect(row.count).toBe(3)
+    expect(row.first).toBe(NOW - 3000)
+    expect(row.last).toBe(NOW - 1000)
+  })
+
   it('keeps out the addresses of an unticked program and old ones', () => {
     const time = '11-06 11:59:00'
     const logs = [
