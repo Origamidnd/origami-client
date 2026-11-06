@@ -9,6 +9,7 @@ import {
   programScope,
 } from '../routes/linked'
 import { learnPublishers, publisherOf } from '../routes/publishers'
+import { keepAutoServers } from '../servers/auto-hold'
 
 import { reconnectProgram } from './reconnect'
 import { seenPrograms } from './use-program-traffic'
@@ -44,7 +45,7 @@ export const usePublisherJoin = () => {
           publisherOf,
         )
         if (!joined.length) return
-        await patchRef.current({ origami_routes: next })
+        await keepAutoServers(() => patchRef.current({ origami_routes: next }))
         for (const { name, path, publisher, via } of joined) {
           void reconnectProgram(
             programScope(before, next, name, path),

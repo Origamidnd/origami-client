@@ -469,6 +469,7 @@ const handlers: Record<string, (args: any) => unknown> = {
       ? { delay: 0 }
       : { delay: 20 + ((hash * 7) % 160) }
   },
+  'plugin:mihomo|unfixed_proxy': () => null,
   'plugin:mihomo|select_node_for_group': ({ groupName, node }) => {
     if (groupName === 'OrigamiVPN') selected = node
     groupNow[groupName] = node

@@ -15,6 +15,7 @@ import type { IOrigamiRoute } from '@/services/bindings'
 import { showNotice } from '@/services/notice-service'
 
 import { useConnection } from '../home/use-connection'
+import { keepAutoServers } from '../servers/auto-hold'
 
 import { familyOf, folderName, withProgramChoice } from './linked'
 import {
@@ -84,7 +85,7 @@ export const OwnRoutes = () => {
   const save = async (next: IOrigamiRoute[]) => {
     setSaving(true)
     try {
-      await patchVerge({ origami_routes: next })
+      await keepAutoServers(() => patchVerge({ origami_routes: next }))
       return true
     } catch (error) {
       showNotice.error(error)

@@ -3,11 +3,12 @@ import {
   closeConnection,
   delayGroup,
   getConnections,
-  getProxies,
 } from 'tauri-plugin-mihomo-api'
 
 import { onCoreReloaded } from '../core-reload-signal'
 import { useConnection } from '../home/use-connection'
+
+import { autoGroups, autoGroupsSettled } from './auto-hold'
 
 const TEST_TIMEOUT_MS = 5000
 // Several reloads in a row count as one.
@@ -40,19 +41,14 @@ export const staleConnections = <T extends StaleCandidate>(
     )
   })
 
-const autoGroups = async () => {
-  const { proxies } = await getProxies()
-  return Object.values(proxies).filter(
-    (proxy) => proxy.type === 'URLTest' && proxy.testUrl,
-  )
-}
-
 /**
  * An auto group knows nothing about its servers after a start or reload, so until its first test it
  * uses the first one on the list, whichever that is. This tests it right away and moves whatever
  * opened in that short time to the server it really picked.
  */
 export const warmAutoGroups = async (since: number) => {
+  // A group test drops a pin and would put back a pin it saw, so it waits for a held group.
+  await autoGroupsSettled()
   const groups = await autoGroups()
   if (groups.length === 0) return
   await Promise.allSettled(

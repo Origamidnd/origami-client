@@ -27,6 +27,7 @@ import {
   subscribePublishers,
 } from '../routes/publishers'
 import { OWN_GROUP } from '../routes/routes'
+import { keepAutoServers } from '../servers/auto-hold'
 import { parseServerName } from '../servers/model'
 import { withoutEmoji } from '../servers/service-names'
 import type { FocusGroupState } from '../use-focus-group'
@@ -102,7 +103,7 @@ export const OrigamiPrograms = () => {
             ? t('origami.programs.linked.withFolder', { name })
             : name
       try {
-        await patchVerge({ origami_routes: next })
+        await keepAutoServers(() => patchVerge({ origami_routes: next }))
         void reconnectProgram(programScope(routes, next, name, path), choice)
         showNotice.success(`origami.programs.set.${choice}`, { name: label })
       } catch (error) {
