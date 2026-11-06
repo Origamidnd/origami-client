@@ -91,6 +91,14 @@ export const commands = {
     __TAURI_INVOKE<{ [key in string]: string }>('origami_program_publishers', {
       paths,
     }),
+  /**
+   *  Titles by the given path, for the programs known to be games. The first look without a list waits
+   *  for the download; after that an old list is renewed in the background.
+   */
+  origamiGameTitles: (paths: string[]) =>
+    __TAURI_INVOKE<{ [key in string]: string }>('origami_game_titles', {
+      paths,
+    }),
   getProxyView: () => __TAURI_INVOKE<ProxyViewV1_Serialize>('get_proxy_view'),
   getRuntimeYaml: () => __TAURI_INVOKE<string>('get_runtime_yaml'),
   getRuntimeLogs: () => __TAURI_INVOKE<RuntimeLogs>('get_runtime_logs'),

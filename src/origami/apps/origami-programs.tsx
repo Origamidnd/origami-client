@@ -33,6 +33,12 @@ import { withoutEmoji } from '../servers/service-names'
 import type { FocusGroupState } from '../use-focus-group'
 
 import {
+  gameTitleOf,
+  gameTitlesVersion,
+  learnGameTitles,
+  subscribeGameTitles,
+} from './game-titles'
+import {
   keepOrder,
   type ProgramStat,
   programWay,
@@ -56,8 +62,11 @@ export const OrigamiPrograms = () => {
   useSyncExternalStore(subscribePublishers, publishersVersion)
   const seen = [...programs.values()]
   const pathsKey = seen.map((stat) => stat.path ?? '').join('|')
+  useSyncExternalStore(subscribeGameTitles, gameTitlesVersion)
   useEffect(() => {
-    void learnPublishers(pathsKey.split('|'))
+    const paths = pathsKey.split('|')
+    void learnPublishers(paths)
+    void learnGameTitles(paths)
   }, [pathsKey])
 
   /** The publisher that links this program with others, if any. */
@@ -184,12 +193,14 @@ export const OrigamiPrograms = () => {
           >
             {list.map((stat) => {
               const linked = stat.name ? linkedHint(stat) : null
+              const game = gameTitleOf(stat.path)
               return (
                 <li key={stat.name || 'unknown'}>
                   <span className="o-apps__name">
                     <b title={stat.name}>
                       {stat.name || t('origami.programs.unknown')}
                     </b>
+                    {game && <span className="o-hint">{game}</span>}
                     <span className="o-hint">{describe(stat)}</span>
                     {linked && <span className="o-hint">{linked}</span>}
                   </span>

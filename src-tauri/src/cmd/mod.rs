@@ -95,6 +95,7 @@ pub fn proxy_aware_error(error: &anyhow::Error) -> CommandFailure {
 pub mod app;
 pub mod backup;
 pub mod clash;
+pub mod game_titles;
 pub mod lightweight;
 pub mod listener;
 pub mod media_unlock_checker;
@@ -115,6 +116,7 @@ pub mod webdav;
 pub use app::*;
 pub use backup::*;
 pub use clash::*;
+pub use game_titles::*;
 pub use lightweight::*;
 pub use listener::*;
 pub use media_unlock_checker::*;

@@ -484,6 +484,16 @@ const handlers: Record<string, (args: any) => unknown> = {
   // `?nodns=1`: every other silent server has an address that does not resolve.
   origami_set_link_state: () => null,
   origami_refresh_usage: () => null,
+  origami_game_titles: ({ paths }) =>
+    Object.fromEntries(
+      (paths as string[]).flatMap((path) =>
+        /\\wow\.exe$/i.test(path)
+          ? [[path, 'World of Warcraft']]
+          : /tarkov/i.test(path)
+            ? [[path, 'Escape from Tarkov']]
+            : [],
+      ),
+    ),
   origami_program_publishers: ({ paths }) =>
     Object.fromEntries(
       (paths as string[])

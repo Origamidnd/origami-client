@@ -345,6 +345,11 @@ export async function origamiProgramPublishers(paths: string[]) {
   return commands.origamiProgramPublishers(paths)
 }
 
+/** OrigamiVPN: the games behind these program files, by path; a label only. */
+export async function origamiGameTitles(paths: string[]) {
+  return commands.origamiGameTitles(paths)
+}
+
 export async function cmdTestDelay(url: string) {
   return commands.testDelay(url)
 }
