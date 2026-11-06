@@ -20,6 +20,16 @@ const NOT_SERVER_TYPES: [&str; 4] = ["direct", "reject", "dns", "pass"];
 /// Programs that go one way together: the UI reads the same file (src/origami/routes/linked.ts).
 const FAMILIES_JSON: &str = include_str!("../../../src/origami/routes/families.json");
 
+/// File names many unrelated programs use; the UI reads the same file (src/origami/routes/linked.ts).
+const GENERIC_NAMES_JSON: &str = include_str!("../../../src/origami/routes/generic-names.json");
+
+static GENERIC_NAMES: LazyLock<Vec<String>> =
+    LazyLock::new(|| serde_json::from_str(GENERIC_NAMES_JSON).unwrap_or_default());
+
+pub fn is_generic_name(name: &str) -> bool {
+    GENERIC_NAMES.contains(&name.to_lowercase())
+}
+
 #[derive(Deserialize)]
 struct FamilySource {
     names: String,
@@ -136,7 +146,10 @@ fn folder_pattern(folder: &str) -> Option<String> {
 fn rule_line(route: &IOrigamiRoute, has_group: bool) -> Option<String> {
     let target = target_of(route, has_group)?;
     match route.kind.as_str() {
-        "app" => clean_process(&route.value).map(|name| format!("PROCESS-NAME,{name},{target}")),
+        // With a folder a common name adds nothing but other programs: the folder rule has this one.
+        "app" => clean_process(&route.value)
+            .filter(|name| !(is_generic_name(name) && route.folder.as_deref().and_then(folder_pattern).is_some()))
+            .map(|name| format!("PROCESS-NAME,{name},{target}")),
         "site" => clean_domain(&route.value).map(|domain| format!("DOMAIN-SUFFIX,{domain},{target}")),
         _ => None,
     }
@@ -428,13 +441,13 @@ rules:
 
     #[test]
     fn a_folder_covers_its_programs_after_the_own_rules() {
-        let mut game = route("app", "game.exe", "direct");
+        let mut game = route("app", "mygame.exe", "direct");
         game.folder = Some(r"D:\Games\My Game (x64)".into());
         let out = use_origami_routes(config(), &[game, route("app", "helper.exe", "vpn")]);
         assert_eq!(
             &rules(&out)[..3],
             [
-                "PROCESS-NAME,game.exe,DIRECT",
+                "PROCESS-NAME,mygame.exe,DIRECT",
                 "PROCESS-NAME,helper.exe,⭐ Свои правила",
                 r"PROCESS-PATH-REGEX,(?i)^D:\\Games\\My Game \(x64\)\\.*,DIRECT",
             ]
@@ -443,7 +456,7 @@ rules:
 
     #[test]
     fn programs_of_one_publisher_go_together_with_their_folders() {
-        let mut game = route("app", "game.exe", "direct");
+        let mut game = route("app", "mygame.exe", "direct");
         game.folder = Some(r"D:\Game".into());
         game.publisher = Some("Some Studio".into());
         game.also_names = Some(vec!["launcher.exe".into(), "bad,DIRECT".into()]);
@@ -452,12 +465,34 @@ rules:
         assert_eq!(
             &rules(&out)[..4],
             [
-                "PROCESS-NAME,game.exe,DIRECT",
+                "PROCESS-NAME,mygame.exe,DIRECT",
                 "PROCESS-NAME,launcher.exe,DIRECT",
                 r"PROCESS-PATH-REGEX,(?i)^D:\\Game\\.*,DIRECT",
                 r"PROCESS-PATH-REGEX,(?i)^C:\\Launcher\\.*,DIRECT",
             ]
         );
+    }
+
+    #[test]
+    fn a_common_name_goes_by_its_folder_alone() {
+        let mut launcher = route("app", "Launcher.exe", "direct");
+        launcher.folder = Some(r"D:\Warframe\Tools".into());
+        let out = use_origami_routes(config(), &[launcher]);
+        assert_eq!(
+            &rules(&out)[..2],
+            [
+                r"PROCESS-PATH-REGEX,(?i)^D:\\Warframe\\Tools\\.*,DIRECT",
+                "PROCESS-NAME,steam.exe,DIRECT",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_common_name_without_a_folder_stays_by_name() {
+        let out = use_origami_routes(config(), &[route("app", "game.exe", "direct")]);
+        assert_eq!(rules(&out)[0], "PROCESS-NAME,game.exe,DIRECT");
+        assert!(is_generic_name("LAUNCHER.EXE"));
+        assert!(!is_generic_name("dota2.exe"));
     }
 
     #[test]

@@ -29,9 +29,10 @@ describe('addSnapshot', () => {
     const connection = conn('a', 'Agent.exe', 10)
     connection.metadata.processPath = 'C:\\ProgramData\\Agent.exe'
     const state = addSnapshot(emptyTraffic(), [connection], isDirect)
-    expect(state.programs.get('Agent.exe')?.path).toBe(
-      'C:\\ProgramData\\Agent.exe',
-    )
+    expect(
+      [...state.programs.values()].find((item) => item.name === 'Agent.exe')
+        ?.path,
+    ).toBe('C:\\ProgramData\\Agent.exe')
   })
 
   it('counts only what is new between polls', () => {

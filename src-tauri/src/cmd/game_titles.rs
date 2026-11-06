@@ -1,6 +1,7 @@
 //! OrigamiVPN: the name of a game behind a program file, for the Programs tab. Only a label: nothing
 //! here decides how a program goes. The list comes from our server and is kept on disk, so without it
 //! a program simply shows its file name.
+use crate::enhance::origami_routes::is_generic_name;
 use crate::utils::{
     dirs,
     network::{NetworkManager, ProxyType},
@@ -91,13 +92,11 @@ impl GameIndex {
         if let Some(entry) = with_folders {
             return self.titles.get(entry.title).map(StdString::as_str);
         }
-        // A bare name counts only when a single game claims it: `game.exe` belongs to nobody.
-        let mut bare = entries
-            .iter()
-            .filter(|entry| entry.suffix.is_empty())
-            .map(|entry| entry.title);
-        let title = bare.next()?;
-        bare.all(|other| other == title)
+        // Otherwise the file may simply live in another folder, as after a manual install. That says
+        // enough only for a name of one game, and never for one that many programs use.
+        let mut titles = entries.iter().map(|entry| entry.title);
+        let title = titles.next()?;
+        (titles.all(|other| other == title) && !is_generic_name(file))
             .then(|| self.titles.get(title).map(StdString::as_str))
             .flatten()
     }
@@ -202,14 +201,13 @@ mod tests {
     }
 
     #[test]
-    fn a_name_with_folders_needs_those_folders() {
+    fn folders_decide_between_games_of_one_name() {
         let index = index();
         assert_eq!(
             index.title_of(r"C:\Program Files (x86)\World of Warcraft\_retail_\Wow.exe"),
             Some("World of Warcraft")
         );
-        assert_eq!(index.title_of(r"C:\Other\Wow.exe"), None);
-        assert_eq!(index.title_of(r"C:\not_retail_\Wow.exe"), None);
+        assert_eq!(index.title_of(r"C:\Games\_ptr_\wow.exe"), Some("World of Warcraft"));
     }
 
     #[test]
@@ -237,6 +235,19 @@ mod tests {
         let index = index();
         assert_eq!(index.title_of(r"C:\Games\game.exe"), None);
         assert_eq!(index.title_of(r"C:\Games\two\game.exe"), Some("Two"));
+    }
+
+    #[test]
+    fn a_name_of_one_game_counts_in_another_folder() {
+        let index = index();
+        assert_eq!(index.title_of(r"C:\Games\my wow\wow.exe"), Some("World of Warcraft"));
+    }
+
+    #[test]
+    fn a_common_name_does_not_count_in_another_folder() {
+        let index = GameIndex::parse(br#"[{"id":"1","title":"A","exes":["a/launcher.exe"]}]"#).unwrap();
+        assert_eq!(index.title_of(r"C:\Games\a\launcher.exe"), Some("A"));
+        assert_eq!(index.title_of(r"C:\Other\launcher.exe"), None);
     }
 
     #[test]

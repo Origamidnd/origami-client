@@ -1,6 +1,7 @@
 import type { IOrigamiRoute } from '@/services/bindings'
 
 import rawFamilies from './families.json'
+import genericNames from './generic-names.json'
 
 export type ProgramChoice = 'auto' | 'direct' | 'vpn'
 
@@ -31,6 +32,25 @@ export const familyOf = (name: string, path?: string | null) =>
 
 const sameName = (a: string | undefined, b: string) =>
   a?.toLowerCase() === b.toLowerCase()
+
+// File names many unrelated programs use: `Launcher.exe` of one game says nothing about another. The
+// core reads the same file (src-tauri enhance/origami_routes.rs).
+const GENERIC_NAMES = new Set(genericNames)
+
+export const isGenericName = (name: string) =>
+  GENERIC_NAMES.has(name.toLowerCase())
+
+/** One row per program: two different files named `Launcher.exe` are two programs. */
+export const programKey = ({
+  name,
+  path,
+}: {
+  name: string
+  path?: string | null
+}) =>
+  isGenericName(name) && path
+    ? `${name.toLowerCase()}|${(programFolder(path) ?? path).toLowerCase()}`
+    : name
 
 // Folders inside a program that say nothing about it: the program is the folder above them.
 const INNER_FOLDER =
@@ -64,6 +84,16 @@ export const programFolder = (path?: string | null) => {
     parts.pop()
     leaveInnerFolders(parts)
   }
+  // A folder per version in the middle (EA Desktop\13.822.0.6335\EA Desktop): the next update moves
+  // the program, so the folder above it is the one that stays.
+  const version = parts
+    .map((part, index) => (index > 1 && /^\d+(\.\d+)+$/.test(part) ? index : 0))
+    .reduce((last, index) => Math.max(last, index), 0)
+  if (version > 0) {
+    const above = parts.slice(0, version)
+    leaveInnerFolders(above)
+    if (!isSharedFolder(above)) return above.join('\\')
+  }
   return isSharedFolder(parts) ? null : parts.join('\\')
 }
 
@@ -74,6 +104,16 @@ const isUnder = (folder: string | null | undefined, path?: string | null) =>
   !!path &&
   path.toLowerCase().startsWith(`${folder.toLowerCase()}\\`)
 
+/** A route with a folder decides a program of a common name by that folder alone. */
+const routeNamesProgram = (
+  route: IOrigamiRoute,
+  name: string,
+  path?: string | null,
+) =>
+  route.kind === 'app' &&
+  sameName(route.value, name) &&
+  !(isGenericName(name) && route.folder && path)
+
 /** Whether a program's way is decided by this route. */
 export const routeCovers = (
   route: IOrigamiRoute,
@@ -81,7 +121,7 @@ export const routeCovers = (
   path?: string | null,
 ) => {
   if (route.kind !== 'app' || !route.value) return false
-  if (sameName(route.value, name)) return true
+  if (routeNamesProgram(route, name, path)) return true
   if (route.also_names?.some((other) => sameName(other, name))) return true
   const family = familyOf(name, path)
   return (
@@ -97,7 +137,7 @@ export const routeOf = (
   name: string,
   path?: string | null,
 ) =>
-  routes.find((route) => route.kind === 'app' && sameName(route.value, name)) ??
+  routes.find((route) => routeNamesProgram(route, name, path)) ??
   routes.find((route) => routeCovers(route, name, path))
 
 /** A folder set earlier on the program above this one stays whole: one folder, one way. */
@@ -301,7 +341,9 @@ export const programScope = (
     key: familyOf(name, path)?.id ?? name.toLowerCase(),
     has: (process, processPath) =>
       !!process &&
-      (sameName(process, name) ||
+      ((sameName(process, name) &&
+        programKey({ name: process, path: processPath }) ===
+          programKey({ name, path })) ||
         touched.some((route) => routeCovers(route, process, processPath))),
     payloads: new Set(touched.flatMap(ownPayloads)),
   }

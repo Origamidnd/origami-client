@@ -12,8 +12,11 @@ import { useConnection } from '../home/use-connection'
 import {
   familyOf,
   folderName,
+  isGenericName,
   isLinkablePublisher,
   type ProgramChoice,
+  programFolder,
+  programKey,
   programScope,
   publisherLink,
   routeOf,
@@ -125,8 +128,8 @@ export const OrigamiPrograms = () => {
   const rows = new Map(programs)
   for (const route of routes) {
     if (route.kind !== 'app' || !route.value) continue
-    const known = [...rows.keys()].some(
-      (name) => name.toLowerCase() === route.value?.toLowerCase(),
+    const known = [...rows.values()].some(
+      ({ name }) => name.toLowerCase() === route.value?.toLowerCase(),
     )
     if (!known) {
       rows.set(route.value, {
@@ -185,7 +188,7 @@ export const OrigamiPrograms = () => {
           <ul
             className="o-plate o-apps__list"
             onMouseEnter={() => {
-              heldOrderRef.current = list.map((stat) => stat.name)
+              heldOrderRef.current = list.map(programKey)
             }}
             onMouseLeave={() => {
               heldOrderRef.current = null
@@ -193,9 +196,13 @@ export const OrigamiPrograms = () => {
           >
             {list.map((stat) => {
               const linked = stat.name ? linkedHint(stat) : null
-              const game = gameTitleOf(stat.path)
+              const folder = programFolder(stat.path)
+              // Two programs may share a common file name: the folder tells them apart.
+              const game =
+                gameTitleOf(stat.path) ??
+                (isGenericName(stat.name) && folder ? folderName(folder) : null)
               return (
-                <li key={stat.name || 'unknown'}>
+                <li key={programKey(stat) || 'unknown'}>
                   <span className="o-apps__name">
                     <b title={stat.name}>
                       {stat.name || t('origami.programs.unknown')}

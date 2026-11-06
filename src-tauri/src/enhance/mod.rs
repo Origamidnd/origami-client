@@ -2,7 +2,7 @@ use crate::core::notify::NoticeStatus;
 mod chain;
 pub mod field;
 mod merge;
-mod origami_routes;
+pub(crate) mod origami_routes;
 mod script;
 pub mod seq;
 mod tun;

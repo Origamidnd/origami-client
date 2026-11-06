@@ -1,3 +1,4 @@
+import { programKey } from '../routes/linked'
 import { isOwnProcess } from '../routes/routes'
 
 export interface ProgramStat {
@@ -51,7 +52,8 @@ export const addSnapshot = (
     const delta = Math.max(0, bytes - (state.seen.get(connection.id) ?? 0))
     seen.set(connection.id, bytes)
 
-    const stat = programs.get(name) ?? {
+    const key = programKey({ name, path: connection.metadata.processPath })
+    const stat = programs.get(key) ?? {
       name,
       direct: 0,
       vpn: 0,
@@ -70,7 +72,7 @@ export const addSnapshot = (
       stat.activeVpn += 1
       if (node) stat.server = node
     }
-    programs.set(name, stat)
+    programs.set(key, stat)
   }
 
   return { seen, programs }
@@ -89,7 +91,7 @@ export const programWay = (stat: ProgramStat): ProgramWay => {
 /** The given order; programs new since it was taken go last. */
 export const keepOrder = (list: ProgramStat[], order: string[]) => {
   const place = new Map(order.map((name, index) => [name, index]))
-  const at = (stat: ProgramStat) => place.get(stat.name) ?? order.length
+  const at = (stat: ProgramStat) => place.get(programKey(stat)) ?? order.length
   // A stable sort, so the new ones stay busiest first among themselves.
   return [...list].sort((a, b) => at(a) - at(b))
 }

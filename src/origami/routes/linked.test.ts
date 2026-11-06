@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest'
 import {
   familyOf,
   folderPattern,
+  isGenericName,
   isLinkablePublisher,
   joinPublisher,
   programFolder,
+  programKey,
   programScope,
   publisherLink,
   routeOf,
@@ -131,6 +133,20 @@ describe('programFolder', () => {
         'C:\\Riot Games\\VALORANT\\live\\ShooterGame\\Binaries\\Win64\\VALORANT-Win64-Shipping.exe',
       ),
     ).toBe('C:\\Riot Games\\VALORANT')
+  })
+
+  it('stays above a folder that changes with every version', () => {
+    expect(
+      programFolder(
+        'C:\\Program Files\\Electronic Arts\\EA Desktop\\13.822.0.6335\\EA Desktop\\EADesktop.exe',
+      ),
+    ).toBe('C:\\Program Files\\Electronic Arts\\EA Desktop')
+    expect(programFolder('D:\\Games\\1.2.3\\Some Game\\game.exe')).toBe(
+      'D:\\Games\\1.2.3\\Some Game',
+    )
+    expect(programFolder('D:\\Games\\Game 2\\data\\game.exe')).toBe(
+      'D:\\Games\\Game 2\\data',
+    )
   })
 
   it('does not climb out of a game into a shared folder', () => {
@@ -432,5 +448,47 @@ describe('publisher links', () => {
     const scope = programScope(before, [], 'game.exe', GAME)
     expect(scope.has('launcher.exe', LAUNCHER)).toBe(true)
     expect(scope.payloads.has(folderPattern('C:\\Some Launcher'))).toBe(true)
+  })
+})
+
+describe('programs of a common name', () => {
+  const WARFRAME =
+    'C:\\Users\\me\\AppData\\Local\\Warframe\\Public\\Tools\\Launcher.exe'
+  const ROCKSTAR = 'C:\\Program Files\\Rockstar Games\\Launcher\\Launcher.exe'
+
+  it('knows such names, whatever the case', () => {
+    expect(isGenericName('Launcher.exe')).toBe(true)
+    expect(isGenericName('game.exe')).toBe(true)
+    expect(isGenericName('dota2.exe')).toBe(false)
+  })
+
+  it('keeps two different files apart, and other programs by name', () => {
+    expect(programKey({ name: 'Launcher.exe', path: WARFRAME })).not.toBe(
+      programKey({ name: 'Launcher.exe', path: ROCKSTAR }),
+    )
+    expect(programKey({ name: 'dota2.exe', path: 'D:\\A\\dota2.exe' })).toBe(
+      'dota2.exe',
+    )
+    expect(programKey({ name: 'Launcher.exe' })).toBe('Launcher.exe')
+  })
+
+  it('does not move another file of the same name', () => {
+    const next = withProgramChoice([], 'Launcher.exe', WARFRAME, 'direct')
+    expect(routeOf(next, 'Launcher.exe', WARFRAME)?.via).toBe('direct')
+    expect(routeOf(next, 'Launcher.exe', ROCKSTAR)).toBeUndefined()
+    const scope = programScope([], next, 'Launcher.exe', WARFRAME)
+    expect(scope.has('Launcher.exe', WARFRAME)).toBe(true)
+    expect(scope.has('Launcher.exe', ROCKSTAR)).toBe(false)
+  })
+
+  it('still goes by the name when no folder can be told', () => {
+    const next = withProgramChoice([], 'game.exe', 'D:\\Games\\game.exe', 'vpn')
+    expect(next[0].folder).toBeNull()
+    expect(routeOf(next, 'game.exe', 'D:\\Other\\game.exe')?.via).toBe('vpn')
+  })
+
+  it('still reaches an old rule by the name when the path is not known', () => {
+    const next = withProgramChoice([], 'Launcher.exe', WARFRAME, 'direct')
+    expect(routeOf(next, 'Launcher.exe')?.via).toBe('direct')
   })
 })
