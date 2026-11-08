@@ -5,6 +5,7 @@ const DAY = 24 * 60 * 60
 
 const params = new URLSearchParams(location.search)
 const theme = params.get('theme') === 'dark' ? 'dark' : 'light'
+let updateChanged = false
 
 const verge: Record<string, unknown> = {
   language: params.get('lang') ?? 'ru',
@@ -525,18 +526,36 @@ const handlers: Record<string, (args: any) => unknown> = {
     return 1
   },
   'plugin:app|version': () => '0.1.0',
+  // `?update=changed`: a newer release came out while the dialog was open, so the install
+  // reports a changed offer and the next check returns it.
+  install_update: () => {
+    if (params.get('update') !== 'changed') return 'installed'
+    updateChanged = true
+    return 'update_changed'
+  },
   'plugin:updater|check': () =>
-    params.get('update') === '1'
+    params.get('update') === 'changed'
       ? {
           rid: 1,
-          currentVersion: '0.1.7',
-          version: '0.1.8',
-          date: '2026-11-05',
-          // The real text arrives from latest.json (.github/release-notes/<tag>.md).
-          body: 'Что нового в 0.1.8:\n\n- Через полминуты после запуска программа сама проверяет, идёт ли трафик через VPN, и при необходимости переподключает его.\n- В окне обновления теперь виден список изменений.\n\nЕсли что-то не работает, нажмите "Скопировать диагностику для поддержки" на главном экране и пришлите мне.',
+          currentVersion: '0.1.12',
+          version: updateChanged ? '0.1.14' : '0.1.13',
+          date: '2026-11-08',
+          body: updateChanged
+            ? 'Что нового в 0.1.14:\n\n- Вторая версия, вышла пока окно было открыто.'
+            : 'Что нового в 0.1.13:\n\n- Первая версия.',
           rawJson: {},
         }
-      : null,
+      : params.get('update') === '1'
+        ? {
+            rid: 1,
+            currentVersion: '0.1.7',
+            version: '0.1.8',
+            date: '2026-11-05',
+            // The real text arrives from latest.json (.github/release-notes/<tag>.md).
+            body: 'Что нового в 0.1.8:\n\n- Через полминуты после запуска программа сама проверяет, идёт ли трафик через VPN, и при необходимости переподключает его.\n- В окне обновления теперь виден список изменений.\n\nЕсли что-то не работает, нажмите "Скопировать диагностику для поддержки" на главном экране и пришлите мне.',
+            rawJson: {},
+          }
+        : null,
   'plugin:app|name': () => 'OrigamiVPN',
   'plugin:os|platform': () => 'windows',
   'plugin:event|listen': () => Math.floor(Math.random() * 1e6),
