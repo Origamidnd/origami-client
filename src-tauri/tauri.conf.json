@@ -34,7 +34,7 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU1NjAzOTk4QkE0MzVEOEIKUldTTFhVTzZtRGxnNWZuSEFBSW5Dcm45YXlaOVoxcjFwRFVYK05rVWk1RkxzYmlISUt1SlpFYkQK",
       "endpoints": [
         "https://github.com/Origamidnd/origami-client/releases/latest/download/latest.json",
-      "https://sub.origamivpn.pro/client/latest.json"
+        "https://sub.origamivpn.pro/client/latest.json"
       ],
       "windows": {
         "installMode": "passive"
