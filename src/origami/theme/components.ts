@@ -12,6 +12,12 @@ export const paperComponents = (mode: PaperMode): Components<Theme> => {
           borderRadius: 8,
           textTransform: 'none',
           fontWeight: 500,
+          variants: [
+            {
+              props: { variant: 'text', color: 'primary' },
+              style: { color: t.accentText },
+            },
+          ],
         },
         contained: {
           backgroundColor: t.action,

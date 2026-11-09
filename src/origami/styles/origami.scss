@@ -265,7 +265,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   line-height: 16px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--o-accent);
+  color: var(--o-accent-text);
 }
 
 // Captions inside a block (download / upload speed) stay quiet.
@@ -621,7 +621,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
   &__icon {
     margin-top: 1px;
-    color: var(--o-accent);
+    color: var(--o-accent-text);
   }
 
   &__text {
@@ -635,7 +635,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     padding: 0;
     border: 0;
     background: none;
-    color: var(--o-accent);
+    color: var(--o-accent-text);
     font: inherit;
     font-weight: 500;
     text-decoration: underline;
@@ -822,7 +822,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     font-family: $mono;
     font-size: 11px;
     letter-spacing: 0.08em;
-    color: var(--o-accent);
+    color: var(--o-accent-text);
   }
 
   &__row {
@@ -1045,6 +1045,11 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     }
   }
 
+  // The stock box paints the current profile's name in the primary accent, under 4.5:1 on white.
+  & &__head[aria-selected='true'] h2 {
+    color: var(--o-accent-text);
+  }
+
   &__from {
     display: flex;
     gap: 6px;
@@ -1074,7 +1079,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     cursor: pointer;
 
     &:hover {
-      color: var(--o-accent);
+      color: var(--o-accent-text);
     }
   }
 
@@ -1098,7 +1103,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     padding: 3px 10px;
     border: 1px solid currentColor;
     border-radius: 999px;
-    color: var(--o-accent);
+    color: var(--o-accent-text);
     font-size: 12px;
     font-weight: 600;
   }
@@ -1305,7 +1310,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     font-family: $mono;
     font-size: 11px;
     letter-spacing: 0.08em;
-    color: var(--o-accent);
+    color: var(--o-accent-text);
   }
 
   &__block-hint {
@@ -1428,7 +1433,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
 
     &:hover,
     &:focus-visible {
-      color: var(--o-accent);
+      color: var(--o-accent-text);
     }
   }
 
@@ -1512,7 +1517,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     padding: 0;
     border: 0;
     background: none;
-    color: var(--o-accent);
+    color: var(--o-accent-text);
     font: inherit;
     text-decoration: underline;
     cursor: pointer;
@@ -1611,7 +1616,7 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
     font-family: $mono;
     font-size: 11px;
     letter-spacing: 0.08em;
-    color: var(--o-accent);
+    color: var(--o-accent-text);
   }
 
   &__body {

@@ -9,8 +9,9 @@ export const defaultTheme = {
   secondary_text: '#5B6078',
   info_color: '#3A4C7E',
   error_color: '#BE3A22',
-  warning_color: '#C77412',
-  success_color: '#2A8A5E',
+  // Text tones (same as the subscription page): the fill tones are under 4.5:1 for small text.
+  warning_color: '#9B5A0E',
+  success_color: '#257852',
   background_color: '#F2F2EF',
   font_family: `Onest, -apple-system, BlinkMacSystemFont,"Microsoft YaHei UI", "Microsoft YaHei", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji"${
     OS === 'windows' ? ', twemoji mozilla' : ''

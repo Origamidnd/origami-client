@@ -8,6 +8,8 @@ export interface PaperTokens {
   line: string
   crease: string
   accent: string
+  // Accent for small text and icons: plain accent is under 4.5:1 on the light paper.
+  accentText: string
   action: string
   onAction: string
   pale: string
@@ -34,6 +36,7 @@ export const paperTokens: Record<PaperMode, PaperTokens> = {
     line: '#16203C',
     crease: '#A9ABB3',
     accent: '#E0702B',
+    accentText: '#A44D17',
     action: '#EE7C34',
     onAction: '#16203C',
     pale: '#FBE3CC',
@@ -57,6 +60,7 @@ export const paperTokens: Record<PaperMode, PaperTokens> = {
     line: '#5C668F',
     crease: '#4A5379',
     accent: '#F08A3E',
+    accentText: '#F08A3E',
     action: '#EE7C34',
     onAction: '#16203C',
     pale: '#3A2A22',
