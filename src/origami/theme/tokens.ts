@@ -57,7 +57,7 @@ export const paperTokens: Record<PaperMode, PaperTokens> = {
     plate: '#16203C',
     ink: '#F2F2EF',
     muted: '#9EA4BF',
-    line: '#5C668F',
+    line: '#6A759E',
     crease: '#4A5379',
     accent: '#F08A3E',
     accentText: '#F08A3E',
