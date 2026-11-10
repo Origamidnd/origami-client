@@ -9,7 +9,7 @@ import {
   programScope,
 } from '../routes/linked'
 import { learnPublishers, publisherOf } from '../routes/publishers'
-import { keepAutoServers } from '../servers/auto-hold'
+import { updateRoutes } from '../routes/update-routes'
 
 import { reconnectProgram } from './reconnect'
 import { seenPrograms } from './use-program-traffic'
@@ -38,14 +38,21 @@ export const usePublisherJoin = () => {
       try {
         const programs = seenPrograms()
         await learnPublishers(programs.map((program) => program.path))
-        const before = routesRef.current
-        const { routes: next, joined } = joinPublisher(
-          before,
-          programs,
-          publisherOf,
+        // Cheap first look at what the app shows; the write itself starts from the saved routes.
+        if (
+          !joinPublisher(routesRef.current, programs, publisherOf).joined.length
         )
-        if (!joined.length) return
-        await keepAutoServers(() => patchRef.current({ origami_routes: next }))
+          return
+        let joined: ReturnType<typeof joinPublisher>['joined'] = []
+        const { before, next } = await updateRoutes(
+          patchRef.current,
+          (saved) => {
+            const result = joinPublisher(saved, programs, publisherOf)
+            joined = result.joined
+            return result.joined.length ? result.routes : null
+          },
+        )
+        if (!next) return
         for (const { name, path, publisher, via } of joined) {
           void reconnectProgram(
             programScope(before, next, name, path),

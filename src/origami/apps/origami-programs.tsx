@@ -30,7 +30,7 @@ import {
   subscribePublishers,
 } from '../routes/publishers'
 import { OWN_GROUP } from '../routes/routes'
-import { keepAutoServers } from '../servers/auto-hold'
+import { updateRoutes } from '../routes/update-routes'
 import { parseServerName } from '../servers/model'
 import { withoutEmoji } from '../servers/service-names'
 import type { FocusGroupState } from '../use-focus-group'
@@ -115,8 +115,13 @@ export const OrigamiPrograms = () => {
             ? t('origami.programs.linked.withFolder', { name })
             : name
       try {
-        await keepAutoServers(() => patchVerge({ origami_routes: next }))
-        void reconnectProgram(programScope(routes, next, name, path), choice)
+        const saved = await updateRoutes(patchVerge, (fresh) =>
+          withProgramChoice(fresh, name, path, choice, link),
+        )
+        void reconnectProgram(
+          programScope(saved.before, saved.next ?? saved.before, name, path),
+          choice,
+        )
         showNotice.success(`origami.programs.set.${choice}`, { name: label })
       } catch (error) {
         showNotice.error(error)

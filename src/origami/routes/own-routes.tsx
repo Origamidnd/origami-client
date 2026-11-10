@@ -15,7 +15,6 @@ import type { IOrigamiRoute } from '@/services/bindings'
 import { showNotice } from '@/services/notice-service'
 
 import { useConnection } from '../home/use-connection'
-import { keepAutoServers } from '../servers/auto-hold'
 
 import { familyOf, folderName, withProgramChoice } from './linked'
 import {
@@ -25,6 +24,7 @@ import {
   type RouteVia,
   upsertRoute,
 } from './routes'
+import { updateRoutes } from './update-routes'
 
 const isWindows = navigator.userAgent.includes('Windows')
 
@@ -82,10 +82,12 @@ export const OwnRoutes = () => {
         )
       : []
 
-  const save = async (next: IOrigamiRoute[]) => {
+  const save = async (
+    update: (saved: IOrigamiRoute[]) => IOrigamiRoute[] | null,
+  ) => {
     setSaving(true)
     try {
-      await keepAutoServers(() => patchVerge({ origami_routes: next }))
+      await updateRoutes(patchVerge, update)
       return true
     } catch (error) {
       showNotice.error(error)
@@ -103,18 +105,14 @@ export const OwnRoutes = () => {
       )
       return
     }
-    const next =
+    const path =
+      pickedPath && cleanValue('app', pickedPath) === clean ? pickedPath : null
+    const added = await save((saved) =>
       kind === 'app'
-        ? withProgramChoice(
-            routes,
-            clean,
-            pickedPath && cleanValue('app', pickedPath) === clean
-              ? pickedPath
-              : null,
-            via,
-          )
-        : upsertRoute(routes, { kind, value: clean, via })
-    if (await save(next)) {
+        ? withProgramChoice(saved, clean, path, via)
+        : upsertRoute(saved, { kind, value: clean, via }),
+    )
+    if (added) {
       setValue('')
       setPickedPath(null)
       showNotice.success('origami.routes.added', { name: clean })
@@ -241,7 +239,9 @@ export const OwnRoutes = () => {
                 label={t('origami.routes.via')}
                 value={route.via as RouteVia}
                 onChange={(next) =>
-                  void save(upsertRoute(routes, { ...route, via: next }))
+                  void save((saved) =>
+                    upsertRoute(saved, { ...route, via: next }),
+                  )
                 }
                 options={[
                   ['direct', t('origami.routes.direct')],
@@ -253,7 +253,12 @@ export const OwnRoutes = () => {
                 title={t('origami.routes.remove')}
                 disabled={saving}
                 onClick={() =>
-                  void save(routes.filter((item) => item !== route))
+                  void save((saved) =>
+                    saved.filter(
+                      (item) =>
+                        item.kind !== route.kind || item.value !== route.value,
+                    ),
+                  )
                 }
               >
                 <CloseRounded fontSize="small" />
