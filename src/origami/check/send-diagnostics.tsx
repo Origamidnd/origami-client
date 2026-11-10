@@ -34,7 +34,11 @@ import {
   withFailures,
   type DiagnosticsPayload,
 } from '../report/connection-log'
-import { reportTarget, summarizeProcesses } from '../report/model'
+import {
+  REPORT_TIMEOUT_MS,
+  reportTarget,
+  summarizeProcesses,
+} from '../report/model'
 import { openSupportChat } from '../support-chat'
 
 import {
@@ -147,6 +151,7 @@ const SendDiagnosticsBody = ({ results }: { results: CheckResults }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shortUuid: target.shortUuid, report }),
+        signal: AbortSignal.timeout(REPORT_TIMEOUT_MS),
       })
       if (response.status === 429) {
         setError(t('origami.report.errors.tooMany'))

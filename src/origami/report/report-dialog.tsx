@@ -21,6 +21,7 @@ import { ORIGAMI_LINKS } from '../links'
 import { openSupportChat } from '../support-chat'
 
 import {
+  REPORT_TIMEOUT_MS,
   buildPayload,
   preselectProcesses,
   reportTarget,
@@ -142,6 +143,7 @@ export const ReportDialog = ({ open, onClose }: Props) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shortUuid: target.shortUuid, report: payload }),
+        signal: AbortSignal.timeout(REPORT_TIMEOUT_MS),
       })
       if (response.status === 429) {
         setError(t('origami.report.errors.tooMany'))

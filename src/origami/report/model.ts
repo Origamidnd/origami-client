@@ -328,6 +328,15 @@ export interface ReportPayload {
   rules: string[]
 }
 
+/** The name of the account on this computer stays here. */
+export const maskUserFolder = (text: string) =>
+  text
+    .replace(/(\b[A-Za-z]:[\\/]+Users[\\/]+)[^\\/]+/g, '$1*')
+    .replace(/(\/(?:home|Users)\/)[^/]+/g, '$1*')
+
+/** A send that hangs would keep the button spinning for good. */
+export const REPORT_TIMEOUT_MS = 20 * 1000
+
 export const buildPayload = (
   input: Omit<ReportPayload, 'version'>,
 ): ReportPayload => ({
@@ -335,7 +344,10 @@ export const buildPayload = (
   ...input,
   title: input.title.trim().slice(0, 80),
   comment: input.comment.trim().slice(0, 500),
-  entries: input.entries.slice(0, MAX_ENTRIES),
+  entries: input.entries.slice(0, MAX_ENTRIES).map((entry) => ({
+    ...entry,
+    path: entry.path ? maskUserFolder(entry.path) : undefined,
+  })),
 })
 
 /** sub.origamivpn.pro/<shortUuid> -> where to send the report and as whom. */
@@ -346,7 +358,8 @@ export const reportTarget = (subscriptionUrl?: string | null) => {
     if (!/(^|\.)origamivpn\.pro$/.test(url.hostname)) return null
     const shortUuid = url.pathname.split('/').filter(Boolean)[0]
     if (!shortUuid) return null
-    return { endpoint: `${url.origin}/api/report`, shortUuid }
+    // Always https: the short id must not cross the network in the clear.
+    return { endpoint: `https://${url.host}/api/report`, shortUuid }
   } catch {
     return null
   }

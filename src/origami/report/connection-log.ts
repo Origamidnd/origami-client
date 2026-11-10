@@ -4,11 +4,14 @@ import { isOwnProcess } from '../routes/routes'
 
 import {
   isBrowser,
+  maskUserFolder,
   parseLogFailure,
   processName,
   type LogFailure,
   type ReportEntry,
 } from './model'
+
+export { maskUserFolder }
 
 // What the program did lately, for a report sent after the trouble has already happened. Kept in
 // memory only and never written to disk, so it is gone when the app closes.
@@ -276,12 +279,6 @@ export const maskServerAddresses = (text: string) =>
     .replace(IPV6_LIKE, (match) =>
       match.includes('::') || match.split(':').length >= 5 ? '<ip>' : match,
     )
-
-/** The name of the account on this computer stays here. */
-export const maskUserFolder = (text: string) =>
-  text
-    .replace(/(\b[A-Za-z]:[\\/]+Users[\\/]+)[^\\/]+/g, '$1*')
-    .replace(/(\/(?:home|Users)\/)[^/]+/g, '$1*')
 
 const failedFirst = (rows: LoggedConnection[]) =>
   [...rows].sort(

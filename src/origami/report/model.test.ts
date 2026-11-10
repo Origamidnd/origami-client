@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildPayload,
   EntryCollector,
   parseLogFailure,
   preselectProcesses,
@@ -190,5 +191,38 @@ describe('domains and target', () => {
       shortUuid: 'AbCdEf123456',
     })
     expect(reportTarget('https://other.example/sub/abc')).toBeNull()
+  })
+
+  it('sends over https even when the subscription was added over http', () => {
+    expect(
+      reportTarget('http://sub.origamivpn.pro/AbCdEf123456')?.endpoint,
+    ).toBe('https://sub.origamivpn.pro/api/report')
+  })
+
+  it('keeps the account name out of program paths', () => {
+    const entry = {
+      process: 'game.exe',
+      path: 'C:\\Users\\Ivan\\Games\\game.exe',
+      host: 'example.com',
+      port: '443',
+      network: 'tcp',
+      rule: 'Match',
+      rulePayload: '',
+      chain: 'DIRECT',
+      upload: 0,
+      download: 0,
+      failed: true,
+    }
+    const payload = buildPayload({
+      kind: 'app',
+      title: 't',
+      comment: '',
+      app: { version: '0', os: 'Windows' },
+      seconds: 60,
+      processes: ['game.exe'],
+      entries: [entry],
+      rules: [],
+    })
+    expect(payload.entries[0].path).toBe('C:\\Users\\*\\Games\\game.exe')
   })
 })
