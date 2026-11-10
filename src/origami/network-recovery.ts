@@ -3,7 +3,6 @@ import {
   closeAllConnections,
   delayProxyByName,
   flushDNS,
-  flushFakeIp,
   getVersion,
 } from 'tauri-plugin-mihomo-api'
 
@@ -106,7 +105,9 @@ export const recoverNetwork = async (
   group?: string,
   { force = false }: { force?: boolean } = {},
 ): Promise<RecoveryResult> => {
-  await Promise.allSettled([flushDNS(), flushFakeIp()])
+  // Only the DNS cache: fake-ip addresses do not depend on the network, are kept across restarts
+  // (store-fake-ip), and a program that remembered one could no longer reach it after a flush.
+  await Promise.allSettled([flushDNS()])
   if (await probe(group)) return 'ok'
   const verdict = await diagnoseLink()
   if (verdict === 'noInternet' && !force) return 'noInternet'

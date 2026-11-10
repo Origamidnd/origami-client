@@ -1,6 +1,8 @@
 import {
   closeAllConnections,
   delayProxyByName,
+  flushDNS,
+  flushFakeIp,
   getVersion,
 } from 'tauri-plugin-mihomo-api'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -78,6 +80,17 @@ it('only drops the DNS cache when the link works', async () => {
   expect(await run()).toBe('ok')
   expect(closeAllConnections).not.toHaveBeenCalled()
   expect(restartCore).not.toHaveBeenCalled()
+})
+
+it('keeps the fake-ip mapping: programs that remember an address must still reach it', async () => {
+  vi.mocked(flushFakeIp).mockClear()
+  vi.mocked(flushDNS).mockClear()
+  expect(await run()).toBe('ok')
+  net.vpn = false
+  fixedByRestart()
+  expect(await run()).toBe('restarted')
+  expect(flushDNS).toHaveBeenCalledTimes(2)
+  expect(flushFakeIp).not.toHaveBeenCalled()
 })
 
 it('restarts the core when the internet is there and the VPN still passes nothing', async () => {
