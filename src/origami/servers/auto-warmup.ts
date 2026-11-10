@@ -8,7 +8,7 @@ import {
 import { onCoreReloaded } from '../core-reload-signal'
 import { useConnection } from '../home/use-connection'
 
-import { autoGroups, autoGroupsSettled } from './auto-hold'
+import { autoGroups, autoGroupsSettled, releaseLeftoverPins } from './auto-hold'
 
 const TEST_TIMEOUT_MS = 5000
 // Several reloads in a row count as one.
@@ -98,7 +98,10 @@ export const useAutoWarmup = () => {
 
   // Connecting with a core that has been up all along: nothing has tested its groups yet.
   useEffect(() => {
-    if (connected) scheduleRef.current()
+    if (!connected) return
+    // A pin left by a crash or a restart halfway through a hold.
+    void releaseLeftoverPins()
+    scheduleRef.current()
   }, [connected])
 
   useEffect(

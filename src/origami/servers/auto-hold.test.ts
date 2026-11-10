@@ -6,7 +6,11 @@ import {
 } from 'tauri-plugin-mihomo-api'
 import { beforeEach, expect, it, vi } from 'vitest'
 
-import { autoGroupsSettled, keepAutoServers } from './auto-hold'
+import {
+  autoGroupsSettled,
+  keepAutoServers,
+  releaseLeftoverPins,
+} from './auto-hold'
 
 vi.mock('tauri-plugin-mihomo-api', () => ({
   delayProxyByName: vi.fn(),
@@ -14,6 +18,13 @@ vi.mock('tauri-plugin-mihomo-api', () => ({
   selectNodeForGroup: vi.fn(),
   unfixedProxy: vi.fn(),
 }))
+
+const store = new Map<string, string>()
+vi.stubGlobal('localStorage', {
+  getItem: (key: string) => store.get(key) ?? null,
+  setItem: (key: string, value: string) => void store.set(key, value),
+  removeItem: (key: string) => void store.delete(key),
+})
 
 const URL = 'https://example.com/204'
 const calls: string[] = []
@@ -35,6 +46,7 @@ const setGroups = (...groups: object[]) => {
 
 beforeEach(() => {
   calls.length = 0
+  store.clear()
   vi.mocked(selectNodeForGroup).mockReset()
   vi.mocked(selectNodeForGroup).mockImplementation(async (name, node) => {
     calls.push(`pin ${name} ${node}`)
@@ -118,6 +130,31 @@ it('makes changes one after another, so a held group is not taken for a pinned o
   expect(vi.mocked(unfixedProxy).mock.calls).toHaveLength(2)
 })
 
+it('queues two waiting changes too, not only one', async () => {
+  // Two changes waiting on the same held group must not both start when it is let go: the second
+  // would read the group the first pinned again and take it for one someone pinned.
+  const answers: (() => void)[] = []
+  setGroups(group('Auto', 'Turkey'))
+  vi.mocked(delayProxyByName).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        answers.push(() => resolve({ delay: 80 } as never))
+      }),
+  )
+  await keepAutoServers(change)
+  const second = keepAutoServers(change)
+  const third = keepAutoServers(change)
+  answers.shift()?.()
+  await second
+  await Promise.resolve()
+  expect(calls.filter((call) => call === 'change')).toHaveLength(2)
+  answers.shift()?.()
+  await third
+  answers.shift()?.()
+  await autoGroupsSettled()
+  expect(calls.filter((call) => call === 'change')).toHaveLength(3)
+})
+
 it('does not wait for ever for a core that does not answer', async () => {
   vi.useFakeTimers()
   try {
@@ -139,4 +176,20 @@ it('touches nothing when the change fails', async () => {
     }),
   ).rejects.toThrow('no')
   expect(selectNodeForGroup).not.toHaveBeenCalled()
+})
+
+it('lets go next time of a group it could not let go of', async () => {
+  // The app closed, or the core restarted, while a group was held: the core keeps the pin, and the
+  // group would count as pinned by a person from then on.
+  setGroups(group('Auto', 'Turkey'))
+  vi.mocked(unfixedProxy).mockRejectedValueOnce(new Error('core restarting'))
+  await keepAutoServers(change)
+  await autoGroupsSettled()
+  calls.length = 0
+  setGroups(group('Auto', 'Turkey', 'Turkey'))
+  await releaseLeftoverPins()
+  expect(calls).toEqual(['unpin Auto'])
+  calls.length = 0
+  await releaseLeftoverPins()
+  expect(calls).toEqual([])
 })
