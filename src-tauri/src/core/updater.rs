@@ -287,6 +287,20 @@ async fn download_from(
     }
 }
 
+/// The plugin sets no timeout on the check unless asked, and its own timeout would also cut the
+/// download. A connection that opens and then goes silent would keep the startup splash on
+/// screen and stop the background loop until the next launch.
+const CHECK_TIMEOUT: Duration = Duration::from_secs(30);
+
+async fn within_check_timeout<T, E>(check: impl std::future::Future<Output = std::result::Result<T, E>>) -> Result<T>
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
+    Ok(tokio::time::timeout(CHECK_TIMEOUT, check)
+        .await
+        .context("update check timed out")??)
+}
+
 impl SilentUpdater {
     /// Checks the server; Windows receives `/LANG` to suppress the NSIS language dialog,
     /// see `packages/windows/installer.nsi`.
@@ -298,7 +312,7 @@ impl SilentUpdater {
             let lang_id = nsis_language_id(&clash_verge_i18n::current_language(verge_lang.as_deref()));
             updater_builder.installer_arg(format!("/LANG={lang_id}"))
         };
-        Ok(updater_builder.build()?.check().await?)
+        within_check_timeout(updater_builder.build()?.check()).await
     }
 
     async fn install(update: Update, bytes: Vec<u8>) -> Result<()> {
@@ -629,7 +643,7 @@ impl SilentUpdater {
         logging!(info, Type::System, "Silent updater: checking for updates...");
 
         let updater = app_handle.updater()?;
-        let update = match updater.check().await {
+        let update = match within_check_timeout(updater.check()).await {
             Ok(Some(update)) => update,
             Ok(None) => {
                 logging!(info, Type::System, "Silent updater: no update available");
@@ -637,7 +651,7 @@ impl SilentUpdater {
             }
             Err(e) => {
                 logging!(warn, Type::System, "Silent updater: check failed: {e}");
-                return Err(e.into());
+                return Err(e);
             }
         };
 
@@ -761,5 +775,19 @@ mod installer_relaunch_tests {
         assert!(on_success.contains("RunAsUser"), "{on_success}");
         assert!(!on_success.contains("\"/ARGS\""), "{on_success}");
         assert!(!on_success.contains("\"$R0\""), "{on_success}");
+    }
+}
+
+#[cfg(test)]
+mod check_timeout_tests {
+    use super::within_check_timeout;
+    use std::time::Duration;
+
+    /// A connection that opens and then goes silent: the check future never resolves.
+    #[tokio::test(start_paused = true)]
+    async fn a_silent_update_server_does_not_hang_the_check() {
+        let silent = std::future::pending::<Result<(), std::io::Error>>();
+        let outcome = tokio::time::timeout(Duration::from_secs(3600), within_check_timeout(silent)).await;
+        assert!(matches!(outcome, Ok(Err(_))), "the check must give up on its own");
     }
 }
