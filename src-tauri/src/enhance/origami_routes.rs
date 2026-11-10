@@ -200,16 +200,29 @@ fn ensure_own_group(config: &mut Mapping) -> bool {
     }
 
     let members = vpn_members(config, &groups);
-    if members.is_empty() {
+    // A subscription may list its servers only through providers; the group then takes them all.
+    let providers: Vec<Value> = config
+        .get("proxy-providers")
+        .and_then(Value::as_mapping)
+        .into_iter()
+        .flat_map(Mapping::keys)
+        .filter(|name| name.as_str().is_some())
+        .cloned()
+        .collect();
+    if members.is_empty() && providers.is_empty() {
         return false;
     }
     let mut group = Mapping::new();
     group.insert(Value::from("name"), Value::from(OWN_GROUP));
     group.insert(Value::from("type"), Value::from("select"));
-    group.insert(
-        Value::from("proxies"),
-        Value::Sequence(members.into_iter().map(Value::from).collect()),
-    );
+    if members.is_empty() {
+        group.insert(Value::from("use"), Value::Sequence(providers));
+    } else {
+        group.insert(
+            Value::from("proxies"),
+            Value::Sequence(members.into_iter().map(Value::from).collect()),
+        );
+    }
     groups.push(Value::Mapping(group));
     config.insert(groups_key, Value::Sequence(groups));
     true
@@ -401,6 +414,23 @@ rules:
         let out = use_origami_routes(base, &[route("app", "a.exe", "vpn"), route("app", "b.exe", "direct")]);
         assert_eq!(rules(&out), ["PROCESS-NAME,b.exe,DIRECT", "MATCH,DIRECT"]);
         assert!(out.get("proxy-groups").is_none());
+    }
+
+    #[test]
+    fn a_subscription_with_providers_only_still_gets_vpn_routes() {
+        // Servers listed only through proxy-providers: the rule used to be dropped while the app
+        // said it was added.
+        let base: Mapping = serde_yaml_ng::from_str(
+            "proxy-providers: {main: {type: http, url: \"https://example.com/list\"}}\nrules: [\"MATCH,DIRECT\"]",
+        )
+        .unwrap();
+        let out = use_origami_routes(base, &[route("app", "a.exe", "vpn")]);
+        assert_eq!(
+            rules(&out),
+            [format!("PROCESS-NAME,a.exe,{OWN_GROUP}"), "MATCH,DIRECT".to_owned()]
+        );
+        let group = own_group(&out);
+        assert_eq!(group.get("use").and_then(Value::as_sequence).map(Vec::len), Some(1));
     }
 
     #[test]
