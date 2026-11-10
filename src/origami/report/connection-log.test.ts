@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  maskServerAddresses,
   ConnectionLog,
   connectionLines,
   connectionsForSending,
@@ -287,5 +288,34 @@ describe('core log', () => {
     expect(text).not.toContain('secret')
     expect(text).not.toContain('old.com')
     expect(text).not.toContain('not an error')
+  })
+})
+
+describe('maskServerAddresses', () => {
+  // Shapes from the core: "[%s] dial %s %s --> %s error: %s" around "%s connect error: %w".
+  const coreError =
+    '[TCP] dial 🚫 Blocked (match RuleSet/blocked) 127.0.0.1:50312(chrome.exe) --> youtube.com:443 error: ' +
+    'fi.example-vpn.net:443 connect error: dial tcp 203.0.113.7:443: i/o timeout'
+
+  it('hides the server and its IP but keeps the site, the program and the reason', () => {
+    const masked = maskServerAddresses(coreError)
+    expect(masked).not.toContain('fi.example-vpn.net')
+    expect(masked).not.toContain('203.0.113.7')
+    expect(masked).toContain('youtube.com:443')
+    expect(masked).toContain('chrome.exe')
+    expect(masked).toContain('i/o timeout')
+  })
+
+  it('hides IPv6 server addresses and the udp form', () => {
+    const masked = maskServerAddresses(
+      'se.example-vpn.net:8443 udp connect error: dial udp [2a01:4f8:c0c:1234::1]:8443: refused',
+    )
+    expect(masked).not.toContain('se.example-vpn.net')
+    expect(masked).not.toContain('2a01:4f8')
+  })
+
+  it('leaves times and versions alone', () => {
+    const line = 'game.exe 12:30:45-12:31:02 core v1.19.33'
+    expect(maskServerAddresses(line)).toBe(line)
   })
 })

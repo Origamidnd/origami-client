@@ -26,6 +26,7 @@ import {
   defaultChosen,
   LOG_WINDOW_MINUTES,
   MAX_DIAGNOSTICS_TEXT,
+  maskServerAddresses,
   maskUserFolder,
   recentFailures,
   reportableCoreErrors,
@@ -95,7 +96,8 @@ const SendDiagnosticsBody = ({ results }: { results: CheckResults }) => {
       coreErrors: coreErrors(),
       connections: connectionLines(selected),
     })
-    return writeText(clean(text)).then(
+    // The copy may be pasted into a public chat; the report sent to us keeps the addresses.
+    return writeText(maskServerAddresses(clean(text))).then(
       () => true,
       () => false,
     )

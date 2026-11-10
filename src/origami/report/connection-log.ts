@@ -259,6 +259,24 @@ export const reportableCoreErrors = (
     .map((log) => `${log.time ?? ''} ${log.payload}`.trim())
 }
 
+// "<server>:<port> connect error", also "udp connect error" and "(jls) connect error".
+const SERVER_IN_ERROR = /[^\s()]+:(\d+)(?= (?:udp |\([a-z]+\) )?connect error)/g
+const IPV4 = /\b(?:\d{1,3}\.){3}\d{1,3}\b/g
+const IPV6_LIKE = /\[?\b(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}\b\]?/gi
+
+/**
+ * For text that may end up in a public chat: the address a server answers on is what blocking
+ * looks for, and the core quotes it in its errors. IP addresses and the server named in a connect
+ * error are hidden; sites, programs and the reason stay. The report sent to us keeps them.
+ */
+export const maskServerAddresses = (text: string) =>
+  text
+    .replace(SERVER_IN_ERROR, '<server>:$1')
+    .replace(IPV4, '<ip>')
+    .replace(IPV6_LIKE, (match) =>
+      match.includes('::') || match.split(':').length >= 5 ? '<ip>' : match,
+    )
+
 /** The name of the account on this computer stays here. */
 export const maskUserFolder = (text: string) =>
   text
