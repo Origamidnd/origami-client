@@ -14,6 +14,22 @@ pub const OWN_GROUP: &str = "⭐ Свои правила";
 /// Its members are copied from here: our Auto group and every server, without the direct outbound.
 const SOURCE_GROUP: &str = "🚫 Заблокированные сервисы";
 
+/// Local networks, kept direct ahead of "through the VPN" routes: those go first in the rules, before
+/// the subscription's own private-network rules, so a game sent through the VPN would otherwise send
+/// its LAN play and the router page to the server as well.
+const LAN_LINES: [&str; 11] = [
+    "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve",
+    "IP-CIDR,172.16.0.0/12,DIRECT,no-resolve",
+    "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
+    "IP-CIDR,127.0.0.0/8,DIRECT,no-resolve",
+    "IP-CIDR,169.254.0.0/16,DIRECT,no-resolve",
+    "IP-CIDR,224.0.0.0/4,DIRECT,no-resolve",
+    "IP-CIDR,255.255.255.255/32,DIRECT,no-resolve",
+    "IP-CIDR6,::1/128,DIRECT,no-resolve",
+    "IP-CIDR6,fc00::/7,DIRECT,no-resolve",
+    "IP-CIDR6,fe80::/10,DIRECT,no-resolve",
+    "IP-CIDR6,ff00::/8,DIRECT,no-resolve",
+];
 const BUILTIN_OUTBOUNDS: [&str; 5] = ["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"];
 const NOT_SERVER_TYPES: [&str; 4] = ["direct", "reject", "dns", "pass"];
 
@@ -56,15 +72,22 @@ pub fn use_origami_routes(mut config: Mapping, routes: &[IOrigamiRoute]) -> Mapp
     let has_group = ensure_own_group(&mut config);
 
     // A program's own rule goes before the ones that only cover it, so that it can differ from them.
-    let lines: Sequence = routes
+    let ours: Vec<String> = routes
         .iter()
         .filter_map(|route| rule_line(route, has_group))
         .chain(routes.iter().flat_map(|route| linked_lines(route, has_group)))
-        .map(Value::from)
         .collect();
-    if lines.is_empty() {
+    if ours.is_empty() {
         return config;
     }
+    let through_vpn = ours.iter().any(|line| line.ends_with(&format!(",{OWN_GROUP}")));
+    let lines: Sequence = LAN_LINES
+        .iter()
+        .filter(|_| through_vpn)
+        .map(|line| (*line).to_owned())
+        .chain(ours)
+        .map(Value::from)
+        .collect();
 
     // App rules need the core to look up which process opened a connection.
     if routes.iter().any(|route| route.kind == "app") {
@@ -310,12 +333,20 @@ rules:
         .unwrap()
     }
 
-    fn rules(config: &Mapping) -> Vec<&str> {
+    fn raw_rules(config: &Mapping) -> Vec<&str> {
         config["rules"]
             .as_sequence()
             .unwrap()
             .iter()
             .filter_map(Value::as_str)
+            .collect()
+    }
+
+    /// Without the local network lines, which the LAN test checks on its own.
+    fn rules(config: &Mapping) -> Vec<&str> {
+        raw_rules(config)
+            .into_iter()
+            .filter(|line| !LAN_LINES.contains(line))
             .collect()
     }
 
@@ -414,6 +445,30 @@ rules:
         let out = use_origami_routes(base, &[route("app", "a.exe", "vpn"), route("app", "b.exe", "direct")]);
         assert_eq!(rules(&out), ["PROCESS-NAME,b.exe,DIRECT", "MATCH,DIRECT"]);
         assert!(out.get("proxy-groups").is_none());
+    }
+
+    #[test]
+    fn a_program_through_the_vpn_still_reaches_the_local_network_directly() {
+        // The subscription keeps its private networks direct further down; our lines come first.
+        let out = use_origami_routes(config(), &[route("app", "game.exe", "vpn")]);
+        let lines = raw_rules(&out);
+        let ours = lines
+            .iter()
+            .position(|line| line.starts_with("PROCESS-NAME,game.exe,"))
+            .unwrap();
+        for lan in [
+            "IP-CIDR,192.168.0.0/16,DIRECT,no-resolve",
+            "IP-CIDR6,fe80::/10,DIRECT,no-resolve",
+        ] {
+            let at = lines.iter().position(|line| *line == lan).expect(lan);
+            assert!(at < ours, "{lan} after the program rule");
+        }
+    }
+
+    #[test]
+    fn direct_routes_alone_add_no_local_network_lines() {
+        let out = use_origami_routes(config(), &[route("app", "game.exe", "direct")]);
+        assert!(!raw_rules(&out).iter().any(|line| line.starts_with("IP-CIDR")));
     }
 
     #[test]
