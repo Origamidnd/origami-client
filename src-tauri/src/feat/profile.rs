@@ -248,14 +248,17 @@ pub async fn update_profile(uid: &String, option: Option<&PrfOption>, is_mannual
                         "[订阅更新] core rejected the new subscription, restoring the previous file: {}",
                         message
                     );
-                    tokio::fs::write(&path, bytes).await?;
-                    let restored = CoreManager::global().update_config_forced().await;
-                    logging!(
-                        info,
-                        Type::Config,
-                        "[订阅更新] previous subscription back: {:?}",
-                        restored
-                    );
+                    // The core never applied the rejected config (the validation draft was rolled
+                    // back), so it still runs the previous one: putting the file back is enough. A
+                    // reload here would cut connections and reset Auto on every scheduled update
+                    // for as long as the panel serves the broken subscription.
+                    if let Err(err) = tokio::fs::write(&path, bytes).await {
+                        let failed = format!("{message}; the previous file could not be put back: {err}");
+                        logging!(error, Type::Config, "[订阅更新] {}", failed);
+                        handle::Handle::notice(NoticeStatus::UpdateFailed, failed.as_str());
+                        bail!(failed);
+                    }
+                    logging!(info, Type::Config, "[订阅更新] previous subscription file back");
                     announce(Refresh::Clash);
                 }
                 handle::Handle::notice(NoticeStatus::OrigamiProfileKept, message.as_str());
