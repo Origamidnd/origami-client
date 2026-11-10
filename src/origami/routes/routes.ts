@@ -9,7 +9,9 @@ export const OWN_GROUP = '⭐ Свои правила'
 /** A process name as the core reports it: the file name, without a folder. */
 export const cleanProcess = (value: string) => {
   const name = (value.trim().split(/[/\\]/).pop() ?? '').trim()
-  return name && !/[,\p{Cc}]/u.test(name) ? name : null
+  // Same as the core side (origami_routes.rs valid_field): a plain space is fine, other whitespace
+  // such as a no-break space would make the rule be dropped there.
+  return name && !/[,\p{Cc}]|[^\S ]/u.test(name) ? name : null
 }
 
 /** `https://www.Example.com/path` -> `example.com`; `*.example.com` -> `example.com`. */

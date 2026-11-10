@@ -8,6 +8,13 @@ import {
 } from './routes'
 
 describe('cleanProcess', () => {
+  it('refuses the spaces the core rule would refuse (only a plain space is kept)', () => {
+    // src-tauri enhance/origami_routes.rs valid_field: any other whitespace drops the rule.
+    expect(cleanProcess('My\u00a0Game.exe')).toBeNull()
+    expect(cleanProcess('My\tGame.exe')).toBeNull()
+    expect(cleanProcess('My Game.exe')).toBe('My Game.exe')
+  })
+
   it('keeps only the file name', () => {
     expect(cleanProcess('C:\\Games\\Tarkov\\EscapeFromTarkov.exe')).toBe(
       'EscapeFromTarkov.exe',
