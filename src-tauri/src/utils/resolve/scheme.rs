@@ -92,7 +92,12 @@ async fn import_subscription(url: &str, name: Option<&String>) {
 
     let uid = item.uid.clone().unwrap_or_default();
     if let Err(e) = profiles::profiles_append_item_safe(&mut item).await {
-        logging!(error, Type::Config, "failed to import subscription url: {:?}", e);
+        logging!(
+            error,
+            Type::Config,
+            "failed to import subscription url: {}",
+            help::mask_err(&format!("{e:#}"))
+        );
         Config::profiles().await.discard();
         handle::Handle::notice(NoticeStatus::ImportSubUrlError, e.to_string());
         return;
@@ -116,8 +121,9 @@ async fn fetch_profile_item(url: &str, name: Option<&String>) -> Option<PrfItem>
     match PrfItem::from_url(url, name, None, None).await {
         Ok(item) => Some(item),
         Err(e) => {
-            logging!(error, Type::Config, "failed to parse profile from url: {:?}", e);
-            handle::Handle::notice(NoticeStatus::ImportSubUrlError, e.to_string());
+            let message = help::mask_err(&format!("{e:#}"));
+            logging!(error, Type::Config, "failed to parse profile from url: {message}");
+            handle::Handle::notice(NoticeStatus::ImportSubUrlError, help::mask_err(&e.to_string()));
             None
         }
     }

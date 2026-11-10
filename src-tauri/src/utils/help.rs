@@ -176,7 +176,7 @@ pub fn mask_url(url: &str) -> String {
     if !path.is_empty() {
         let masked: Vec<&str> = path
             .split('/')
-            .map(|seg| if seg.len() > 16 { "***" } else { seg })
+            .map(|seg| if is_token_like(seg) { "***" } else { seg })
             .collect();
         result.push_str(&masked.join("/"));
     }
@@ -194,6 +194,12 @@ pub fn mask_url(url: &str) -> String {
     }
 
     result
+}
+
+/// Long segments, and from 8 characters on any with a digit or a capital letter: subscription ids
+/// (Remnawave uses exactly 16) look like that, plain path words do not.
+fn is_token_like(seg: &str) -> bool {
+    seg.len() > 16 || (seg.len() >= 8 && seg.chars().any(|c| c.is_ascii_digit() || c.is_ascii_uppercase()))
 }
 
 /// Masks every HTTP(S) URL embedded in a log string while preserving surrounding text.
@@ -318,4 +324,36 @@ pub fn snapshot_path(original_path: &Path) -> Result<PathBuf> {
     })?;
 
     Ok(temp_path)
+}
+
+#[cfg(test)]
+mod mask_tests {
+    use super::{mask_err, mask_url};
+
+    // Remnawave short ids are exactly 16 characters.
+    const SHORT_ID: &str = "AbCdEf1234567890";
+
+    #[test]
+    fn mask_url_hides_a_16_char_subscription_id() {
+        let masked = mask_url(&format!("https://sub.origamivpn.pro/{SHORT_ID}"));
+        assert!(!masked.contains(SHORT_ID), "{masked}");
+        assert!(masked.starts_with("https://sub.origamivpn.pro/"), "{masked}");
+    }
+
+    #[test]
+    fn mask_err_hides_the_subscription_id_in_a_request_error() {
+        let err = format!("error sending request for url (https://sub.origamivpn.pro/{SHORT_ID})");
+        let masked = mask_err(&err);
+        assert!(!masked.contains(SHORT_ID), "{masked}");
+        assert!(
+            masked.starts_with("error sending request for url (https://sub.origamivpn.pro/"),
+            "{masked}"
+        );
+    }
+
+    #[test]
+    fn mask_url_keeps_plain_path_words() {
+        let url = "https://example.com/api/sub/clash/latest.json";
+        assert_eq!(mask_url(url), url);
+    }
 }

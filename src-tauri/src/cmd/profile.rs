@@ -29,7 +29,7 @@ fn profile_import_error(err: &anyhow::Error) -> std::string::String {
         return cause.to_string();
     }
 
-    format!("导入订阅失败: {err:#}")
+    help::mask_err(&format!("导入订阅失败: {err:#}"))
 }
 
 #[tauri::command]
@@ -72,7 +72,12 @@ pub async fn import_profile(url: std::string::String, option: Option<PrfOption>)
     let item = &mut match PrfItem::from_url(&url, None, None, option.as_ref()).await {
         Ok(it) => it,
         Err(e) => {
-            logging!(error, Type::Cmd, "[导入订阅] 下载失败: {e:#}");
+            logging!(
+                error,
+                Type::Cmd,
+                "[导入订阅] 下载失败: {}",
+                help::mask_err(&format!("{e:#}"))
+            );
             return Err(coded_error("PROFILE_IMPORT_FAILED", profile_import_error(&e)));
         }
     };
