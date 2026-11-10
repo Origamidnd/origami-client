@@ -4,7 +4,7 @@ import { useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DialogRef, TooltipIcon } from '@/components/base'
-import { updateLastCheckTime } from '@/hooks/use-update'
+import { checkAndRememberUpdate } from '@/hooks/use-update'
 import {
   exitApp,
   exportDiagnosticInfo,
@@ -15,7 +15,6 @@ import {
 } from '@/services/cmds'
 import { mutate } from '@/services/mutate'
 import { showNotice } from '@/services/notice-service'
-import { checkUpdateSafe as checkUpdate } from '@/services/update'
 import { version } from '@root/package.json'
 
 import { BackupViewer } from './mods/backup-viewer'
@@ -48,8 +47,7 @@ const SettingVergeAdvanced = ({ onError: _, embedded = false }: Props) => {
 
   const onCheckUpdate = async () => {
     try {
-      const info = await checkUpdate()
-      updateLastCheckTime()
+      const info = await checkAndRememberUpdate()
       if (!info?.available) {
         showNotice.success(
           'settings.components.verge.advanced.notifications.latestVersion',

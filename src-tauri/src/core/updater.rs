@@ -719,12 +719,42 @@ impl SilentUpdater {
         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
 
         loop {
-            if let Err(e) = self.check_and_download(&app_handle).await {
-                logging!(warn, Type::System, "Silent updater: cycle error: {e}");
-            }
+            let cycle_ok = match self.check_and_download(&app_handle).await {
+                Ok(()) => true,
+                Err(e) => {
+                    logging!(warn, Type::System, "Silent updater: cycle error: {e}");
+                    false
+                }
+            };
 
-            tokio::time::sleep(std::time::Duration::from_secs(24 * 60 * 60)).await;
+            tokio::time::sleep(next_cycle_delay(cycle_ok)).await;
         }
+    }
+}
+
+/// OrigamiVPN: daily after a good cycle; after a failed one (GitHub unreachable through the
+/// current server, a slow network at start) a day is too long to wait for the next try.
+const fn next_cycle_delay(cycle_ok: bool) -> Duration {
+    if cycle_ok {
+        Duration::from_secs(24 * 60 * 60)
+    } else {
+        Duration::from_secs(30 * 60)
+    }
+}
+
+#[cfg(test)]
+mod cycle_delay_tests {
+    use super::next_cycle_delay;
+    use std::time::Duration;
+
+    #[test]
+    fn a_failed_check_is_retried_within_half_an_hour() {
+        assert!(next_cycle_delay(false) <= Duration::from_secs(30 * 60));
+    }
+
+    #[test]
+    fn a_good_check_waits_a_day() {
+        assert_eq!(next_cycle_delay(true), Duration::from_secs(24 * 60 * 60));
     }
 }
 

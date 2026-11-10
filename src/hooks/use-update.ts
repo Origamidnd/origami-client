@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { usePackageManager } from '@/origami/use-package-manager'
 import { fetchCacheData, setCacheData, useQuery } from '@/services/query-client'
 import { checkUpdateSafe } from '@/services/update'
@@ -20,6 +22,29 @@ export const updateLastCheckTime = (timestamp?: number): number => {
   return now
 }
 
+const UPDATE_QUERY_KEY = ['checkUpdate']
+const DAY_MS = 24 * 60 * 60 * 1000
+// GitHub can be unreachable for a while (no route through the current server, a slow network at
+// start); a day is too long to wait for the next try.
+const RETRY_AFTER_FAILURE_MS = 30 * 60 * 1000
+
+const fetchUpdate = async () => {
+  const result = await checkUpdateSafe()
+  updateLastCheckTime()
+  return result
+}
+
+/**
+ * OrigamiVPN: a check started by a person. The result goes into the same cache the update window
+ * and the sidebar read, so a found update is shown even when the automatic check failed.
+ */
+export const checkAndRememberUpdate = () =>
+  fetchCacheData(UPDATE_QUERY_KEY, fetchUpdate)
+
+/** OrigamiVPN: how long until the next automatic check. */
+export const updateCheckInterval = (lastCheckFailed: boolean): number =>
+  lastCheckFailed ? RETRY_AFTER_FAILURE_MS : DAY_MS
+
 export const useUpdate = (enabled: boolean = true) => {
   const { verge } = useVerge()
   const { auto_check_update } = verge || {}
@@ -29,25 +54,31 @@ export const useUpdate = (enabled: boolean = true) => {
   const shouldCheck =
     enabled && auto_check_update !== false && packageManager === null
 
-  const fetchUpdate = async () => {
-    const result = await checkUpdateSafe()
-    updateLastCheckTime()
-    return result
+  const [lastCheckFailed, setLastCheckFailed] = useState(false)
+  const fetchAndNote = async () => {
+    try {
+      const result = await fetchUpdate()
+      setLastCheckFailed(false)
+      return result
+    } catch (err) {
+      setLastCheckFailed(true)
+      throw err
+    }
   }
 
   const { data: updateInfo, isFetching: isValidating } = useQuery({
-    queryKey: ['checkUpdate'],
-    queryFn: fetchUpdate,
+    queryKey: UPDATE_QUERY_KEY,
+    queryFn: fetchAndNote,
     enabled: shouldCheck,
     retry: 2,
     staleTime: 60 * 60 * 1000,
-    refetchInterval: 24 * 60 * 60 * 1000,
+    refetchInterval: updateCheckInterval(lastCheckFailed),
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
   })
 
   const checkUpdate = async () => {
-    const data = await fetchCacheData(['checkUpdate'], fetchUpdate)
+    const data = await checkAndRememberUpdate()
     return { data }
   }
 

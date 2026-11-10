@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 import { DialogRef, Switch } from '@/components/base'
 import { UpdateViewer } from '@/components/setting/mods/update-viewer'
 import { useSystemState } from '@/hooks/use-system-state'
-import { readLastCheckTime, updateLastCheckTime } from '@/hooks/use-update'
+import { checkAndRememberUpdate, readLastCheckTime } from '@/hooks/use-update'
 import { useVerge } from '@/hooks/use-verge'
 import { useWindowDecorations } from '@/hooks/use-window'
 import { exitApp, reinstallService, restartCore } from '@/services/cmds'
@@ -16,7 +16,6 @@ import { supportedLanguages } from '@/services/i18n'
 import { mutate } from '@/services/mutate'
 import { showNotice } from '@/services/notice-service'
 import { requestService } from '@/services/service-request'
-import { checkUpdateSafe } from '@/services/update'
 import { openExternalUrl } from '@/utils/open-external-url'
 import { version } from '@root/package.json'
 
@@ -121,8 +120,7 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
 
   const checkUpdate = useLockFn(async () => {
     try {
-      const info = await checkUpdateSafe()
-      updateLastCheckTime()
+      const info = await checkAndRememberUpdate()
       if (info?.available && packageManager) {
         // The built-in updater cannot install over a pacman package: send people to the release.
         showNotice.info('origami.settings.updates.newPackage', {
