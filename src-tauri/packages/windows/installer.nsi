@@ -1167,8 +1167,10 @@ Function .onInstSuccess
   ${OrIf} ${Silent}
     ${GetOptions} $CMDLINE "/R" $R0
     ${IfNot} ${Errors}
-      ${GetOptions} $CMDLINE "/ARGS" $R0
-      nsis_tauri_utils::RunAsUser "$INSTDIR\${MAINBINARYNAME}.exe" "$R0"
+      ; OrigamiVPN: start clean instead of with the old process arguments (/ARGS). A session
+      ; started at logon would come back without a window, and a launch deep link would be
+      ; imported a second time. The person just pressed "Update", so the window should open.
+      nsis_tauri_utils::RunAsUser "$INSTDIR\${MAINBINARYNAME}.exe" ""
     ${EndIf}
   ${EndIf}
 FunctionEnd

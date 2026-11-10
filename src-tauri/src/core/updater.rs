@@ -742,3 +742,24 @@ mod origami_mirror_tests {
         Ok(())
     }
 }
+
+/// Structural: the relaunch happens inside the NSIS installer on Windows, which tests cannot run.
+#[cfg(test)]
+#[allow(clippy::expect_used, reason = "tests assert by panicking")]
+mod installer_relaunch_tests {
+    const INSTALLER: &str = include_str!("../../packages/windows/installer.nsi");
+
+    /// The updater plugin hands the installer the old process arguments (`/ARGS`). Passing them
+    /// on would start an autostarted session hidden again and re-run a launch deep link import.
+    #[test]
+    fn installer_relaunches_without_the_previous_arguments() {
+        let on_success = INSTALLER
+            .split("Function .onInstSuccess")
+            .nth(1)
+            .and_then(|rest| rest.split("FunctionEnd").next())
+            .expect(".onInstSuccess");
+        assert!(on_success.contains("RunAsUser"), "{on_success}");
+        assert!(!on_success.contains("\"/ARGS\""), "{on_success}");
+        assert!(!on_success.contains("\"$R0\""), "{on_success}");
+    }
+}
