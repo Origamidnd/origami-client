@@ -63,3 +63,26 @@ it('does nothing the second time', async () => {
 
   expect(store.has('origami.variantPinned')).toBe(false)
 })
+
+const move = (group: string, to: string) =>
+  ({ group: { name: group }, country: {}, to: { name: to } }) as never
+
+it('does not switch on a single ping spike that the second measurement does not repeat', async () => {
+  const { confirmedSwitches } = await import('./auto-variant')
+  const first = [move('🎮 Игры', '🔷 🇸🇪 Швеция (gRPC)')]
+  expect(confirmedSwitches(first, [])).toEqual([])
+  // The second measurement prefers another variant: still no move on the strength of one sample.
+  expect(
+    confirmedSwitches(first, [move('🎮 Игры', '🔷 🇸🇪 Швеция (xHTTP)')]),
+  ).toEqual([])
+})
+
+it('switches when the second measurement agrees', async () => {
+  const { confirmedSwitches } = await import('./auto-variant')
+  const first = [
+    move('🎮 Игры', '🔷 🇸🇪 Швеция (gRPC)'),
+    move('▶️ YouTube', '🔷 🇩🇪 Германия'),
+  ]
+  const second = [move('🎮 Игры', '🔷 🇸🇪 Швеция (gRPC)')]
+  expect(confirmedSwitches(first, second)).toEqual(second)
+})

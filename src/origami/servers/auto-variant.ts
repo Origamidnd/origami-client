@@ -120,6 +120,22 @@ export const pendingSwitches = (services: Service[]): VariantSwitch[] =>
     return to ? [{ group: service.group, country, to }] : []
   })
 
+/**
+ * Moves that a second measurement repeats. One sample can be a ping spike or a lost probe, and a
+ * switch closes every connection of the group, so a move needs the same answer twice.
+ */
+export const confirmedSwitches = (
+  first: VariantSwitch[],
+  second: VariantSwitch[],
+): VariantSwitch[] =>
+  second.filter((move) =>
+    first.some(
+      (earlier) =>
+        earlier.group.name === move.group.name &&
+        earlier.to.name === move.to.name,
+    ),
+  )
+
 export const switchLabel = (move: VariantSwitch) =>
   move.to.variant === PLAIN_VARIANT
     ? move.country.base
@@ -178,15 +194,26 @@ export const useAutoVariantWatch = () => {
         })
       })
       if (members.length === 0) return
-      await delayManager.checkListDelay(
-        members,
-        CHECK_KEY,
-        settings?.default_latency_timeout || DEFAULT_DELAY_TIMEOUT,
+      const timeout = settings?.default_latency_timeout || DEFAULT_DELAY_TIMEOUT
+      const measure = async (list: typeof members) => {
+        await delayManager.checkListDelay(list, CHECK_KEY, timeout)
+        if (stopped) return null
+        await latestRef.current.refreshProxy()
+        return pendingSwitches(
+          buildServices(latestRef.current.proxyView ?? view),
+        )
+      }
+      const first = await measure(members)
+      if (!first || first.length === 0) return
+      // Measure both ends of every move once more and switch only where the answer holds.
+      const ends = new Set(
+        first.flatMap((move) => [move.group.now ?? '', move.to.name]),
       )
-      if (stopped) return
-      await latestRef.current.refreshProxy()
-      const fresh = latestRef.current.proxyView ?? view
-      latestRef.current.apply(pendingSwitches(buildServices(fresh)))
+      const second = await measure(
+        members.filter((member) => ends.has(memberName(member))),
+      )
+      if (!second) return
+      latestRef.current.apply(confirmedSwitches(first, second))
     }
     const first = setTimeout(() => void run(), FIRST_WATCH_MS)
     const every = setInterval(() => void run(), WATCH_EVERY_MS)
