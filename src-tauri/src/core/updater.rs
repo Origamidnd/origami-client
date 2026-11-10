@@ -791,3 +791,20 @@ mod check_timeout_tests {
         assert!(matches!(outcome, Ok(Err(_))), "the check must give up on its own");
     }
 }
+
+/// Structural: the flag lives in `tauri.conf.json`, which the plugin reads at startup.
+#[cfg(test)]
+#[allow(clippy::expect_used, reason = "tests assert by panicking")]
+mod signed_version_tests {
+    /// `latest.json` is not signed, so without the flag an old signature that carries no version
+    /// could be paired with a new version number. Every published signature carries one.
+    #[test]
+    fn updates_must_be_signed_for_the_announced_version() {
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../../tauri.conf.json")).expect("tauri.conf.json");
+        assert_eq!(
+            config["plugins"]["updater"]["requireSignedVersion"],
+            serde_json::json!(true)
+        );
+    }
+}

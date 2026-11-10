@@ -38,7 +38,8 @@
       ],
       "windows": {
         "installMode": "passive"
-      }
+      },
+      "requireSignedVersion": true
     },
     "deep-link": {
       "desktop": {
