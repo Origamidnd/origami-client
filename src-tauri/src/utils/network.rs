@@ -57,7 +57,8 @@ impl NetworkManager {
         Self { device_headers: false }
     }
 
-    /// Adds the device identity headers; only for requests to the subscription server.
+    /// Adds the device identity headers when the request goes to our subscription server
+    /// ([`crate::utils::device::is_subscription_host`]); redirects then stay on that host.
     pub const fn with_device_headers(mut self) -> Self {
         self.device_headers = true;
         self
@@ -70,10 +71,11 @@ impl NetworkManager {
         accept_invalid_certs: bool,
         timeout_secs: Option<u64>,
         tls_root_mode: TlsRootMode,
+        pinned_host: Option<std::string::String>,
     ) -> Result<Client> {
         let mut builder = Client::builder()
             .tls_backend_rustls()
-            .redirect(reqwest::redirect::Policy::limited(10))
+            .redirect(Self::redirect_policy(pinned_host))
             .tcp_keepalive(Duration::from_secs(60))
             .pool_max_idle_per_host(0)
             .pool_idle_timeout(None);
@@ -107,6 +109,23 @@ impl NetworkManager {
         }
 
         Ok(builder.build()?)
+    }
+
+    /// reqwest keeps custom headers across redirects, so with the device headers on, a redirect
+    /// to another host is not followed: the 3xx comes back and the fetch fails instead.
+    fn redirect_policy(pinned_host: Option<std::string::String>) -> reqwest::redirect::Policy {
+        let Some(host) = pinned_host else {
+            return reqwest::redirect::Policy::limited(10);
+        };
+        reqwest::redirect::Policy::custom(move |attempt| {
+            if attempt.previous().len() >= 10 {
+                attempt.error("too many redirects")
+            } else if attempt.url().host_str() == Some(host.as_str()) {
+                attempt.follow()
+            } else {
+                attempt.stop()
+            }
+        })
     }
 
     fn build_static_webpki_tls_config() -> Result<rustls::ClientConfig> {
@@ -190,11 +209,14 @@ impl NetworkManager {
         parsed.set_username("").ok();
         parsed.set_password(None).ok();
 
-        if self.device_headers {
+        let pinned_host = if self.device_headers && crate::utils::device::is_subscription_host(&parsed) {
             for (name, value) in crate::utils::device::device_headers() {
                 extra_headers.insert(name, HeaderValue::from_str(&value)?);
             }
-        }
+            parsed.host_str().map(str::to_owned)
+        } else {
+            None
+        };
 
         // 创建请求
         let client = self
@@ -204,6 +226,7 @@ impl NetworkManager {
                 user_agent,
                 accept_invalid_certs,
                 tls_root_mode,
+                pinned_host,
             )
             .await?;
 
@@ -239,6 +262,7 @@ impl NetworkManager {
         user_agent: Option<String>,
         accept_invalid_certs: bool,
         tls_root_mode: TlsRootMode,
+        pinned_host: Option<std::string::String>,
     ) -> Result<Client> {
         let proxy_url: Option<std::string::String> = match proxy_type {
             ProxyType::None => None,
@@ -271,7 +295,14 @@ impl NetworkManager {
             );
         }
 
-        self.build_client(proxy_url, headers, accept_invalid_certs, timeout_secs, tls_root_mode)
+        self.build_client(
+            proxy_url,
+            headers,
+            accept_invalid_certs,
+            timeout_secs,
+            tls_root_mode,
+            pinned_host,
+        )
     }
 
     pub async fn get(
@@ -321,7 +352,7 @@ impl NetworkManager {
         tls_root_mode: TlsRootMode,
     ) -> Result<Vec<u8>> {
         let client = self
-            .create_request_with_tls_mode(proxy_type, timeout_secs, None, false, tls_root_mode)
+            .create_request_with_tls_mode(proxy_type, timeout_secs, None, false, tls_root_mode, None)
             .await?;
 
         let mut response = client
@@ -372,5 +403,81 @@ impl NetworkManager {
                 }),
             Err(err) => Err(err),
         }
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::expect_used, reason = "tests assert by panicking")]
+mod device_header_tests {
+    use super::{NetworkManager, ProxyType};
+    use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+
+    /// Serves one request and returns its raw head, lowercased.
+    async fn capture_one_request(listener: tokio::net::TcpListener) -> std::string::String {
+        let (mut socket, _) = listener.accept().await.expect("accept");
+        let mut head = Vec::new();
+        let mut buf = [0u8; 1024];
+        while !head.windows(4).any(|w| w == b"\r\n\r\n") {
+            let n = socket.read(&mut buf).await.expect("read");
+            if n == 0 {
+                break;
+            }
+            head.extend_from_slice(&buf[..n]);
+        }
+        socket
+            .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok")
+            .await
+            .expect("write");
+        std::string::String::from_utf8_lossy(&head).to_ascii_lowercase()
+    }
+
+    #[tokio::test]
+    async fn device_identity_is_not_sent_to_another_subscription_host() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("bind");
+        let url = format!("http://{}/AbCdEf1234567890", listener.local_addr().expect("addr"));
+        let server = tokio::spawn(capture_one_request(listener));
+
+        NetworkManager::new()
+            .with_device_headers()
+            .get(&url, ProxyType::None, Some(5), None, false)
+            .await
+            .expect("request");
+        let head = server.await.expect("server");
+
+        for header in ["x-hwid", "x-device-os", "x-ver-os", "x-device-model"] {
+            assert!(!head.contains(header), "{header} sent to a foreign host");
+        }
+    }
+
+    #[tokio::test]
+    async fn pinned_client_does_not_follow_a_redirect_to_another_host() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("bind");
+        let port = listener.local_addr().expect("addr").port();
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.expect("accept");
+            let mut buf = [0u8; 1024];
+            let _ = socket.read(&mut buf).await;
+            let reply = format!(
+                "HTTP/1.1 302 Found\r\nLocation: http://localhost:{port}/next\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+            );
+            socket.write_all(reply.as_bytes()).await.expect("write");
+        });
+
+        let client = NetworkManager::new()
+            .build_client(
+                None,
+                reqwest::header::HeaderMap::new(),
+                false,
+                Some(5),
+                super::TlsRootMode::PlatformVerifier,
+                Some("127.0.0.1".to_owned()),
+            )
+            .expect("client");
+        let response = client
+            .get(format!("http://127.0.0.1:{port}/start"))
+            .send()
+            .await
+            .expect("response");
+        assert_eq!(response.status(), reqwest::StatusCode::FOUND);
     }
 }

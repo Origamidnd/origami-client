@@ -26,6 +26,15 @@ pub fn device_info() -> &'static DeviceInfo {
     })
 }
 
+/// The only host that gets the device headers: our own subscription server, over https.
+const SUBSCRIPTION_HOST: &str = "sub.origamivpn.pro";
+
+/// Device identity is for our panel's device list; another subscription server, or a host
+/// ours redirects to, must not learn the HWID or the computer name.
+pub fn is_subscription_host(url: &tauri::Url) -> bool {
+    url.scheme() == "https" && url.host_str() == Some(SUBSCRIPTION_HOST)
+}
+
 /// Headers understood by Remnawave: x-hwid, x-device-os, x-ver-os, x-device-model.
 pub fn device_headers() -> [(&'static str, String); 4] {
     let info = device_info();
@@ -121,8 +130,9 @@ fn stored_machine_id() -> String {
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used, reason = "tests assert by panicking")]
 mod tests {
-    use super::{ascii_or, hwid_from};
+    use super::{ascii_or, hwid_from, is_subscription_host};
 
     #[test]
     fn hwid_is_stable_hex_and_hides_machine_id() {
@@ -142,5 +152,16 @@ mod tests {
             "PC"
         );
         assert_eq!(ascii_or(None, "PC"), "PC");
+    }
+
+    #[test]
+    fn only_our_https_subscription_host_gets_device_headers() {
+        let host = |u: &str| is_subscription_host(&tauri::Url::parse(u).expect("url"));
+        assert!(host("https://sub.origamivpn.pro/AbCdEf1234567890"));
+        assert!(host("https://sub.origamivpn.pro:2096/AbCdEf1234567890"));
+        assert!(!host("http://sub.origamivpn.pro/AbCdEf1234567890"));
+        assert!(!host("https://sub.origamivpn.pro.example.com/AbCdEf1234567890"));
+        assert!(!host("https://lk.origamivpn.pro/AbCdEf1234567890"));
+        assert!(!host("https://example.com/sub/AbCdEf1234567890"));
     }
 }
