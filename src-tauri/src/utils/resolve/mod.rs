@@ -242,10 +242,30 @@ fn started_by_autostart() -> bool {
     std::env::args().any(|arg| arg == AUTOSTART_ARG)
 }
 
+/// OrigamiVPN: a silent start (at logon, or the setting) still loads the window, only hidden.
+/// Recovery after sleep, the tray link dot, Auto warm-up and the subscription reminder run in its
+/// page; without it they stay off until someone opens the window.
+#[derive(Debug, PartialEq, Eq)]
+enum StartupWindow {
+    Shown,
+    Hidden,
+}
+
+const fn startup_window(is_silent_start: bool) -> StartupWindow {
+    if is_silent_start {
+        StartupWindow::Hidden
+    } else {
+        StartupWindow::Shown
+    }
+}
+
 async fn init_window() {
     let is_silent_start =
         Config::verge().await.data_arc().enable_silent_start.unwrap_or(false) || started_by_autostart();
-    WindowManager::create_window(!is_silent_start).await;
+    match startup_window(is_silent_start) {
+        StartupWindow::Shown => WindowManager::create_window(true).await,
+        StartupWindow::Hidden => WindowManager::create_hidden_window().await,
+    };
 }
 
 /// OrigamiVPN: a new install has autostart on before anything patches the setting, and an older
@@ -271,4 +291,17 @@ fn resolve_done() {
 
 pub(crate) fn is_resolve_done() -> bool {
     RESOLVE_DONE.load(Ordering::Acquire)
+}
+
+#[cfg(test)]
+mod startup_window_tests {
+    use super::{StartupWindow, startup_window};
+
+    /// Recovery after sleep, the tray link dot, Auto warm-up and the subscription reminder run in
+    /// the window's page: a start at logon must still load it, only not show it.
+    #[test]
+    fn a_silent_start_still_loads_the_page_hidden() {
+        assert_eq!(startup_window(true), StartupWindow::Hidden);
+        assert_eq!(startup_window(false), StartupWindow::Shown);
+    }
 }

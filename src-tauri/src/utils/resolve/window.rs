@@ -45,7 +45,8 @@ fn restore_default_size_if_needed(window: &WebviewWindow) {
     logging_error!(Type::Window, window.center());
 }
 
-pub async fn build_new_window() -> Result<WebviewWindow, String> {
+/// `show_on_load: false` keeps the window hidden after the page loads (OrigamiVPN silent start).
+pub async fn build_new_window(show_on_load: bool) -> Result<WebviewWindow, String> {
     let app_handle = handle::Handle::app_handle();
 
     let config = Config::verge().await;
@@ -92,7 +93,7 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
     .initialization_script(&initial_script)
     .general_autofill_enabled(false) // 禁用自动填充
     .on_page_load(move |window, payload| {
-        if payload.event() != PageLoadEvent::Finished {
+        if !show_on_load || payload.event() != PageLoadEvent::Finished {
             return;
         }
 

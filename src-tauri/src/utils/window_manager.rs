@@ -257,7 +257,7 @@ impl WindowManager {
             #[cfg(target_os = "macos")]
             Self::set_macos_activation_policy_regular();
 
-            match build_new_window().await {
+            match build_new_window(true).await {
                 Ok(_) => {
                     logging!(info, Type::Window, "新窗口创建成功，等待前端渲染后显示");
 
@@ -269,6 +269,21 @@ impl WindowManager {
                 }
             }
         })
+    }
+
+    /// OrigamiVPN: loads the page without ever showing the window; the tray or a second launch
+    /// shows it later like any hidden window.
+    pub async fn create_hidden_window() -> bool {
+        match build_new_window(false).await {
+            Ok(_) => {
+                logging!(info, Type::Window, "Main window created hidden");
+                true
+            }
+            Err(e) => {
+                logging!(error, Type::Window, "Hidden main window not created: {}", e);
+                false
+            }
+        }
     }
 
     pub fn destroy_main_window() -> WindowOperationResult {
