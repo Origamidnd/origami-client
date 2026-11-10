@@ -131,13 +131,19 @@ mod app_init {
         logging!(debug, Type::Setup, "初始化窗口状态管理...");
         let window_state_plugin = tauri_plugin_window_state::Builder::new()
             .with_filename(files::WINDOW_STATE)
-            // OrigamiVPN: the frame comes from origami_system_titlebar, so a saved state cannot bring the system one back.
-            .with_state_flags(
-                tauri_plugin_window_state::StateFlags::default() & !tauri_plugin_window_state::StateFlags::DECORATIONS,
-            )
+            .with_state_flags(window_state_flags())
             .build();
         app.handle().plugin(window_state_plugin)?;
         Ok(())
+    }
+
+    /// OrigamiVPN: what the window remembers between launches.
+    pub(crate) fn window_state_flags() -> tauri_plugin_window_state::StateFlags {
+        use tauri_plugin_window_state::StateFlags;
+        // The frame comes from origami_system_titlebar, so a saved state cannot bring the system one back.
+        // Visibility is decided at startup: a start at logon builds the window hidden, and a restored
+        // "visible" would pop it up again.
+        StateFlags::default() & !StateFlags::DECORATIONS & !StateFlags::VISIBLE
     }
 
     pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke<tauri::Wry>) -> bool + Send + Sync + 'static {
@@ -477,5 +483,23 @@ mod startup_tests {
 
         assert_eq!(action, StartupAction::ExitFailure);
         assert!(reported.get());
+    }
+}
+
+#[cfg(test)]
+mod window_state_tests {
+    use super::app_init::window_state_flags;
+    use tauri_plugin_window_state::StateFlags;
+
+    #[test]
+    fn a_start_at_logon_keeps_the_window_hidden_even_if_it_was_open_at_exit() {
+        // The plugin shows a window whose saved state says "visible"; a start at logon creates the
+        // window hidden on purpose, so visibility must stay with the startup code.
+        assert!(!window_state_flags().contains(StateFlags::VISIBLE));
+    }
+
+    #[test]
+    fn the_frame_is_not_restored_from_the_saved_state() {
+        assert!(!window_state_flags().contains(StateFlags::DECORATIONS));
     }
 }
