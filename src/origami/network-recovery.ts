@@ -33,9 +33,10 @@ const LINK_CONFIRM_MS = 10 * 1000
 const LINK_FAILS = 2
 // Restarting the core recreates the network adapter, which cuts the UDP of a running game until
 // the game is restarted, so it is the last resort. A silent core gets it at once. With the internet
-// there and the VPN silent it waits a while: the server may simply be down. With no internet at all
-// it would not help, so only a very long outage gets it, in case the core has hung in a way that
-// looks like one. The pause then doubles after each attempt that fails.
+// there and the VPN silent it waits a while and tries once: the server is most likely down, and
+// restarting again and again only cuts whatever goes past the VPN. With no internet at all it would
+// not help, so only a very long outage gets it, in case the core has hung in a way that looks like
+// one. The pause then doubles after each attempt that fails.
 const VPN_SILENT_RESTART_MS = 5 * 60 * 1000
 const NO_INTERNET_RESTART_MS = 30 * 60 * 1000
 const HANG_RETRY_MS = 5 * 60 * 1000
@@ -158,6 +159,8 @@ export const watchRecovery = (
   let nextHangRun = 0
   let noInternetSince: number | null = null
   let vpnSilentSince: number | null = null
+  // One restart per stretch of a silent VPN; the link working again starts a new stretch.
+  let vpnSilentRestarted = false
 
   const report = (state: LinkState) => {
     if (state === 'ok') {
@@ -166,6 +169,7 @@ export const watchRecovery = (
       nextHangRun = 0
       noInternetSince = null
       vpnSilentSince = null
+      vpnSilentRestarted = false
     }
     const previous = getLinkState()
     if (state === previous) return
@@ -211,10 +215,11 @@ export const watchRecovery = (
 
   const tryHangRestart = (force = false) => {
     const now = Date.now()
-    if (now < nextHangRun) return
+    if (now < nextHangRun) return false
     nextHangRun = now + hangRetryMs
     hangRetryMs = Math.min(hangRetryMs * 2, HANG_RETRY_MAX_MS)
     schedule('hang', force)
+    return true
   }
 
   const onFailedLink = async () => {
@@ -235,7 +240,9 @@ export const watchRecovery = (
     }
     // Counted from here, so the VPN gets its time to come back after the internet does.
     vpnSilentSince ??= now
-    if (now - vpnSilentSince >= VPN_SILENT_RESTART_MS) tryHangRestart()
+    if (!vpnSilentRestarted && now - vpnSilentSince >= VPN_SILENT_RESTART_MS) {
+      vpnSilentRestarted = tryHangRestart()
+    }
   }
 
   const checkLink = async () => {

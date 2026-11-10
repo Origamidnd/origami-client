@@ -231,12 +231,39 @@ it('restarts a frozen core within a minute and says so', async () => {
   stop()
 })
 
-it('waits longer and longer between restarts while nothing helps', async () => {
+it('waits longer and longer between restarts while the core stays silent', async () => {
+  const stop = watch()
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  vi.mocked(getVersion).mockImplementation(() => new Promise(() => {}))
+  net.vpn = false
+  // 25 minutes: attempts about 1, 6 and 16 minutes in, not one every few minutes.
+  await vi.advanceTimersByTimeAsync(25 * MIN)
+  expect(vi.mocked(restartCore).mock.calls.length).toBe(3)
+  stop()
+})
+
+it('restarts once for a dead server, not again and again while it stays dead', async () => {
+  const stop = watch()
+  await vi.advanceTimersByTimeAsync(40 * 1000)
+  // The chosen server is down, the internet and the core are fine: a restart cannot fix that and
+  // every one cuts the game that goes past the VPN.
+  net.vpn = false
+  await vi.advanceTimersByTimeAsync(3 * 60 * MIN)
+  expect(restartCore).toHaveBeenCalledOnce()
+  stop()
+})
+
+it('tries a restart again after the link worked in between', async () => {
   const stop = watch()
   await vi.advanceTimersByTimeAsync(40 * 1000)
   net.vpn = false
-  // 25 minutes: attempts about 5, 10 and 20 minutes in, not one every few minutes.
-  await vi.advanceTimersByTimeAsync(25 * MIN)
-  expect(vi.mocked(restartCore).mock.calls.length).toBe(3)
+  await vi.advanceTimersByTimeAsync(10 * MIN)
+  expect(restartCore).toHaveBeenCalledOnce()
+  net.vpn = true
+  await vi.advanceTimersByTimeAsync(2 * MIN)
+  expect(getLinkState()).toBe('ok')
+  net.vpn = false
+  await vi.advanceTimersByTimeAsync(10 * MIN)
+  expect(restartCore).toHaveBeenCalledTimes(2)
   stop()
 })
