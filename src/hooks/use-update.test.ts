@@ -1,9 +1,9 @@
-import { expect, it, vi } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 
 import { setCacheData } from '@/services/query-client'
 import { checkUpdateSafe } from '@/services/update'
 
-import { checkAndRememberUpdate, updateCheckInterval } from './use-update'
+import { checkAndRememberUpdate, checkInBackground } from './use-update'
 
 vi.mock('@/services/query-client', () => ({
   fetchCacheData: async (key: unknown, fn: () => unknown) => {
@@ -30,7 +30,43 @@ it('keeps a manually found update where the update window reads it', async () =>
   expect(setCacheData).toHaveBeenCalledWith(['checkUpdate'], offer)
 })
 
-it('checks again within half an hour after a failed check, daily otherwise', () => {
-  expect(updateCheckInterval(true)).toBeLessThanOrEqual(30 * 60 * 1000)
-  expect(updateCheckInterval(false)).toBe(24 * 60 * 60 * 1000)
+afterEach(() => {
+  vi.useRealTimers()
+  vi.mocked(checkUpdateSafe).mockReset()
+  vi.mocked(setCacheData).mockClear()
+})
+
+it('tries a failed automatic check again after half an hour, once', async () => {
+  // SWR does not poll while its cache holds an error, so the daily interval never fires after a
+  // failure; the retry has to come from us, and only one for all components using the hook.
+  vi.useFakeTimers()
+  const offer = { available: true, version: '0.1.13' }
+  vi.mocked(checkUpdateSafe)
+    .mockRejectedValueOnce(new Error('github unreachable'))
+    .mockRejectedValueOnce(new Error('github unreachable'))
+    .mockRejectedValueOnce(new Error('github unreachable'))
+    .mockResolvedValue(offer as never)
+
+  // The first check and SWR's own two quick retries.
+  for (let i = 0; i < 3; i++) {
+    await expect(checkInBackground()).rejects.toThrow()
+  }
+
+  await vi.advanceTimersByTimeAsync(29 * 60 * 1000)
+  expect(checkUpdateSafe).toHaveBeenCalledTimes(3)
+
+  await vi.advanceTimersByTimeAsync(60 * 1000)
+  expect(checkUpdateSafe).toHaveBeenCalledTimes(4)
+  expect(setCacheData).toHaveBeenCalledWith(['checkUpdate'], offer)
+})
+
+it('keeps trying every half hour while the check fails', async () => {
+  vi.useFakeTimers()
+  vi.mocked(checkUpdateSafe).mockRejectedValue(new Error('github unreachable'))
+
+  await expect(checkInBackground()).rejects.toThrow()
+  await vi.advanceTimersByTimeAsync(30 * 60 * 1000)
+  await vi.advanceTimersByTimeAsync(30 * 60 * 1000)
+
+  expect(checkUpdateSafe).toHaveBeenCalledTimes(3)
 })

@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 import { usePackageManager } from '@/origami/use-package-manager'
 import { fetchCacheData, setCacheData, useQuery } from '@/services/query-client'
 import { checkUpdateSafe } from '@/services/update'
@@ -41,9 +39,29 @@ const fetchUpdate = async () => {
 export const checkAndRememberUpdate = () =>
   fetchCacheData(UPDATE_QUERY_KEY, fetchUpdate)
 
-/** OrigamiVPN: how long until the next automatic check. */
-export const updateCheckInterval = (lastCheckFailed: boolean): number =>
-  lastCheckFailed ? RETRY_AFTER_FAILURE_MS : DAY_MS
+// One pending retry for every component that uses the hook.
+let retryTimer: ReturnType<typeof setTimeout> | null = null
+
+const retryLater = () => {
+  if (retryTimer) return
+  retryTimer = setTimeout(() => {
+    retryTimer = null
+    checkAndRememberUpdate().catch(retryLater)
+  }, RETRY_AFTER_FAILURE_MS)
+}
+
+/**
+ * OrigamiVPN: the automatic check. SWR does not poll while its cache holds an error, so after a
+ * failure the daily interval never fires; retry ourselves, and a found update clears the error.
+ */
+export const checkInBackground = async () => {
+  try {
+    return await fetchUpdate()
+  } catch (err) {
+    retryLater()
+    throw err
+  }
+}
 
 export const useUpdate = (enabled: boolean = true) => {
   const { verge } = useVerge()
@@ -54,25 +72,13 @@ export const useUpdate = (enabled: boolean = true) => {
   const shouldCheck =
     enabled && auto_check_update !== false && packageManager === null
 
-  const [lastCheckFailed, setLastCheckFailed] = useState(false)
-  const fetchAndNote = async () => {
-    try {
-      const result = await fetchUpdate()
-      setLastCheckFailed(false)
-      return result
-    } catch (err) {
-      setLastCheckFailed(true)
-      throw err
-    }
-  }
-
   const { data: updateInfo, isFetching: isValidating } = useQuery({
     queryKey: UPDATE_QUERY_KEY,
-    queryFn: fetchAndNote,
+    queryFn: checkInBackground,
     enabled: shouldCheck,
     retry: 2,
     staleTime: 60 * 60 * 1000,
-    refetchInterval: updateCheckInterval(lastCheckFailed),
+    refetchInterval: DAY_MS,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: false,
   })
