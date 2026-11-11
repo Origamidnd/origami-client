@@ -165,8 +165,6 @@ const META_ALPHA_VERSION_URL =
 const META_ALPHA_URL_PREFIX = `https://github.com/MetaCubeX/mihomo/releases/download/Prerelease-Alpha`
 let META_ALPHA_VERSION
 
-const META_VERSION_URL =
-  'https://github.com/MetaCubeX/mihomo/releases/latest/download/version.txt'
 const META_URL_PREFIX = `https://github.com/MetaCubeX/mihomo/releases/download`
 let META_VERSION
 
@@ -233,36 +231,18 @@ async function getLatestAlphaVersion() {
   }
 }
 
-async function getLatestReleaseVersion() {
-  if (!FORCE) {
-    const cached = await getCachedVersion('META_VERSION')
-    if (cached) {
-      META_VERSION = cached
-      return
-    }
-  }
-  const options = {}
-  const httpProxy =
-    process.env.HTTP_PROXY ||
-    process.env.http_proxy ||
-    process.env.HTTPS_PROXY ||
-    process.env.https_proxy
-  if (httpProxy) options.agent = new HttpsProxyAgent(httpProxy)
+// OrigamiVPN: the stable core is pinned. A new mihomo can change the uTLS fingerprints Reality
+// depends on, so it ships only after a night test, by changing this line in its own commit.
+// MIHOMO_VERSION overrides it for a test build.
+const PINNED_META_VERSION = 'v1.19.33'
 
-  try {
-    const response = await fetch(META_VERSION_URL, {
-      ...options,
-      method: 'GET',
-    })
-    if (!response.ok)
-      throw new Error(`Failed to fetch ${META_VERSION_URL}: ${response.status}`)
-    META_VERSION = (await response.text()).trim()
-    log_info(`Latest release version: ${META_VERSION}`)
-    await setCachedVersion('META_VERSION', META_VERSION)
-  } catch (err) {
-    log_error('Error fetching latest release version:', err.message)
+async function getLatestReleaseVersion() {
+  META_VERSION = process.env.MIHOMO_VERSION?.trim() || PINNED_META_VERSION
+  if (!/^v\d+\.\d+\.\d+$/.test(META_VERSION)) {
+    log_error(`Bad mihomo version: ${META_VERSION}`)
     process.exit(1)
   }
+  log_info(`Pinned release version: ${META_VERSION}`)
 }
 
 if (!META_MAP[`${platform}-${arch}`]) {
