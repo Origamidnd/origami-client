@@ -287,10 +287,13 @@ async fn download_from(
     }
 }
 
-/// The plugin sets no timeout on the check unless asked, and its own timeout would also cut the
-/// download. A connection that opens and then goes silent would keep the startup splash on
-/// screen and stop the background loop until the next launch.
+/// The whole check, every address included. A connection that opens and then goes silent would
+/// otherwise keep the startup splash on screen and stop the background loop until the next launch.
 const CHECK_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// OrigamiVPN: the limit for each update address in turn (GitHub, then our mirror). The plugin
+/// applies its builder timeout to each check request only; the download it returns has none.
+const ENDPOINT_TIMEOUT: Duration = Duration::from_secs(12);
 
 async fn within_check_timeout<T, E>(check: impl std::future::Future<Output = std::result::Result<T, E>>) -> Result<T>
 where
@@ -305,7 +308,7 @@ impl SilentUpdater {
     /// Checks the server; Windows receives `/LANG` to suppress the NSIS language dialog,
     /// see `packages/windows/installer.nsi`.
     async fn check(app_handle: &tauri::AppHandle) -> Result<Option<Update>> {
-        let updater_builder = app_handle.updater_builder();
+        let updater_builder = app_handle.updater_builder().timeout(ENDPOINT_TIMEOUT);
         #[cfg(target_os = "windows")]
         let updater_builder = {
             let verge_lang = Config::verge().await.latest_arc().language.clone();
@@ -642,7 +645,7 @@ impl SilentUpdater {
 
         logging!(info, Type::System, "Silent updater: checking for updates...");
 
-        let updater = app_handle.updater()?;
+        let updater = app_handle.updater_builder().timeout(ENDPOINT_TIMEOUT).build()?;
         let update = match within_check_timeout(updater.check()).await {
             Ok(Some(update)) => update,
             Ok(None) => {
@@ -835,6 +838,42 @@ mod signed_version_tests {
         assert_eq!(
             config["plugins"]["updater"]["requireSignedVersion"],
             serde_json::json!(true)
+        );
+    }
+}
+
+/// The plugin asks the addresses one after another. A GitHub that hangs instead of refusing must
+/// leave time for the mirror inside the overall limit.
+#[cfg(test)]
+#[allow(clippy::expect_used, reason = "tests assert by panicking")]
+mod endpoint_timeout_tests {
+    use super::{CHECK_TIMEOUT, ENDPOINT_TIMEOUT};
+
+    const SOURCE: &str = include_str!("updater.rs");
+    const CONFIG: &str = include_str!("../../tauri.conf.json");
+
+    #[test]
+    fn every_address_gets_its_turn_within_the_overall_limit() {
+        let config: serde_json::Value = serde_json::from_str(CONFIG).expect("tauri.conf.json");
+        let endpoints = config["plugins"]["updater"]["endpoints"]
+            .as_array()
+            .expect("endpoints")
+            .len();
+        assert!(endpoints >= 2, "GitHub and the mirror");
+        let all = ENDPOINT_TIMEOUT
+            .checked_mul(u32::try_from(endpoints).expect("count"))
+            .expect("sum");
+        assert!(all < CHECK_TIMEOUT, "{all:?} must fit in {CHECK_TIMEOUT:?}");
+    }
+
+    /// Both checks (the startup prompt and the background loop) must limit each address.
+    #[test]
+    fn both_checks_limit_each_address() {
+        let code = SOURCE.split("mod endpoint_timeout_tests").next().expect("code");
+        assert_eq!(code.matches(".timeout(ENDPOINT_TIMEOUT)").count(), 2, "one per check");
+        assert!(
+            !code.contains("app_handle.updater()?"),
+            "the default updater has no limit"
         );
     }
 }

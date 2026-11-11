@@ -25,10 +25,14 @@ const compareVersions = (a: string | null, b: string | null): number | null => {
 
 const localVersionNormalized = normalizeVersion(appVersion)
 
+// OrigamiVPN: the plugin asks the addresses one after another (GitHub, then our mirror) and
+// applies this limit to each check request; a GitHub that hangs must leave time for the mirror.
+const ENDPOINT_TIMEOUT_MS = 12_000
+
 export const checkUpdateSafe = async (
   options?: CheckOptions,
 ): Promise<Update | null> => {
-  const result = await check(options ?? {})
+  const result = await check({ timeout: ENDPOINT_TIMEOUT_MS, ...options })
   if (!result) return null
 
   const remoteVersion = result.version
