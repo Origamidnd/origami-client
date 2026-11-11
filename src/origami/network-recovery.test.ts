@@ -280,3 +280,32 @@ it('tries a restart again after the link worked in between', async () => {
   expect(restartCore).toHaveBeenCalledTimes(2)
   stop()
 })
+
+it('does not cut connections again on wake or network events while the same server stays dead', async () => {
+  // The start check, a wake from sleep and every "online" event go through the same recovery.
+  // After one full try (close everything, restart) a dead server is not fixed by more of them,
+  // and each one cuts the game that goes past the VPN.
+  const listeners = new Map<string, () => void>()
+  const target = {
+    addEventListener: (type: string, fn: () => void) => listeners.set(type, fn),
+    removeEventListener: vi.fn(),
+  }
+  const stop = watchRecovery(
+    () => true,
+    target as never,
+    () => GROUP,
+  )
+  net.vpn = false
+  await vi.advanceTimersByTimeAsync(MIN)
+  expect(restartCore).toHaveBeenCalledOnce()
+  expect(closeAllConnections).toHaveBeenCalledOnce()
+
+  for (let i = 0; i < 5; i++) {
+    listeners.get('online')?.()
+    await vi.advanceTimersByTimeAsync(2 * MIN)
+  }
+
+  expect(restartCore).toHaveBeenCalledOnce()
+  expect(closeAllConnections).toHaveBeenCalledOnce()
+  stop()
+})

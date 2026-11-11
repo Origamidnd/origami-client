@@ -99,11 +99,15 @@ export type RecoveryResult = 'ok' | 'restarted' | 'noInternet' | 'failed'
  * previous network. While the VPN is on this drops the DNS cache, and if the link through the core
  * does not work and the internet is there, closes the stale connections, checks again and restarts
  * the core once. Without internet it leaves everything alone: when the internet is back a running
- * game goes on by itself. `force` restarts the core anyway.
+ * game goes on by itself. `force` restarts the core anyway. With `vpnSilentRetry` off a silent VPN
+ * (internet and core fine) is left alone: the full try was already made for this stretch.
  */
 export const recoverNetwork = async (
   group?: string,
-  { force = false }: { force?: boolean } = {},
+  {
+    force = false,
+    vpnSilentRetry = true,
+  }: { force?: boolean; vpnSilentRetry?: boolean } = {},
 ): Promise<RecoveryResult> => {
   // Only the DNS cache: fake-ip addresses do not depend on the network, are kept across restarts
   // (store-fake-ip), and a program that remembered one could no longer reach it after a flush.
@@ -111,6 +115,7 @@ export const recoverNetwork = async (
   if (await probe(group)) return 'ok'
   const verdict = await diagnoseLink()
   if (verdict === 'noInternet' && !force) return 'noInternet'
+  if (verdict === 'vpnSilent' && !force && !vpnSilentRetry) return 'failed'
   if (verdict !== 'coreSilent') {
     await Promise.allSettled([closeAllConnections()])
     await sleep(SETTLE_MS)
@@ -183,14 +188,18 @@ export const watchRecovery = (
 
   const schedule = (reason: Reason = 'network', force = false) => {
     if (pending) clearTimeout(pending)
+    // Decided now: the dead-server path below marks the stretch right after scheduling its try.
+    const vpnSilentRetry = !vpnSilentRestarted
     pending = setTimeout(() => {
       pending = null
       const now = Date.now()
       if (running || !isConnected() || now - lastRun < MIN_INTERVAL_MS) return
       lastRun = now
       running = true
-      recoverNetwork(getGroup(), { force })
+      recoverNetwork(getGroup(), { force, vpnSilentRetry })
         .then((result) => {
+          // A full try that did not help: wake, network and start checks leave this stretch alone.
+          if (result === 'failed') vpnSilentRestarted = true
           report(RESULT_STATE[result])
           if (result === 'restarted') {
             showNotice.info(RESTARTED_NOTICE[reason])
