@@ -61,7 +61,7 @@ impl IClashTemp {
         tun_config.insert("enable".into(), false.into());
         tun_config.insert("stack".into(), tun_const::DEFAULT_STACK.into());
         tun_config.insert("auto-route".into(), true.into());
-        tun_config.insert("strict-route".into(), false.into());
+        tun_config.insert("strict-route".into(), tun_const::DEFAULT_STRICT_ROUTE.into());
         tun_config.insert("auto-detect-interface".into(), true.into());
         tun_config.insert("dns-hijack".into(), tun_const::DNS_HIJACK.into());
 
@@ -142,6 +142,18 @@ impl IClashTemp {
         #[cfg(windows)]
         config.insert("external-controller-pipe".into(), external_controller_pipe.into());
         config
+    }
+
+    /// OrigamiVPN: turns TUN strict-route on; true when the value changed.
+    pub fn enable_strict_route(&mut self) -> bool {
+        let Some(tun) = self.0.get_mut("tun").and_then(Value::as_mapping_mut) else {
+            return false;
+        };
+        if tun.get("strict-route").and_then(Value::as_bool) == Some(true) {
+            return false;
+        }
+        tun.insert("strict-route".into(), true.into());
+        true
     }
 
     pub fn patch_config(&mut self, patch: &Mapping) {
@@ -422,4 +434,38 @@ pub struct IClashFallbackFilter {
     pub geoip_code: Option<String>,
     pub ipcidr: Option<Vec<String>>,
     pub domain: Option<Vec<String>>,
+}
+
+#[cfg(test)]
+mod strict_route_tests {
+    use super::IClashTemp;
+    use serde_yaml_ng::{Mapping, Value};
+
+    fn strict_route(config: &IClashTemp) -> Option<bool> {
+        config.0.get("tun")?.get("strict-route")?.as_bool()
+    }
+
+    #[test]
+    fn template_turns_strict_route_on_only_for_windows() {
+        assert_eq!(strict_route(&IClashTemp::template()), Some(cfg!(target_os = "windows")));
+    }
+
+    #[test]
+    fn enabling_strict_route_reports_a_change_once() {
+        let mut config = IClashTemp::template();
+        if let Some(tun) = config.0.get_mut("tun").and_then(Value::as_mapping_mut) {
+            tun.insert("strict-route".into(), false.into());
+        }
+
+        assert!(config.enable_strict_route());
+        assert_eq!(strict_route(&config), Some(true));
+        assert!(!config.enable_strict_route());
+    }
+
+    #[test]
+    fn a_config_without_tun_is_left_alone() {
+        let mut config = IClashTemp(Mapping::new());
+        assert!(!config.enable_strict_route());
+        assert!(config.0.is_empty());
+    }
 }

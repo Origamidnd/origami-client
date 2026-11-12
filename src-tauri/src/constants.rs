@@ -65,6 +65,11 @@ pub mod tun {
 
     pub const DNS_HIJACK: &[&str] = &["any:53"];
 
+    /// OrigamiVPN: on Windows the core blocks IPv6 and port-53 DNS that try to leave past the TUN
+    /// (our servers do not route IPv6, so it would go out with the real address). Elsewhere the
+    /// upstream default stays until it is tested there.
+    pub const DEFAULT_STRICT_ROUTE: bool = cfg!(target_os = "windows");
+
     /// Saved dialog fields; `enable` belongs to the verge switch.
     pub const GUI_KEYS: &[&str] = &[
         "stack",

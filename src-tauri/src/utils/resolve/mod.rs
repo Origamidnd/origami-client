@@ -57,6 +57,8 @@ async fn resolve_setup() {
 
     // Migrate before windows or timers can change the loaded config.
     logging_error!(Type::Setup, init::migrate_short_update_intervals().await);
+    #[cfg(target_os = "windows")]
+    logging_error!(Type::Setup, init::migrate_strict_route().await);
 
     #[cfg(target_os = "macos")]
     resolve_dock_show().await;

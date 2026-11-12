@@ -168,7 +168,8 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
                 'dns-hijack': ['any:53'],
                 'route-exclude-address': [],
                 'dns-mode': '',
-                'strict-route': false,
+                // OrigamiVPN: on by default on Windows, it blocks IPv6 and DNS past the VPN.
+                'strict-route': OS === 'windows',
                 mtu: 1500,
               }
               setValues({
@@ -179,7 +180,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
                 autoRedirect: false,
                 autoDetectInterface: true,
                 dnsHijack: ['any:53'],
-                strictRoute: false,
+                strictRoute: OS === 'windows',
                 mtu: 1500,
                 dnsMode: '',
               })

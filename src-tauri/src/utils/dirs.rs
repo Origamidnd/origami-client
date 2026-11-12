@@ -23,6 +23,9 @@ pub static VERGE_CONFIG: &str = "verge.yaml";
 pub static PROFILE_YAML: &str = "profiles.yaml";
 /// Marks that the one-shot raise of too-short auto-update intervals has already run.
 pub static UPDATE_INTERVAL_MIGRATED: &str = ".update-interval-migrated";
+/// OrigamiVPN: marks that TUN strict-route was turned on once for an existing Windows install.
+#[cfg(target_os = "windows")]
+pub static STRICT_ROUTE_MIGRATED: &str = ".strict-route-migrated";
 
 /// Uses the same platform data resolver as Tauri, including before its handle exists.
 pub fn app_home_dir() -> Result<PathBuf> {
@@ -112,6 +115,11 @@ pub fn profiles_path() -> Result<PathBuf> {
 
 pub fn update_interval_migrated_path() -> Result<PathBuf> {
     Ok(app_home_dir()?.join(UPDATE_INTERVAL_MIGRATED))
+}
+
+#[cfg(target_os = "windows")]
+pub fn strict_route_migrated_path() -> Result<PathBuf> {
+    Ok(app_home_dir()?.join(STRICT_ROUTE_MIGRATED))
 }
 
 #[cfg(target_os = "macos")]

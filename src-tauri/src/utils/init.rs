@@ -288,6 +288,34 @@ pub async fn migrate_short_update_intervals() -> Result<()> {
     Ok(())
 }
 
+/// OrigamiVPN: once per Windows install, turns TUN strict-route on. Installs up to 0.1.15 saved
+/// `false` from the old template, and without it IPv6 and DNS to the router leave past the VPN.
+/// A later choice in the TUN settings is kept: the marker stops this from running again.
+#[cfg(target_os = "windows")]
+pub async fn migrate_strict_route() -> Result<()> {
+    let marker = dirs::strict_route_migrated_path()?;
+    if fs::try_exists(&marker).await? {
+        return Ok(());
+    }
+
+    let _config_write = Config::lock_config_write().await;
+    let clash = Config::clash().await;
+    if clash.edit_draft(IClashTemp::enable_strict_route) {
+        clash.apply();
+        clash
+            .latest_arc()
+            .save_config()
+            .await
+            .context("failed to save strict-route")?;
+        logging!(info, Type::Setup, "TUN strict-route turned on for this install");
+    } else {
+        clash.discard();
+    }
+
+    fs::write(&marker, b"").await?;
+    Ok(())
+}
+
 #[cfg(target_os = "macos")]
 async fn migrate_legacy_macos_logs() -> Result<()> {
     let log_dir = dirs::app_logs_dir()?;
