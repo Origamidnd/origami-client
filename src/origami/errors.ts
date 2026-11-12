@@ -15,6 +15,12 @@ export const explainSubscriptionError = (
   error: unknown,
 ): TranslationKey | null => {
   const text = detailOf(error).toLowerCase()
+  // Set by the client when the panel marks the answer as over the device limit (prfitem.rs).
+  if (text.includes('subscription device limit reached'))
+    return 'origami.errors.deviceLimit'
+  if (text.includes('subscription refused this device'))
+    return 'origami.errors.deviceRefused'
+
   const status = /status (\d{3})/.exec(text)?.[1]
 
   if (status === '404') return 'origami.errors.notFound'

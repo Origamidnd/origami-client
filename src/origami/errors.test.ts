@@ -24,6 +24,15 @@ describe('explainSubscriptionError', () => {
       'origami.errors.server',
     ],
     ['the remote profile data is invalid yaml', 'origami.errors.badFormat'],
+    ['subscription device limit reached', 'origami.errors.deviceLimit'],
+    [
+      {
+        code: 'PROFILE_IMPORT_FAILED',
+        detail: '导入订阅失败: subscription device limit reached',
+      },
+      'origami.errors.deviceLimit',
+    ],
+    ['subscription refused this device', 'origami.errors.deviceRefused'],
     [
       'failed to fetch remote profile: error sending request: operation timed out',
       'origami.errors.network',

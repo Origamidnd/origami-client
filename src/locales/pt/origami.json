@@ -108,7 +108,9 @@
     "tooMany": "Too many requests. Try again in a minute.",
     "server": "The subscription server is temporarily unavailable. Try again later.",
     "badFormat": "The server returned the subscription in an unsupported format. Update the app or contact support.",
-    "network": "No connection to the subscription server. Check your internet and try again."
+    "network": "No connection to the subscription server. Check your internet and try again.",
+    "deviceLimit": "This subscription already has the maximum number of devices. Remove one you no longer use in your account or buy an extra device, then update the subscription.",
+    "deviceRefused": "The subscription server did not accept this device. Contact support."
   },
   "check": {
     "title": "Connection check",

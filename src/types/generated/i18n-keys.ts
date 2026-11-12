@@ -239,6 +239,8 @@ export const translationKeys = [
   'origami.errors.server',
   'origami.errors.badFormat',
   'origami.errors.network',
+  'origami.errors.deviceLimit',
+  'origami.errors.deviceRefused',
   'origami.check.title',
   'origami.check.idle',
   'origami.check.connectFirst',

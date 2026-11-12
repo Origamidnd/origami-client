@@ -27,6 +27,29 @@ pub(super) fn normalize_profile_home_url(raw: &str) -> Option<String> {
     Some(url.to_string().into())
 }
 
+/// OrigamiVPN: when this computer is over the subscription's device limit, Remnawave still answers
+/// 200, with a placeholder profile ("Макс. число устройств превышено") instead of the servers, and
+/// marks the answer with these headers. Saving the placeholder would replace a working
+/// subscription, so the download fails instead and the saved profile stays as it is.
+pub(crate) const DEVICE_LIMIT_ERROR: &str = "subscription device limit reached";
+pub(crate) const DEVICE_REJECTED_ERROR: &str = "subscription refused this device";
+
+pub(crate) fn device_refusal(headers: &reqwest::header::HeaderMap) -> Option<&'static str> {
+    let is_true = |name: &str| {
+        headers
+            .get(name)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.trim().eq_ignore_ascii_case("true"))
+    };
+    if is_true("x-hwid-max-devices-reached") {
+        Some(DEVICE_LIMIT_ERROR)
+    } else if is_true("x-hwid-limit") || is_true("x-hwid-not-supported") {
+        Some(DEVICE_REJECTED_ERROR)
+    } else {
+        None
+    }
+}
+
 const ANNOUNCE_MAX_CHARS: usize = 500;
 
 /// Decodes the `announce` header: plain text or `base64:<utf-8 text>`.
@@ -327,6 +350,10 @@ impl PrfItem {
                 return Err(e).context("failed to fetch remote profile");
             }
         };
+
+        if let Some(refusal) = device_refusal(resp.headers()) {
+            bail!(refusal)
+        }
 
         let status_code = resp.status();
         if !status_code.is_success() {
@@ -630,5 +657,40 @@ mod announce_tests {
         );
         assert_eq!(decode_announce("base64:%%%"), None);
         assert_eq!(decode_announce("   "), None);
+    }
+}
+
+#[cfg(test)]
+mod device_refusal_tests {
+    use super::{DEVICE_LIMIT_ERROR, DEVICE_REJECTED_ERROR, device_refusal};
+    use reqwest::header::{HeaderMap, HeaderValue};
+
+    fn headers(pairs: &[(&'static str, &'static str)]) -> HeaderMap {
+        let mut map = HeaderMap::new();
+        for (name, value) in pairs {
+            map.insert(*name, HeaderValue::from_static(value));
+        }
+        map
+    }
+
+    #[test]
+    fn device_limit_from_panel_headers() {
+        // What Remnawave 3.4.10 sends with the placeholder profile when the limit is full.
+        let map = headers(&[("x-hwid-max-devices-reached", "true"), ("x-hwid-limit", "true")]);
+        assert_eq!(device_refusal(&map), Some(DEVICE_LIMIT_ERROR));
+    }
+
+    #[test]
+    fn other_device_refusal() {
+        let map = headers(&[("x-hwid-not-supported", "true"), ("x-hwid-limit", "true")]);
+        assert_eq!(device_refusal(&map), Some(DEVICE_REJECTED_ERROR));
+    }
+
+    #[test]
+    fn normal_subscription_is_not_refused() {
+        // x-hwid-active marks every answer while the limit is on, also successful ones.
+        let map = headers(&[("x-hwid-active", "true"), ("subscription-userinfo", "upload=0")]);
+        assert_eq!(device_refusal(&map), None);
+        assert_eq!(device_refusal(&headers(&[("x-hwid-limit", "false")])), None);
     }
 }

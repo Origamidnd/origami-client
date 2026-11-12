@@ -297,6 +297,8 @@ export interface TranslationResources {
       }
       errors: {
         badFormat: string
+        deviceLimit: string
+        deviceRefused: string
         forbidden: string
         network: string
         notFound: string

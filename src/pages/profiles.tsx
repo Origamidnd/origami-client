@@ -40,6 +40,7 @@ import {
 } from '@/components/profile/profile-viewer'
 import { ConfigViewer } from '@/components/setting/mods/config-viewer'
 import { fetchProfilesIntoCache, useProfiles } from '@/hooks/use-profiles'
+import { explainSubscriptionError } from '@/origami/errors'
 import { useExpertMode } from '@/origami/expert-mode'
 import { OrigamiSubscription } from '@/origami/subscription/origami-subscription'
 import {
@@ -245,6 +246,15 @@ const ProfilePage = () => {
       const initialDetail = errorDetail(initialErr)
       if (initialDetail.toLowerCase().includes('legacy tls')) {
         showNotice.error(initialErr)
+        return
+      }
+      // OrigamiVPN: a device refusal is the same through any proxy; say why instead of retrying.
+      const refusal = explainSubscriptionError(initialErr)
+      if (
+        refusal === 'origami.errors.deviceLimit' ||
+        refusal === 'origami.errors.deviceRefused'
+      ) {
+        showNotice.error(refusal)
         return
       }
 

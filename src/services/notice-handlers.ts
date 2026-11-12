@@ -1,6 +1,7 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 
 import { reportCoreTrouble } from '@/origami/core-trouble/store'
+import { explainSubscriptionError } from '@/origami/errors'
 import {
   getCoreStartupError,
   takeDiscardedKeysNotice,
@@ -51,7 +52,7 @@ const handlers: Record<
   },
   'import_sub_url::error': (msg, navigate) => {
     navigate('/profile')
-    showNotice.error(msg)
+    showNotice.error(explainSubscriptionError(msg) ?? msg)
   },
   'set_config::error': (msg) => showNotice.error(msg),
   'core_start::error': () => {
