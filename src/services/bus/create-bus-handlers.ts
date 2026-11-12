@@ -40,7 +40,6 @@ export interface BusHandlerDeps {
 export const createEventBus = (deps: BusHandlerDeps) => {
   let lastProfileId: string | null = null
   let lastProfileChangeTime = 0
-  let lastProxyRefreshTime = 0
   const refreshThrottle = 800
 
   const handleProfileChanged = (newProfileId: string) => {
@@ -54,13 +53,6 @@ export const createEventBus = (deps: BusHandlerDeps) => {
     lastProfileId = newProfileId
     lastProfileChangeTime = now
     deps.revalidateKeys(['getProfiles'])
-  }
-
-  const handleRefreshProxyConfig = () => {
-    const now = Date.now()
-    if (now - lastProxyRefreshTime <= refreshThrottle) return
-    lastProxyRefreshTime = now
-    deps.revalidateKeys(['getProxyView'])
   }
 
   const handlers: BusHandlers = {
@@ -80,7 +72,8 @@ export const createEventBus = (deps: BusHandlerDeps) => {
     'verge://refresh-verge-config': () =>
       deps.revalidateKeys(['getVergeConfig', 'getSystemProxy', 'getAutoProxy']),
     'verge://refresh-profiles': () => deps.revalidateKeys(['getProfiles']),
-    'verge://refresh-proxy-config': handleRefreshProxyConfig,
+    // Every switch announces itself; a throttle here dropped the refresh after a quick second one.
+    'verge://refresh-proxy-config': () => deps.revalidateKeys(['getProxyView']),
     'verge://notice-message': (payload) => deps.handleNotice(payload),
     'profile-changed': handleProfileChanged,
     'verge://timer-updated': (uid) =>

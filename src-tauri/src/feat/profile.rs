@@ -24,52 +24,98 @@ pub async fn toggle_proxy_profile(profile_index: String) {
     }
 }
 
-/// Tell the profile which node this group is on now.
-///
-/// The core is already switched by the time this runs, so failing to record is not a reason to
-/// report the switch as failed — but it is worth a log line, because what the profile holds is
-/// what gets re-applied the next time a core starts.
-async fn record_switched_node(group_name: &str, proxy_name: &str) {
-    if let Err(error) = crate::config::profiles::record_selected_node(group_name, proxy_name).await {
+/// OrigamiVPN: whether a switch closes connections. Only a real change does, and only while
+/// "close connections on switch" is on (our default).
+fn closes_after_switch(enabled: bool, previous: Option<&str>, next: &str) -> bool {
+    enabled && previous.is_some_and(|previous| !previous.is_empty() && previous != next)
+}
+
+/// OrigamiVPN: the connections that went through the switched group, so they reconnect through the
+/// new server. Matching the previous server instead (as upstream does) also cut every other service
+/// that shared it, for example Discord when the blocked-sites group left Auto.
+fn connections_through<'a>(
+    group_name: &'a str,
+    connections: &'a [tauri_plugin_mihomo::models::Connection],
+) -> impl Iterator<Item = &'a str> {
+    connections
+        .iter()
+        .filter(move |connection| connection.chains.iter().any(|chain| chain == group_name))
+        .map(|connection| connection.id.as_str())
+}
+
+async fn close_connections_through(group_name: std::string::String) {
+    let mihomo = handle::Handle::mihomo();
+    let connections = match mihomo.get_connections().await {
+        Ok(connections) => connections.connections.unwrap_or_default(),
+        Err(error) => {
+            logging!(warn, Type::Core, "Failed to read connections after a switch: {error}");
+            return;
+        }
+    };
+    futures::future::join_all(connections_through(&group_name, &connections).map(|id| async move {
+        if let Err(error) = mihomo.close_connection(id).await {
+            logging!(
+                warn,
+                Type::Core,
+                "Failed to close connection {id} after a switch: {error}"
+            );
+        }
+    }))
+    .await;
+}
+
+/// One path for every server switch, from the window and from the tray: select (or unfix) in the
+/// core, remember it in the profile, refresh the window and the tray, and close the connections
+/// that went through the group (from upstream 05a6e9a6, with our closing rule).
+pub async fn switch_proxy_node(group_name: &str, proxy_name: &str, unfix: bool) -> Result<()> {
+    let mihomo = handle::Handle::mihomo();
+    let close_enabled = Config::verge().await.latest_arc().auto_close_connection.unwrap_or(true);
+    // Read before switching: afterwards the core already reports the new choice.
+    let previous = if close_enabled {
+        match mihomo.get_proxy_by_name(group_name).await {
+            Ok(group) => group.now,
+            Err(error) => {
+                logging!(
+                    warn,
+                    Type::Core,
+                    "Failed to read the current choice of {group_name}: {error}"
+                );
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    if unfix {
+        mihomo.unfixed_proxy(group_name).await?;
+    } else {
+        mihomo.select_node_for_group(group_name, proxy_name).await?;
+    }
+
+    let saved = if unfix {
+        crate::config::profiles::forget_selected_node(group_name).await
+    } else {
+        crate::config::profiles::record_selected_node(group_name, proxy_name).await
+    };
+    // The core is already switched: what the profile holds only matters for the next core start.
+    if let Err(error) = saved {
         logging!(
             warn,
             Type::Config,
-            "切换代理成功但未能记录到配置: {} -> {}, 错误: {error:#}",
-            group_name,
-            proxy_name
+            "Failed to remember the choice of {group_name}: {error:#}"
         );
     }
-}
+    announce(Refresh::Proxies);
 
-pub async fn switch_proxy_node(group_name: &str, proxy_name: &str) {
-    match handle::Handle::mihomo()
-        .select_node_for_group(group_name, proxy_name)
-        .await
-    {
-        Ok(_) => {
-            record_switched_node(group_name, proxy_name).await;
-            announce(Refresh::Proxies);
-            let _ = tray::Tray::global().update_menu().await;
-            return;
-        }
-        Err(err) => {
-            logging!(error, Type::Tray, "切换代理失败: {err:?}");
-        }
+    if closes_after_switch(close_enabled, previous.as_deref(), proxy_name) {
+        let group_name = std::string::String::from(group_name);
+        crate::process::AsyncHandler::spawn(move || close_connections_through(group_name));
     }
-
-    match handle::Handle::mihomo()
-        .select_node_for_group(group_name, proxy_name)
-        .await
-    {
-        Ok(_) => {
-            logging!(info, Type::Tray, "代理切换回退成功: {} -> {}", group_name, proxy_name);
-            record_switched_node(group_name, proxy_name).await;
-            let _ = tray::Tray::global().update_menu().await;
-        }
-        Err(err) => {
-            logging!(error, Type::Tray, "代理切换最终失败: {err:?}");
-        }
+    if let Err(error) = tray::Tray::global().update_menu().await {
+        logging!(warn, Type::Tray, "Failed to refresh the tray after a switch: {error:#}");
     }
+    Ok(())
 }
 
 async fn should_update_profile(uid: &String, ignore_auto_update: bool) -> Result<Option<(String, Option<PrfOption>)>> {
@@ -294,4 +340,43 @@ pub async fn update_profile(uid: &String, option: Option<&PrfOption>, is_mannual
 /// 增强配置
 pub async fn enhance_profiles() -> Result<ValidationOutcome> {
     CoreManager::global().update_config_forced().await
+}
+
+#[cfg(test)]
+mod switch_tests {
+    use super::{closes_after_switch, connections_through};
+    use tauri_plugin_mihomo::models::Connection;
+
+    fn connection(id: &str, chains: &[&str]) -> anyhow::Result<Connection> {
+        Ok(serde_json::from_value(serde_json::json!({
+            "id": id,
+            "chains": chains,
+            "metadata": {},
+            "upload": 0,
+            "download": 0,
+            "start": "2026-11-13T00:00:00Z",
+            "rule": "",
+            "rulePayload": "",
+        }))?)
+    }
+
+    #[test]
+    fn closes_only_the_connections_of_the_switched_group() -> anyhow::Result<()> {
+        let connections = [
+            connection("site", &["🇫🇮 Finland", "🎲 Auto", "🚫 Blocked"])?,
+            connection("voice", &["🇫🇮 Finland", "🎲 Auto", "💬 Discord"])?,
+        ];
+        let closed: Vec<&str> = connections_through("🚫 Blocked", &connections).collect();
+        assert_eq!(closed, vec!["site"]);
+        Ok(())
+    }
+
+    #[test]
+    fn closes_only_after_a_real_change_and_when_enabled() {
+        assert!(closes_after_switch(true, Some("🎲 Auto"), "🇩🇪 Germany"));
+        assert!(!closes_after_switch(true, Some("🇩🇪 Germany"), "🇩🇪 Germany"));
+        assert!(!closes_after_switch(true, None, "🇩🇪 Germany"));
+        assert!(!closes_after_switch(true, Some(""), "🇩🇪 Germany"));
+        assert!(!closes_after_switch(false, Some("🎲 Auto"), "🇩🇪 Germany"));
+    }
 }

@@ -1,73 +1,78 @@
-import {
-  closeConnection,
-  getConnections,
-  selectNodeForGroup,
-} from 'tauri-plugin-mihomo-api'
-import { expect, it, vi } from 'vitest'
+import { beforeEach, expect, it, vi } from 'vitest'
+
+import { switchProxyNode } from '@/services/cmds'
 
 import { useProxySelection } from './use-proxy-selection'
 
-const record = vi.hoisted(() => vi.fn())
 vi.mock('react', () => ({
   useCallback: (callback: unknown) => callback,
-  useRef: (current: unknown) => ({ current }),
 }))
-vi.mock('@/hooks/use-record-selection', () => ({
-  useRecordSelection: () => record,
-  useForgetSelection: () => vi.fn(),
-}))
-vi.mock('@/hooks/use-verge', () => ({ useVerge: () => ({ verge: {} }) }))
-vi.mock('tauri-plugin-mihomo-api', () => ({
-  closeConnection: vi.fn(),
-  getConnections: vi.fn(),
-  selectNodeForGroup: vi.fn(),
-  unfixedProxy: vi.fn(),
-}))
-vi.mock('@/services/cmds', () => ({ syncTrayProxySelection: vi.fn() }))
+vi.mock('@/services/cmds', () => ({ switchProxyNode: vi.fn() }))
 vi.mock('@/services/notice-service', () => ({ showNotice: { error: vi.fn() } }))
 vi.mock('@/services/query-client', () => ({ revalidateQueries: vi.fn() }))
 
-it('applies and records independent group selections while another group is pending', async () => {
-  let finishFirst!: () => void
-  vi.mocked(selectNodeForGroup)
-    .mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          finishFirst = resolve
-        }),
-    )
-    .mockResolvedValueOnce(undefined)
-  const firstSuccess = vi.fn()
-  const secondSuccess = vi.fn()
-  const first = useProxySelection({ onSuccess: firstSuccess })
-  const second = useProxySelection({ onSuccess: secondSuccess })
-  first.changeProxy('Group A', 'Node A')
-  second.changeProxy('Group B', 'Node B')
-  await vi.waitFor(() =>
-    expect(record).toHaveBeenCalledWith('Group B', 'Node B'),
-  )
-  expect(selectNodeForGroup).toHaveBeenCalledTimes(2)
-  expect(firstSuccess).not.toHaveBeenCalled()
-  expect(secondSuccess).toHaveBeenCalledOnce()
-  finishFirst()
-  await vi.waitFor(() =>
-    expect(record).toHaveBeenCalledWith('Group A', 'Node A'),
-  )
-  expect(firstSuccess).toHaveBeenCalledOnce()
+beforeEach(() => {
+  vi.mocked(switchProxyNode).mockReset()
+  vi.mocked(switchProxyNode).mockResolvedValue(null)
 })
 
-it('closes only the connections of the switched group', async () => {
-  vi.mocked(selectNodeForGroup).mockResolvedValue(undefined)
-  vi.mocked(getConnections).mockResolvedValue({
-    connections: [
-      { id: 'site', chains: ['🇫🇮 Finland', '🎲 Auto', '🚫 Blocked'] },
-      { id: 'voice', chains: ['🇫🇮 Finland', '🎲 Auto', '💬 Discord'] },
-    ],
-  } as never)
+it('moves every service of a quick batch, not only the last one', async () => {
+  // Auto-variant moves several services through one hook in a loop.
+  const onSuccess = vi.fn()
+  const { handleProxyGroupChange } = useProxySelection({ onSuccess })
+  handleProxyGroupChange({ name: '🚫 Blocked' }, { name: '🇩🇪 Germany' })
+  handleProxyGroupChange({ name: '💬 Discord' }, { name: '🇫🇮 Finland' })
+  handleProxyGroupChange({ name: '🎮 Games' }, { name: '🇸🇪 Sweden' })
+  await vi.waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(3))
+  expect(vi.mocked(switchProxyNode).mock.calls).toEqual([
+    ['🚫 Blocked', '🇩🇪 Germany', false],
+    ['💬 Discord', '🇫🇮 Finland', false],
+    ['🎮 Games', '🇸🇪 Sweden', false],
+  ])
+})
+
+it('applies quick choices in one group in the order they were made', async () => {
+  let finishFirst!: () => void
+  vi.mocked(switchProxyNode).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishFirst = () => resolve(null)
+      }),
+  )
   const { changeProxy } = useProxySelection()
+  void changeProxy('🚫 Blocked', '🇩🇪 Germany')
+  const second = changeProxy('🚫 Blocked', '🇫🇮 Finland')
+  await Promise.resolve()
+  expect(switchProxyNode).toHaveBeenCalledOnce()
+  finishFirst()
+  await second
+  expect(vi.mocked(switchProxyNode).mock.calls.map((call) => call[1])).toEqual([
+    '🇩🇪 Germany',
+    '🇫🇮 Finland',
+  ])
+})
 
-  changeProxy('🚫 Blocked', '🇩🇪 Germany', '🎲 Auto')
+it('unfixes when the pinned server is chosen again', async () => {
+  const { handleProxyGroupChange } = useProxySelection()
+  handleProxyGroupChange(
+    { name: '🚫 Blocked', fixed: '🇩🇪 Germany' },
+    { name: '🇩🇪 Germany' },
+  )
+  await vi.waitFor(() =>
+    expect(switchProxyNode).toHaveBeenCalledWith(
+      '🚫 Blocked',
+      '🇩🇪 Germany',
+      true,
+    ),
+  )
+})
 
-  await vi.waitFor(() => expect(closeConnection).toHaveBeenCalledWith('site'))
-  expect(closeConnection).not.toHaveBeenCalledWith('voice')
+it('reports a failed switch', async () => {
+  vi.mocked(switchProxyNode).mockRejectedValueOnce(new Error('core restarting'))
+  const onError = vi.fn()
+  const onSuccess = vi.fn()
+  const { changeProxy } = useProxySelection({ onError, onSuccess })
+  await changeProxy('🚫 Blocked', '🇩🇪 Germany')
+  expect(onError).toHaveBeenCalledOnce()
+  expect(onSuccess).not.toHaveBeenCalled()
 })

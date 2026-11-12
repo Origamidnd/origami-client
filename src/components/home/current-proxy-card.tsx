@@ -763,13 +763,11 @@ export const CurrentProxyCard = () => {
       if (!selectedGroup || !option || !isInteractableMember(option.member)) {
         return
       }
-      const previousProxy = selectedGroup.now
       const nextName = option.member.ref.name
       // The profile selection is the durable source across core restarts and run modes.
       handleSelectChange(
         selectedGroup.name,
-        previousProxy!,
-        selectedGroup.fixed!,
+        selectedGroup.fixed,
       )({
         target: { value: nextName },
       })

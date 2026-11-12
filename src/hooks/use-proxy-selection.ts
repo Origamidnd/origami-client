@@ -1,183 +1,58 @@
-import { useCallback, useRef } from 'react'
-import {
-  closeConnection,
-  getConnections,
-  selectNodeForGroup,
-  unfixedProxy,
-} from 'tauri-plugin-mihomo-api'
+import { useCallback } from 'react'
 
-import {
-  useForgetSelection,
-  useRecordSelection,
-} from '@/hooks/use-record-selection'
-import { useVerge } from '@/hooks/use-verge'
-import { syncTrayProxySelection } from '@/services/cmds'
+import { switchProxyNode } from '@/services/cmds'
 import { mutate } from '@/services/mutate'
 import { debugLog } from '@/utils/debug'
 
-// 缓存连接清理
-// OrigamiVPN: only the connections that went through the switched group are closed, so they
-// reconnect through the new server. Matching the previous proxy instead also cut every other
-// service that shared it, for example Discord when the blocked-sites group left Auto.
-const cleanupConnections = async (groupName: string) => {
-  try {
-    const { connections } = await getConnections()
-    const cleanupPromises = (connections ?? [])
-      .filter((conn) => conn.chains.includes(groupName))
-      .map((conn) => closeConnection(conn.id))
-
-    if (cleanupPromises.length > 0) {
-      await Promise.allSettled(cleanupPromises)
-      debugLog(`[ProxySelection] 清理了 ${cleanupPromises.length} 个连接`)
-    }
-  } catch (error) {
-    console.warn('[ProxySelection] 连接清理失败:', error)
-  }
-}
+// OrigamiVPN: the switch itself (select or unfix, remember it in the profile, refresh the tray,
+// close the connections that went through the group) runs in Rust, the same path the tray uses
+// (upstream 05a6e9a6). Here only the request is sent.
 
 interface ProxySelectionOptions {
   onSuccess?: () => void
   onError?: (error: any) => void
-  enableConnectionCleanup?: boolean
 }
 
-interface ProxyChangeRequest {
-  groupName: string
-  proxyName: string
-  previousProxy?: string
-  fixed?: string
-}
-
-// 代理选择 Hook
 export const useProxySelection = (options: ProxySelectionOptions = {}) => {
-  const recordSelection = useRecordSelection()
-  const forgetSelection = useForgetSelection()
-  const { verge } = useVerge()
-  const pendingRequestRef = useRef<ProxyChangeRequest | null>(null)
-  const isProcessingRef = useRef(false)
+  const { onSuccess, onError } = options
 
-  const { onSuccess, onError, enableConnectionCleanup = true } = options
-
-  const autoCloseConnection = verge?.auto_close_connection ?? true
-
-  // 切换节点
-  const syncTraySelection = useCallback(() => {
-    mutate(() => syncTrayProxySelection(), {
-      id: 'sync-tray-selection',
-      errorNotice: false,
-    }).catch((error) => {
-      console.error('[ProxySelection] 托盘状态同步失败:', error)
-    })
-  }, [])
-
-  const executeChange = useCallback(
-    async (request: ProxyChangeRequest) => {
-      const { groupName, proxyName, previousProxy, fixed } = request
-      const isFixedProxy = fixed === proxyName
-      if (isFixedProxy) {
-        debugLog(`[ProxySelection] 代理取消固定: ${groupName} -> ${proxyName}`)
-      } else {
-        debugLog(`[ProxySelection] 代理切换: ${groupName} -> ${proxyName}`)
-      }
-
+  // Every request is sent (upstream 8660a11c): a one-slot queue dropped all but the last of quick
+  // switches, so of several services moved at once only one actually moved. Requests for the same
+  // group still apply in order, since `mutate` runs equal ids one after another.
+  const changeProxy = useCallback(
+    async (groupName: string, proxyName: string, fixed?: string | null) => {
+      const unfix = fixed === proxyName
+      debugLog(
+        `[ProxySelection] ${unfix ? 'unfix' : 'switch'}: ${groupName} -> ${proxyName}`,
+      )
       try {
         const result = await mutate(
-          () =>
-            isFixedProxy
-              ? unfixedProxy(groupName)
-              : selectNodeForGroup(groupName, proxyName),
+          () => switchProxyNode(groupName, proxyName, unfix),
           { id: `select-proxy-node:${groupName}`, errorNotice: false },
         )
-        if (!result.ok) return
-        onSuccess?.()
-        syncTraySelection()
-        if (isFixedProxy) {
-          await forgetSelection(groupName)
-          debugLog(`[ProxySelection] 代理和状态同步完成: ${groupName}`)
-        } else {
-          await recordSelection(groupName, proxyName)
-          debugLog(
-            `[ProxySelection] 代理和状态同步完成: ${groupName} -> ${proxyName}`,
-          )
-        }
-
-        if (
-          enableConnectionCleanup &&
-          autoCloseConnection &&
-          previousProxy &&
-          previousProxy !== proxyName
-        ) {
-          void cleanupConnections(groupName)
-        }
+        if (result.ok) onSuccess?.()
       } catch (error) {
         console.error(
-          `[ProxySelection] 代理切换失败: ${groupName} -> ${proxyName}`,
+          `[ProxySelection] Failed to switch ${groupName} -> ${proxyName}`,
           error,
         )
         onError?.(error)
       }
     },
-    [
-      autoCloseConnection,
-      forgetSelection,
-      enableConnectionCleanup,
-      onError,
-      onSuccess,
-      recordSelection,
-      syncTraySelection,
-    ],
-  )
-
-  const flushChangeQueue = useCallback(async () => {
-    if (isProcessingRef.current) return
-    isProcessingRef.current = true
-
-    try {
-      while (pendingRequestRef.current) {
-        const request = pendingRequestRef.current
-        pendingRequestRef.current = null
-        await executeChange(request)
-      }
-    } finally {
-      isProcessingRef.current = false
-      if (pendingRequestRef.current) {
-        void flushChangeQueue()
-      }
-    }
-  }, [executeChange])
-
-  const changeProxy = useCallback(
-    (
-      groupName: string,
-      proxyName: string,
-      previousProxy?: string,
-      fixed?: string,
-    ) => {
-      pendingRequestRef.current = {
-        groupName,
-        proxyName,
-        previousProxy,
-        fixed,
-      }
-      void flushChangeQueue()
-    },
-    [flushChangeQueue],
+    [onError, onSuccess],
   )
 
   const handleSelectChange = useCallback(
-    (groupName: string, previousProxy?: string, fixed?: string) =>
+    (groupName: string, fixed?: string | null) =>
       (event: { target: { value: string } }) => {
-        changeProxy(groupName, event.target.value, previousProxy, fixed)
+        void changeProxy(groupName, event.target.value, fixed)
       },
     [changeProxy],
   )
 
   const handleProxyGroupChange = useCallback(
-    (
-      group: { name: string; now?: string | null; fixed?: string | null },
-      proxy: { name: string },
-    ) => {
-      changeProxy(group.name, proxy.name, group.now!, group.fixed!)
+    (group: { name: string; fixed?: string | null }, proxy: { name: string }) => {
+      void changeProxy(group.name, proxy.name, group.fixed)
     },
     [changeProxy],
   )
