@@ -51,6 +51,23 @@ pub async fn try_strategies<
 >(
     first: S,
     rest: [S; N],
+    operation: impl FnMut(S) -> Fut + Send,
+) -> Result<(S, T), E> {
+    try_strategies_until(first, rest, |_| false, operation).await
+}
+
+/// OrigamiVPN: like `try_strategies`, but an error `is_final` accepts ends the attempts, for a
+/// failure no other route can change (the server refused this device).
+pub async fn try_strategies_until<
+    S: Copy + Send,
+    T: Send,
+    E: Send,
+    Fut: Future<Output = Result<T, E>> + Send,
+    const N: usize,
+>(
+    first: S,
+    rest: [S; N],
+    is_final: impl Fn(&E) -> bool + Copy + Send,
     mut operation: impl FnMut(S) -> Fut + Send,
 ) -> Result<(S, T), E> {
     retry(
@@ -58,7 +75,15 @@ pub async fn try_strategies<
         move |attempt| {
             let strategy = if attempt == 0 { first } else { rest[attempt - 1] };
             let future = operation(strategy);
-            async move { future.await.map(|value| (strategy, value)).map_err(RetryError::Retry) }
+            async move {
+                future.await.map(|value| (strategy, value)).map_err(|error| {
+                    if is_final(&error) {
+                        RetryError::Stop(error)
+                    } else {
+                        RetryError::Retry(error)
+                    }
+                })
+            }
         },
     )
     .await
@@ -153,6 +178,23 @@ mod tests {
         .await;
         assert_eq!(result, Err("system"));
         assert_eq!(visited, ["direct", "clash", "system"]);
+    }
+
+    #[tokio::test]
+    async fn strategies_stop_at_a_final_failure() {
+        let mut visited = Vec::new();
+        let result = try_strategies_until(
+            "direct",
+            ["clash", "system"],
+            |error: &&str| *error == "refused",
+            |strategy| {
+                visited.push(strategy);
+                async move { Err::<(), _>("refused") }
+            },
+        )
+        .await;
+        assert_eq!(result, Err("refused"));
+        assert_eq!(visited, ["direct"]);
     }
 
     #[tokio::test]

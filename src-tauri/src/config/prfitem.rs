@@ -34,6 +34,13 @@ pub(super) fn normalize_profile_home_url(raw: &str) -> Option<String> {
 pub(crate) const DEVICE_LIMIT_ERROR: &str = "subscription device limit reached";
 pub(crate) const DEVICE_REJECTED_ERROR: &str = "subscription refused this device";
 
+/// True when a download failed because the subscription refused this device.
+pub(crate) fn is_device_refusal(error: &anyhow::Error) -> bool {
+    error
+        .chain()
+        .any(|cause| matches!(cause.to_string().as_str(), DEVICE_LIMIT_ERROR | DEVICE_REJECTED_ERROR))
+}
+
 pub(crate) fn device_refusal(headers: &reqwest::header::HeaderMap) -> Option<&'static str> {
     let is_true = |name: &str| {
         headers
@@ -692,5 +699,12 @@ mod device_refusal_tests {
         let map = headers(&[("x-hwid-active", "true"), ("subscription-userinfo", "upload=0")]);
         assert_eq!(device_refusal(&map), None);
         assert_eq!(device_refusal(&headers(&[("x-hwid-limit", "false")])), None);
+    }
+
+    #[test]
+    fn refusal_is_recognised_through_context() {
+        let err = anyhow::anyhow!(DEVICE_LIMIT_ERROR).context("update");
+        assert!(super::is_device_refusal(&err));
+        assert!(!super::is_device_refusal(&anyhow::anyhow!("status 404")));
     }
 }

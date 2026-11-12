@@ -129,8 +129,11 @@ async fn perform_profile_update(
         System,
     }
 
-    let result =
-        crate::utils::retry::try_strategies(Strategy::Configured, [Strategy::Clash, Strategy::System], |strategy| {
+    let result = crate::utils::retry::try_strategies_until(
+        Strategy::Configured,
+        [Strategy::Clash, Strategy::System],
+        crate::config::is_device_refusal,
+        |strategy| {
             let mut options = merged_opt.clone();
             async move {
                 let (name, success, failure) = match strategy {
@@ -178,8 +181,9 @@ async fn perform_profile_update(
                 }
                 result
             }
-        })
-        .await;
+        },
+    )
+    .await;
     let last_err = match result {
         Ok((strategy, mut item)) => {
             // A persistence error must not replay a successful download with another transport.
@@ -192,8 +196,10 @@ async fn perform_profile_update(
         Err(error) => error,
     };
 
+    // OrigamiVPN: the window explains a device refusal itself; this notice would repeat it in English.
+    let device_refused = crate::config::is_device_refusal(&last_err);
     let last_err = mask_err(&last_err.to_string());
-    if is_mannual_trigger {
+    if is_mannual_trigger && !device_refused {
         handle::Handle::notice(
             NoticeStatus::UpdateFailedEvenWithClash,
             format!("{profile_name} - {last_err}"),
