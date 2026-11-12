@@ -35,6 +35,9 @@ pub enum FrontendEvent<'a> {
         state: crate::core::runstate::RunStateView,
     },
     PendingFailuresChanged,
+    LinkStateChanged {
+        state: crate::core::link_watch::LinkState,
+    },
     #[cfg(target_os = "linux")]
     ThemeChanged {
         theme: tauri::Theme,
@@ -412,6 +415,13 @@ fn sample_frontend_events(uid: &String) -> Vec<(FrontendEvent<'_>, &'static str,
             json!(null),
         ),
         (
+            FrontendEvent::LinkStateChanged {
+                state: crate::core::link_watch::LinkState::NoInternet,
+            },
+            "origami://link-state-changed",
+            json!("noInternet"),
+        ),
+        (
             FrontendEvent::ProfileChanged {
                 current_profile_id: uid,
             },
@@ -463,6 +473,7 @@ frontend_events! {
     profile_completed: ProfileUpdatePayload = "profile-update-completed", FrontendEvent::ProfileUpdateCompleted { uid } => ProfileUpdatePayload { uid: uid.to_string() };
     run_state: crate::core::runstate::RunStateView = "verge://run-state-changed", FrontendEvent::RunStateChanged { state } => state;
     pending_failures: () = "verge://pending-failures-changed", FrontendEvent::PendingFailuresChanged => ();
+    link_state: crate::core::link_watch::LinkState = "origami://link-state-changed", FrontendEvent::LinkStateChanged { state } => state;
 }
 
 #[derive(serde::Serialize, specta::Type)]

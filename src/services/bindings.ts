@@ -77,9 +77,9 @@ export const commands = {
    */
   origamiUnresolvedServers: (names: string[]) =>
     __TAURI_INVOKE<string[]>('origami_unresolved_servers', { names }),
-  /**  OrigamiVPN: the UI's link probe reports whether traffic goes through; false paints the tray red. */
-  origamiSetLinkState: (state: string) =>
-    __TAURI_INVOKE<void>('origami_set_link_state', { state }),
+  /**  OrigamiVPN: what the link watch found last, for a window that opens after the change. */
+  origamiGetLinkState: () =>
+    __TAURI_INVOKE<LinkState>('origami_get_link_state'),
   /**
    *  OrigamiVPN: fetches the subscription only for its usage numbers. Nothing else of the profile
    *  changes and the core is not reloaded, so this can run while someone plays or watches.
@@ -634,6 +634,12 @@ export type JsonValue =
   | JsonValue[]
   | { [key in string]: JsonValue }
 
+/**
+ *  What the last checks found while the VPN is on: traffic goes, the internet itself is gone, or
+ *  the internet is there but the VPN passes nothing.
+ */
+export type LinkState = 'ok' | 'noInternet' | 'down'
+
 export type ListenerProbe = {
   address: string
   transports: ListenerTransport[]
@@ -1125,6 +1131,7 @@ export type VergeEventPayloads = {
   'profile-update-completed': ProfileUpdatePayload
   'verge://run-state-changed': RunStateView
   'verge://pending-failures-changed': null
+  'origami://link-state-changed': LinkState
 }
 
 export type WebDavFile = {

@@ -1,5 +1,5 @@
 import { notifyCoreReloaded } from '@/origami/core-reload-signal'
-import type { VergeEventPayloads } from '@/services/contract'
+import type { LinkState, VergeEventPayloads } from '@/services/contract'
 import { forgetShownStartupError } from '@/services/notice-handlers'
 import type { AppStoreAction } from '@/store/app-state'
 
@@ -25,6 +25,9 @@ export interface BusHandlerDeps {
   readPendingFailures: () => void
   /** Re-read the run-state snapshot into the store. */
   readRunState: () => void
+  /** OrigamiVPN: what the background link watch found. */
+  setLinkState: (state: LinkState) => void
+  readLinkState: () => void
 }
 
 /**
@@ -94,6 +97,7 @@ export const createEventBus = (deps: BusHandlerDeps) => {
       if (payload.mode !== 'NotRunning') forgetShownStartupError()
     },
     'verge://pending-failures-changed': () => deps.readPendingFailures(),
+    'origami://link-state-changed': (state) => deps.setLinkState(state),
     [TEST_ALL_EVENT]: () => deps.dispatch({ type: 'testAll/requested' }),
   }
 
@@ -103,6 +107,7 @@ export const createEventBus = (deps: BusHandlerDeps) => {
     deps.readRunState()
     deps.revalidateKeys(['getVergeConfig'])
     deps.readPendingFailures()
+    deps.readLinkState()
     deps.handleNotice(['dns_override::auto_disabled', ''])
     deps.handleNotice(['enhance::discarded_keys', ''])
     deps.handleNotice(['service_core::sidecar_fallback', ''])

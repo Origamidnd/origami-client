@@ -55,6 +55,11 @@ impl Handle {
         Self::send_event(FrontendEvent::RunStateChanged { state: state.clone() });
     }
 
+    /// OrigamiVPN: the link watch found a new state.
+    pub fn notify_link_state(state: crate::core::link_watch::LinkState) {
+        Self::send_event(FrontendEvent::LinkStateChanged { state });
+    }
+
     pub fn notify_profile_changed(profile_id: &String) {
         Self::send_event(FrontendEvent::ProfileChanged {
             current_profile_id: profile_id,

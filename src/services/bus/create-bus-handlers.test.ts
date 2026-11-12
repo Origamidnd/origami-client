@@ -60,6 +60,8 @@ const mountBus = async () => {
     revalidateKeys: (keys) => void revalidateQueries(keys.map((key) => [key])),
     readPendingFailures: () => {},
     readRunState: () => {},
+    setLinkState: () => {},
+    readLinkState: () => {},
   })
 }
 

@@ -33,6 +33,7 @@ vi.mock('@/services/cmds', () => ({
   getPendingFailures: vi.fn().mockResolvedValue([]),
   getSidecarFailure: vi.fn().mockResolvedValue({ revision: 0, detail: null }),
   getRuntimeState: vi.fn().mockResolvedValue({ mode: 'NotRunning' }),
+  origamiGetLinkState: vi.fn().mockResolvedValue('ok'),
 }))
 vi.mock('@/services/query-client', () => ({ revalidateQueries: vi.fn() }))
 

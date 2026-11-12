@@ -483,7 +483,8 @@ const handlers: Record<string, (args: any) => unknown> = {
   }),
   'plugin:mihomo|get_version': () => ({ meta: true, version: 'v1.19.0' }),
   // `?nodns=1`: every other silent server has an address that does not resolve.
-  origami_set_link_state: () => null,
+  origami_get_link_state: () =>
+    new URLSearchParams(location.search).get('link') ?? 'ok',
   origami_refresh_usage: () => null,
   origami_open_support_chat: () => null,
   origami_game_titles: ({ paths }) =>

@@ -3,6 +3,7 @@ pub mod autostart;
 pub mod backup;
 pub mod hotkey;
 pub mod lightweight;
+pub mod link_watch;
 pub mod listener;
 pub mod logger;
 pub mod manager;

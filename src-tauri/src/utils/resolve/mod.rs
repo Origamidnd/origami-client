@@ -95,6 +95,9 @@ async fn resolve_setup() {
         init_autostart(),
     );
 
+    // OrigamiVPN: after the core, so the first checks find it running.
+    crate::core::link_watch::start();
+
     Handle::refresh_clash();
     refresh_tray_menu().await;
     resolve_done();

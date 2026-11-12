@@ -2,6 +2,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { useEffect } from 'react'
 
+import { readLinkState, setLinkState } from '@/origami/link-state'
 import { revalidateQueries } from '@/services/query-client'
 import { useAppDispatch, useAppReads } from '@/store/app-store-context'
 
@@ -33,6 +34,8 @@ export const useEventBus = (
       revalidateKeys,
       readPendingFailures,
       readRunState,
+      setLinkState,
+      readLinkState: () => void readLinkState(),
     })
 
     let disposed = false

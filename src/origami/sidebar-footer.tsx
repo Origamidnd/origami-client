@@ -19,7 +19,7 @@ import { SendDiagnosticsDialog } from './check/send-diagnostics'
 import { CoreTroubleDialog } from './core-trouble/core-trouble-dialog'
 import { setExpertMode, useExpertMode } from './expert-mode'
 import { ORIGAMI_LINKS } from './links'
-import { useNetworkRecovery } from './network-recovery'
+import { useLinkBackRefresh } from './network-recovery'
 import { useAutoVariantWatch } from './servers/auto-variant'
 import { useAutoWarmup } from './servers/auto-warmup'
 import { openSupportChat } from './support-chat'
@@ -54,7 +54,7 @@ export const OrigamiSidebarFooter = () => {
   // The sidebar is always mounted while the window is open, so it hosts background reminders.
   useExpiryReminder()
   useAutoVariantWatch()
-  useNetworkRecovery()
+  useLinkBackRefresh()
   useAutoWarmup()
   useProgramTrafficWatch()
   usePublisherJoin()

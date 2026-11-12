@@ -1,1 +1,1 @@
-export type { NoticeStatus, VergeEventPayloads } from './bindings'
+export type { LinkState, NoticeStatus, VergeEventPayloads } from './bindings'

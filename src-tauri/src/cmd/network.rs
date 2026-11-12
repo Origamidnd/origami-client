@@ -171,9 +171,9 @@ async fn core_resolves(host: &str) -> bool {
     !matches!(body.get("Status").and_then(serde_json::Value::as_u64), Some(2 | 3))
 }
 
-/// OrigamiVPN: the UI's link probe reports whether traffic goes through; false paints the tray red.
+/// OrigamiVPN: what the link watch found last, for a window that opens after the change.
 #[tauri::command]
 #[specta::specta]
-pub async fn origami_set_link_state(state: String) {
-    crate::core::tray::set_link_state(&state).await;
+pub fn origami_get_link_state() -> crate::core::link_watch::LinkState {
+    crate::core::link_watch::current()
 }

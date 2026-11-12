@@ -331,9 +331,9 @@ export async function origamiUnresolvedServers(names: string[]) {
   return commands.origamiUnresolvedServers(names)
 }
 
-/** OrigamiVPN: tells the tray whether traffic goes through, for its red dot. */
-export async function origamiSetLinkState(state: string) {
-  return commands.origamiSetLinkState(state)
+/** OrigamiVPN: what the background link watch found last. */
+export async function origamiGetLinkState() {
+  return commands.origamiGetLinkState()
 }
 
 export async function origamiRefreshUsage(uid: string) {
