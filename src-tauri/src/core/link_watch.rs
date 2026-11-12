@@ -41,6 +41,9 @@ const HANG_RETRY: Duration = Duration::from_secs(5 * 60);
 const HANG_RETRY_MAX: Duration = Duration::from_secs(30 * 60);
 
 const PROBE_URL: &str = "https://www.gstatic.com/generate_204";
+// A subscription limited to Telegram (the grace period after it ends) passes nothing else, and for
+// it the VPN works when Telegram does. Tried only after the first one failed.
+const VPN_URLS: [&str; 2] = [PROBE_URL, "https://api.telegram.org"];
 // Google for most of the world, Yandex for a network where Google is cut.
 const DIRECT_URLS: [&str; 2] = [PROBE_URL, "https://ya.ru"];
 const PROBE_TIMEOUT_MS: u32 = 6000;
@@ -312,6 +315,20 @@ impl Planner {
     }
 }
 
+/// True when any of the addresses passes, tried in order: a working first one costs no more checks.
+async fn any_passes<'a, F, Fut>(urls: &'a [&'a str], check: F) -> bool
+where
+    F: Fn(&'a str) -> Fut,
+    Fut: Future<Output = bool>,
+{
+    for url in urls {
+        if check(url).await {
+            return true;
+        }
+    }
+    false
+}
+
 async fn until(at: Option<Instant>) {
     match at {
         Some(at) => time::sleep_until(at).await,
@@ -456,8 +473,8 @@ pub fn start() {
 
 mod real {
     use super::{
-        API_DEADLINE, DIRECT_URLS, Env, FAILED_DELAY_MS, LinkState, Ordering, PROBE_DEADLINE, PROBE_TIMEOUT_MS,
-        PROBE_URL, STATE, Verdict,
+        API_DEADLINE, DIRECT_URLS, Env, FAILED_DELAY_MS, LinkState, Ordering, PROBE_DEADLINE, PROBE_TIMEOUT_MS, STATE,
+        VPN_URLS, Verdict, any_passes,
     };
     use crate::{
         config::Config,
@@ -513,11 +530,16 @@ mod real {
 
         async fn probe(&self) -> bool {
             match main_group().await {
-                Some(group) => passes(&group, PROBE_URL).await,
-                None => matches!(
-                    crate::feat::test_delay(PROBE_URL.into()).await,
-                    Ok(delay) if delay > 0 && delay < FAILED_DELAY_MS
-                ),
+                Some(group) => any_passes(&VPN_URLS, |url| passes(&group, url)).await,
+                None => {
+                    any_passes(&VPN_URLS, |url| async move {
+                        matches!(
+                            crate::feat::test_delay(url.into()).await,
+                            Ok(delay) if delay > 0 && delay < FAILED_DELAY_MS
+                        )
+                    })
+                    .await
+                }
             }
         }
 
@@ -936,6 +958,37 @@ mod tests {
         assert_eq!(fake.restarts(), 1);
         assert_eq!(fake.calls.lock().closes, 1);
         task.abort();
+    }
+
+    #[tokio::test]
+    async fn a_telegram_only_subscription_counts_as_working() {
+        // The grace-period server passes Telegram and nothing else.
+        let tried = Mutex::new(Vec::new());
+        let works = any_passes(&VPN_URLS, |url| {
+            tried.lock().push(url);
+            async move { url.contains("telegram") }
+        })
+        .await;
+        assert!(works);
+        assert_eq!(*tried.lock(), VPN_URLS.to_vec());
+    }
+
+    #[tokio::test]
+    async fn telegram_is_not_tried_while_the_main_check_passes() {
+        let tried = Mutex::new(Vec::new());
+        assert!(
+            any_passes(&VPN_URLS, |url| {
+                tried.lock().push(url);
+                async { true }
+            })
+            .await
+        );
+        assert_eq!(*tried.lock(), vec![PROBE_URL]);
+    }
+
+    #[tokio::test]
+    async fn nothing_passing_is_a_failure() {
+        assert!(!any_passes(&VPN_URLS, |_| async { false }).await);
     }
 
     #[test]
