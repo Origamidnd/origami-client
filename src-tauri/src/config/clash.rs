@@ -158,6 +158,21 @@ impl IClashTemp {
 
     pub fn patch_config(&mut self, patch: &Mapping) {
         for (key, value) in patch.iter() {
+            // OrigamiVPN: a TUN key saved here overrides the subscription, so a TUN patch changes
+            // only the keys it names, and a null hands that key back to the subscription.
+            if key.as_str() == Some("tun")
+                && let Value::Mapping(tun_patch) = value
+                && let Some(Value::Mapping(tun)) = self.0.get_mut("tun")
+            {
+                for (tun_key, tun_value) in tun_patch {
+                    if tun_value.is_null() {
+                        tun.remove(tun_key);
+                    } else {
+                        tun.insert(tun_key.to_owned(), tun_value.to_owned());
+                    }
+                }
+                continue;
+            }
             self.0.insert(key.to_owned(), value.to_owned());
         }
     }
@@ -460,6 +475,45 @@ mod strict_route_tests {
         assert!(config.enable_strict_route());
         assert_eq!(strict_route(&config), Some(true));
         assert!(!config.enable_strict_route());
+    }
+
+    #[test]
+    fn a_tun_patch_changes_only_its_own_keys() {
+        let mut config = IClashTemp::template();
+        if let Some(tun) = config.0.get_mut("tun").and_then(Value::as_mapping_mut) {
+            tun.insert("route-exclude-address".into(), vec!["10.0.0.0/8"].into());
+        }
+
+        let mut tun_patch = Mapping::new();
+        tun_patch.insert("strict-route".into(), false.into());
+        let mut patch = Mapping::new();
+        patch.insert("tun".into(), tun_patch.into());
+        config.patch_config(&patch);
+
+        let tun = config.0.get("tun").and_then(Value::as_mapping);
+        assert_eq!(strict_route(&config), Some(false));
+        assert_eq!(
+            tun.and_then(|tun| tun.get("route-exclude-address")),
+            Some(&Value::from(vec!["10.0.0.0/8"]))
+        );
+        assert_eq!(tun.and_then(|tun| tun.get("auto-route")), Some(&Value::from(true)));
+    }
+
+    #[test]
+    fn a_null_in_a_tun_patch_hands_the_key_back_to_the_subscription() {
+        let mut config = IClashTemp::template();
+        if let Some(tun) = config.0.get_mut("tun").and_then(Value::as_mapping_mut) {
+            tun.insert("route-exclude-address".into(), Value::Sequence(vec![]));
+        }
+
+        let mut tun_patch = Mapping::new();
+        tun_patch.insert("route-exclude-address".into(), Value::Null);
+        let mut patch = Mapping::new();
+        patch.insert("tun".into(), tun_patch.into());
+        config.patch_config(&patch);
+
+        let tun = config.0.get("tun").and_then(Value::as_mapping);
+        assert!(tun.is_some_and(|tun| !tun.contains_key("route-exclude-address")));
     }
 
     #[test]

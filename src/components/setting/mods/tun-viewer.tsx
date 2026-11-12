@@ -20,6 +20,7 @@ import {
   Switch,
 } from '@/components/base'
 import { useClash } from '@/hooks/use-clash'
+import { routeExcludeForSave } from '@/origami/tun-route-exclude'
 import { enhanceProfiles } from '@/services/cmds'
 import { mutate } from '@/services/mutate'
 import { showNotice } from '@/services/notice-service'
@@ -43,6 +44,8 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
   const { clash, mutateClash, patchClash } = useClash()
 
   const [open, setOpen] = useState(false)
+  // OrigamiVPN: the excluded addresses as shown at open, to tell an edit from an untouched list.
+  const [loadedRouteExclude, setLoadedRouteExclude] = useState<string[]>([])
   const [values, setValues] = useState({
     stack: 'mips',
     device: OS === 'macos' ? 'utun1024' : 'Mihomo',
@@ -70,6 +73,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
   useImperativeHandle(ref, () => ({
     open: () => {
       setOpen(true)
+      setLoadedRouteExclude(clash?.tun['route-exclude-address'] ?? [])
       const nextAutoRoute = clash?.tun['auto-route'] ?? true
       const rawAutoRedirect = clash?.tun['auto-redirect'] ?? false
       const computedAutoRedirect =
@@ -112,7 +116,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
               : 'Mihomo'
             : values.device,
         'auto-route': values.autoRoute,
-        'route-exclude-address': routeExcludeAddress,
+        ...routeExcludeForSave(loadedRouteExclude, routeExcludeAddress),
         ...(OS === 'linux'
           ? {
               'auto-redirect': values.autoRedirect,
@@ -166,17 +170,27 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
                   : {}),
                 'auto-detect-interface': true,
                 'dns-hijack': ['any:53'],
-                'route-exclude-address': [],
                 'dns-mode': '',
                 // OrigamiVPN: on by default on Windows, it blocks IPv6 and DNS past the VPN.
                 'strict-route': OS === 'windows',
                 mtu: 1500,
               }
+              // OrigamiVPN: null hands the excluded addresses back to the subscription.
+              await patchClash({
+                tun: {
+                  ...tun,
+                  'route-exclude-address': null,
+                } as unknown as IConfigData['tun'],
+              })
+              const fresh = await mutateClash()
+              const routeExclude =
+                fresh?.data?.tun['route-exclude-address'] ?? []
+              setLoadedRouteExclude(routeExclude)
               setValues({
                 stack: 'mips',
                 device: OS === 'macos' ? 'utun1024' : 'Mihomo',
                 autoRoute: true,
-                routeExcludeAddress: '',
+                routeExcludeAddress: routeExclude.join(','),
                 autoRedirect: false,
                 autoDetectInterface: true,
                 dnsHijack: ['any:53'],
@@ -184,14 +198,6 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
                 mtu: 1500,
                 dnsMode: '',
               })
-              await patchClash({ tun })
-              await mutateClash(
-                (old) => ({
-                  ...old!,
-                  tun,
-                }),
-                false,
-              )
             }}
           >
             {t('shared.actions.resetToDefault')}
