@@ -25,6 +25,11 @@ export const paperComponents = (mode: PaperMode): Components<Theme> => {
           border: `1.5px solid ${t.line}`,
           boxShadow: `3px 3px 0 ${t.shadow} !important`,
           '&:hover': { backgroundColor: t.accent },
+          // A grey plate with the raised shadow looked broken, not unavailable: lay it flat.
+          '&.Mui-disabled': {
+            boxShadow: 'none !important',
+            borderColor: t.crease,
+          },
         },
         outlined: {
           borderColor: t.line,

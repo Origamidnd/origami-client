@@ -148,8 +148,10 @@ export type PingLevel = 'fast' | 'mid' | 'slow' | 'dead' | 'unknown'
 export const pingLevel = (delay: number | null | undefined): PingLevel => {
   if (delay === null) return 'dead'
   if (delay === undefined) return 'unknown'
-  if (delay < 60) return 'fast'
-  if (delay < 120) return 'mid'
+  // From Russia 60-150 ms to Europe is normal work: only a really slow server should look worrying,
+  // and red stays for no answer at all.
+  if (delay < 100) return 'fast'
+  if (delay < 200) return 'mid'
   return 'slow'
 }
 

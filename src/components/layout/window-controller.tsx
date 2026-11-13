@@ -5,6 +5,7 @@ import {
   useCallback,
   useImperativeHandle,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { useWindowControls } from '@/hooks/use-window'
 import { useTrayHint } from '@/origami/tray-hint'
@@ -71,6 +72,8 @@ export const WindowResizeHandles = () => {
 
 export const WindowControls = forwardRef(function WindowControls(props, ref) {
   const OS = getSystem()
+  // OrigamiVPN: the glyph-only buttons need a name for screen readers and a hover title.
+  const { t } = useTranslation()
   const {
     currentWindow,
     maximized,
@@ -119,15 +122,29 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
       {OS === 'macos' && (
         <>
           {/* macOS 风格：关闭 → 最小化 → 全屏 */}
-          <IconButton size="small" sx={{ fontSize: 14 }} onClick={guardedClose}>
+          <IconButton
+            size="small"
+            sx={{ fontSize: 14 }}
+            aria-label={t('shared.actions.close')}
+            title={t('shared.actions.close')}
+            onClick={guardedClose}
+          >
             <CloseGlyph />
           </IconButton>
-          <IconButton size="small" sx={{ fontSize: 14 }} onClick={minimize}>
+          <IconButton
+            size="small"
+            sx={{ fontSize: 14 }}
+            aria-label={t('shared.window.minimize')}
+            title={t('shared.window.minimize')}
+            onClick={minimize}
+          >
             <MinimizeGlyph />
           </IconButton>
           <IconButton
             size="small"
             sx={{ fontSize: 14 }}
+            aria-label={t('shared.window.maximize')}
+            title={t('shared.window.maximize')}
             onClick={toggleMaximize}
           >
             {maximized ? <RestoreGlyph /> : <MaximizeGlyph />}
@@ -138,12 +155,20 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
       {OS === 'windows' && (
         <>
           {/* Windows 风格：最小化 → 最大化 → 关闭 */}
-          <IconButton size="small" sx={{ fontSize: 16 }} onClick={minimize}>
+          <IconButton
+            size="small"
+            sx={{ fontSize: 16 }}
+            aria-label={t('shared.window.minimize')}
+            title={t('shared.window.minimize')}
+            onClick={minimize}
+          >
             <MinimizeGlyph />
           </IconButton>
           <IconButton
             size="small"
             sx={{ fontSize: 16 }}
+            aria-label={t('shared.window.maximize')}
+            title={t('shared.window.maximize')}
             onClick={toggleMaximize}
           >
             {maximized ? <RestoreGlyph /> : <MaximizeGlyph />}
@@ -151,6 +176,8 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
           <IconButton
             size="small"
             sx={{ fontSize: 16, ':hover': { bgcolor: 'red', color: 'white' } }}
+            aria-label={t('shared.actions.close')}
+            title={t('shared.actions.close')}
             onClick={guardedClose}
           >
             <CloseGlyph />
@@ -161,12 +188,20 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
       {OS === 'linux' && (
         <>
           {/* Linux 桌面常见布局（GNOME/KDE 多为：最小化 → 最大化 → 关闭） */}
-          <IconButton size="small" sx={{ fontSize: 16 }} onClick={minimize}>
+          <IconButton
+            size="small"
+            sx={{ fontSize: 16 }}
+            aria-label={t('shared.window.minimize')}
+            title={t('shared.window.minimize')}
+            onClick={minimize}
+          >
             <MinimizeGlyph />
           </IconButton>
           <IconButton
             size="small"
             sx={{ fontSize: 16 }}
+            aria-label={t('shared.window.maximize')}
+            title={t('shared.window.maximize')}
             onClick={toggleMaximize}
           >
             {maximized ? <RestoreGlyph /> : <MaximizeGlyph />}
@@ -174,6 +209,8 @@ export const WindowControls = forwardRef(function WindowControls(props, ref) {
           <IconButton
             size="small"
             sx={{ fontSize: 16, ':hover': { bgcolor: 'red', color: 'white' } }}
+            aria-label={t('shared.actions.close')}
+            title={t('shared.actions.close')}
             onClick={guardedClose}
           >
             <CloseGlyph />

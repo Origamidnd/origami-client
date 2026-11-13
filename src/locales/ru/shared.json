@@ -92,8 +92,8 @@
       "prefixedRaw": "{{prefix}} {{message}}"
     },
     "notifications": {
-      "importSuccess": "Профиль успешно импортирован",
-      "importSubscriptionSuccess": "Подписка успешно импортирована",
+      "importSuccess": "Подписка добавлена",
+      "importSubscriptionSuccess": "Подписка добавлена",
       "importWithClashProxy": "Профиль импортирован через Clash proxy",
       "updateAvailable": "Доступно обновление",
       "saved": "Успешно сохранено",

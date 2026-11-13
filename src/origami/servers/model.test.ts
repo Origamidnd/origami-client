@@ -74,7 +74,8 @@ describe('groupCountries and fastestVariant', () => {
 describe('pingLevel', () => {
   it('maps delays to colours', () => {
     expect(pingLevel(30)).toBe('fast')
-    expect(pingLevel(90)).toBe('mid')
+    expect(pingLevel(90)).toBe('fast')
+    expect(pingLevel(150)).toBe('mid')
     expect(pingLevel(300)).toBe('slow')
     expect(pingLevel(null)).toBe('dead')
     expect(pingLevel(undefined)).toBe('unknown')

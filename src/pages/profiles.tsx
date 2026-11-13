@@ -42,6 +42,7 @@ import { ConfigViewer } from '@/components/setting/mods/config-viewer'
 import { fetchProfilesIntoCache, useProfiles } from '@/hooks/use-profiles'
 import { explainSubscriptionError } from '@/origami/errors'
 import { useExpertMode } from '@/origami/expert-mode'
+import { Welcome } from '@/origami/home/welcome'
 import { OrigamiSubscription } from '@/origami/subscription/origami-subscription'
 import {
   createProfile,
@@ -903,81 +904,90 @@ const ProfilePage = () => {
             ))}
           </Box>
         </DragDropProvider>
-        <div className="o-label o-subp__add">
-          {t('origami.subscription.add')}
-        </div>
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{
-            mb: 1,
-            height: '36px',
-            display: 'flex',
-            alignItems: 'center',
-          }}
-        >
-          <BaseStyledTextField
-            value={url}
-            variant="outlined"
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
-                return
-              }
-              if (!url || disabled || loading) {
-                return
-              }
-              event.preventDefault()
-              void onImport()
+        {/* OrigamiVPN: with no subscription yet, the same first step as on the home page. */}
+        {profileItems.length === 0 && !expertMode ? (
+          <div className="o-home">
+            <Welcome />
+          </div>
+        ) : (
+          <div className="o-label o-subp__add">
+            {t('origami.subscription.add')}
+          </div>
+        )}
+        {(profileItems.length > 0 || expertMode) && (
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              mb: 1,
+              height: '36px',
+              display: 'flex',
+              alignItems: 'center',
             }}
-            placeholder={t('origami.subscription.urlPlaceholder')}
-            slotProps={{
-              input: {
-                sx: { pr: 1 },
-                endAdornment: !url ? (
-                  <IconButton
-                    size="small"
-                    sx={{ p: 0.5 }}
-                    title={t('profiles.page.importForm.actions.paste')}
-                    onClick={onCopyLink}
-                  >
-                    <ContentPasteRounded fontSize="inherit" />
-                  </IconButton>
-                ) : (
-                  <IconButton
-                    size="small"
-                    sx={{ p: 0.5 }}
-                    title={t('shared.actions.clear')}
-                    onClick={() => setUrl('')}
-                  >
-                    <ClearRounded fontSize="inherit" />
-                  </IconButton>
-                ),
-              },
-            }}
-          />
-          <Button
-            disabled={!url || disabled}
-            loading={loading}
-            variant="contained"
-            size="small"
-            sx={{ borderRadius: '6px' }}
-            onClick={onImport}
           >
-            {t('profiles.page.actions.import')}
-          </Button>
-          {/* OrigamiVPN: a hand-made local profile is an expert tool. */}
-          {expertMode && (
+            <BaseStyledTextField
+              value={url}
+              variant="outlined"
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
+                  return
+                }
+                if (!url || disabled || loading) {
+                  return
+                }
+                event.preventDefault()
+                void onImport()
+              }}
+              placeholder={t('origami.subscription.urlPlaceholder')}
+              slotProps={{
+                input: {
+                  sx: { pr: 1 },
+                  endAdornment: !url ? (
+                    <IconButton
+                      size="small"
+                      sx={{ p: 0.5 }}
+                      title={t('profiles.page.importForm.actions.paste')}
+                      onClick={onCopyLink}
+                    >
+                      <ContentPasteRounded fontSize="inherit" />
+                    </IconButton>
+                  ) : (
+                    <IconButton
+                      size="small"
+                      sx={{ p: 0.5 }}
+                      title={t('shared.actions.clear')}
+                      onClick={() => setUrl('')}
+                    >
+                      <ClearRounded fontSize="inherit" />
+                    </IconButton>
+                  ),
+                },
+              }}
+            />
             <Button
+              disabled={!url || disabled}
+              loading={loading}
               variant="contained"
               size="small"
               sx={{ borderRadius: '6px' }}
-              onClick={() => viewerRef.current?.create()}
+              onClick={onImport}
             >
-              {t('shared.actions.new')}
+              {t('profiles.page.actions.import')}
             </Button>
-          )}
-        </Stack>
+            {/* OrigamiVPN: a hand-made local profile is an expert tool. */}
+            {expertMode && (
+              <Button
+                variant="contained"
+                size="small"
+                sx={{ borderRadius: '6px' }}
+                onClick={() => viewerRef.current?.create()}
+              >
+                {t('shared.actions.new')}
+              </Button>
+            )}
+          </Stack>
+        )}
 
         {expertMode && (
           <>

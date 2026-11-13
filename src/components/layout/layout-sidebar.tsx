@@ -28,7 +28,7 @@ interface LayoutSidebarProps {
 const SENSORS = [PointerSensor, KeyboardSensor]
 
 export const LayoutSidebar = (props: LayoutSidebarProps) => {
-  const { isDark, isCollapsed } = props
+  const { isDark } = props
   const { t } = useTranslation()
   const { verge, mutateVerge, patchVerge } = useVerge()
   const [menuUnlocked, setMenuUnlocked] = useState(false)
@@ -94,8 +94,9 @@ export const LayoutSidebar = (props: LayoutSidebarProps) => {
 
   const handleToggleNavCollapsed = useCallback(() => {
     setMenuContextPosition(null)
-    void patchVerge({ collapse_navbar: !isCollapsed })
-  }, [isCollapsed, patchVerge])
+    // The stored choice, not the shown state: a narrow window folds the bar on its own.
+    void patchVerge({ collapse_navbar: !verge?.collapse_navbar })
+  }, [verge?.collapse_navbar, patchVerge])
 
   const expertMode = useExpertMode()
 
@@ -208,7 +209,7 @@ export const LayoutSidebar = (props: LayoutSidebarProps) => {
         }}
       >
         <MenuItem onClick={handleToggleNavCollapsed} dense>
-          {isCollapsed
+          {verge?.collapse_navbar
             ? t('layout.components.navigation.menu.expandNavBar')
             : t('layout.components.navigation.menu.collapseNavBar')}
         </MenuItem>

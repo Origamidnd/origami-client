@@ -21,22 +21,22 @@
       }
     },
     "serviceMigration": {
-      "locationRefusedMessage": "Служба не может запустить ядро: путь установки или права доступа к каталогу не прошли проверку безопасности. Переустановите службу, чтобы восстановить файлы и права доступа, затем повторите попытку. Windows может запросить подтверждение администратора.",
-      "notAutoStartedMessage": "Тип запуска службы OrigamiVPN изменён на «Вручную» или «Отключена» (часто это делают программы-оптимизаторы), поэтому она больше не запускается вместе с Windows; в этом сеансе используется Sidecar. Переустановите службу, чтобы вернуть автоматический запуск. Windows может запросить подтверждение администратора.",
-      "title": "Service update required",
-      "message": "The OrigamiVPN service version does not match the version required by this app. Choose Reinstall Service to uninstall the existing service and install the required version, or continue with Sidecar for this session.",
-      "checkingMessage": "Checking the system service status and current running mode. Please wait…",
-      "unavailableMessage": "The required OrigamiVPN service is not available. Install or repair it, or continue with Sidecar for this session.",
-      "reinstall": "Reinstall service",
-      "repair": "Repair service",
-      "continueSidecar": "Continue with Sidecar",
-      "success": "The OrigamiVPN service was updated successfully",
+      "locationRefusedMessage": "Служба не может запустить VPN: папка программы или права на неё не прошли проверку безопасности. Переустановите службу, чтобы восстановить файлы и права. Windows попросит разрешение.",
+      "notAutoStartedMessage": "Служба OrigamiVPN больше не запускается вместе с Windows: её тип запуска поменяли на \"Вручную\" или \"Отключена\" (так часто делают программы-оптимизаторы). Сейчас VPN работает без неё. Переустановите службу, чтобы вернуть автозапуск. Windows попросит разрешение.",
+      "title": "Нужно обновить службу OrigamiVPN",
+      "message": "Служба осталась от прежней версии программы. Нажмите \"Переустановить службу\", Windows попросит разрешение. Или продолжите без службы до следующего запуска.",
+      "checkingMessage": "Проверка службы OrigamiVPN…",
+      "unavailableMessage": "Служба OrigamiVPN не отвечает. Установите или почините её, либо продолжите без службы до следующего запуска.",
+      "reinstall": "Переустановить службу",
+      "repair": "Починить службу",
+      "continueSidecar": "Продолжить без службы",
+      "success": "Служба OrigamiVPN обновлена",
       "errors": {
         "actionFailed": "Не удалось выполнить операцию со службой",
         "stateRefreshFailed": "Не удалось обновить состояние службы",
-        "restartFailed": "Не удалось перезапустить ядро",
+        "restartFailed": "Не удалось перезапустить VPN",
         "revalidationFailed": "Не удалось обновить состояние выполнения",
-        "sidecarFailed": "Не удалось продолжить в режиме Sidecar"
+        "sidecarFailed": "Не удалось продолжить без службы"
       }
     },
     "sysproxyPrivilege": {
@@ -46,10 +46,10 @@
       "alternative": "Другой вариант: отключите «требовать пароль администратора для доступа к общесистемным настройкам» в Системных настройках → Конфиденциальность и безопасность → Дополнительно.",
       "later": "Позже",
       "installing": "Устанавливается системная служба. Может потребоваться пароль администратора.",
-      "restarting": "Служба установлена. Ядро перезапускается через неё…",
+      "restarting": "Служба установлена. VPN перезапускается через неё…",
       "applying": "Применяется изменение системного прокси…",
-      "tunTitle": "Для режима TUN нужна системная служба",
-      "tunMessage": "Режиму TUN нужна системная служба OrigamiVPN, чтобы взять сетевой трафик на себя. После установки режим TUN будет включён автоматически."
+      "tunTitle": "Нужна служба OrigamiVPN",
+      "tunMessage": "Чтобы через VPN шёл весь трафик компьютера, нужна служба OrigamiVPN. Она ставится один раз, система попросит разрешение. После установки VPN включится сам."
     }
   },
   "feedback": {

@@ -169,6 +169,9 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
           hint={t('origami.settings.autoLaunch.hint')}
         >
           <Switch
+            slotProps={{
+              input: { 'aria-label': t('origami.settings.autoLaunch.title') },
+            }}
             checked={verge?.enable_auto_launch ?? false}
             onChange={(_, value) => void patch({ enable_auto_launch: value })}
           />
@@ -178,6 +181,9 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
           hint={t('origami.settings.silentStart.hint')}
         >
           <Switch
+            slotProps={{
+              input: { 'aria-label': t('origami.settings.silentStart.title') },
+            }}
             checked={verge?.enable_silent_start ?? false}
             onChange={(_, value) => void patch({ enable_silent_start: value })}
           />
@@ -208,10 +214,13 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
         <Row title={t('origami.settings.language')}>
           <Select
             size="small"
+            slotProps={{
+              input: { 'aria-label': t('origami.settings.language') },
+            }}
             value={verge?.language ?? 'ru'}
             IconComponent={ExpandMoreRounded}
             onChange={(e) => void patch({ language: e.target.value })}
-            sx={{ minWidth: 160 }}
+            sx={{ minWidth: 160, '& .MuiSelect-select': { py: '5px' } }}
           >
             {supportedLanguages.map((code) => (
               <MenuItem key={code} value={code}>
@@ -225,6 +234,9 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
           hint={t('origami.settings.titlebar.hint')}
         >
           <Switch
+            slotProps={{
+              input: { 'aria-label': t('origami.settings.titlebar.title') },
+            }}
             checked={decorated === true}
             onChange={() => void toggleDecorations()}
           />
@@ -272,6 +284,9 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
               hint={t('origami.settings.updates.autoHint')}
             >
               <Switch
+                slotProps={{
+                  input: { 'aria-label': t('origami.settings.updates.auto') },
+                }}
                 checked={verge?.auto_check_update ?? true}
                 onChange={(_, value) =>
                   void patch({ auto_check_update: value })
@@ -324,6 +339,9 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
           hint={t('origami.settings.expert.hint')}
         >
           <Switch
+            slotProps={{
+              input: { 'aria-label': t('origami.settings.expert.title') },
+            }}
             checked={expert}
             onChange={(_, value) => setExpertMode(value)}
           />
@@ -338,8 +356,8 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
         </span>
         <Button
           size="small"
-          color="error"
           variant="outlined"
+          title={t('origami.settings.exitHint')}
           onClick={() => {
             void mutate(() => exitApp(), {
               id: 'exit-app',
@@ -348,6 +366,9 @@ export const OrigamiSettings = ({ children }: { children?: ReactNode }) => {
           }}
         >
           {t('origami.settings.exit')}
+          <span className="o-set__exit-hint">
+            {t('origami.settings.exitHint')}
+          </span>
         </Button>
       </div>
     </div>

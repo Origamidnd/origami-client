@@ -15,13 +15,11 @@ import { patchProfile } from '@/services/cmds'
 import { mutate } from '@/services/mutate'
 import { showNotice } from '@/services/notice-service'
 import { openExternalUrl } from '@/utils/open-external-url'
-import parseTraffic from '@/utils/parse-traffic'
 
+import { formatBytes } from '../format-bytes'
 import { ORIGAMI_LINKS } from '../links'
 import { daysLeft, expiryStage } from '../subscription-status'
 import { useRefreshSubscription } from '../use-refresh-subscription'
-
-const formatBytes = (value: number) => parseTraffic(value).join(' ')
 
 // Minutes, as the profile stores them.
 const INTERVALS = [6 * 60, 12 * 60, 24 * 60]
@@ -156,6 +154,9 @@ export const OrigamiSubscription = ({ item }: { item: IProfileItem }) => {
         </div>
         <div className="o-subp__auto">
           <Switch
+            slotProps={{
+              input: { 'aria-label': t('origami.subscription.auto') },
+            }}
             checked={autoUpdate}
             onChange={(_, value) =>
               void patchOption(

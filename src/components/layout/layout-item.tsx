@@ -10,6 +10,7 @@ import { useMatch, useNavigate, useResolvedPath } from 'react-router'
 
 import type { SortableItemRenderProps } from '@/components/base/sortable-item'
 import { useVerge } from '@/hooks/use-verge'
+import { useNavCollapsed } from '@/origami/nav-collapsed'
 
 interface Props {
   to: string
@@ -21,7 +22,7 @@ export const LayoutItem = (props: Props) => {
   const { to, children, icon, sortable } = props
   const { verge } = useVerge()
   const { menu_icon } = verge ?? {}
-  const navCollapsed = verge?.collapse_navbar ?? false
+  const navCollapsed = useNavCollapsed()
   const resolved = useResolvedPath(to)
   const match = useMatch({ path: resolved.pathname, end: true })
   const navigate = useNavigate()
@@ -82,13 +83,8 @@ export const LayoutItem = (props: Props) => {
         {effectiveMenuIcon === 'colorful' && (
           <ListItemIcon sx={{ cursor: 'inherit' }}>{icon[1]}</ListItemIcon>
         )}
-        <ListItemText
-          sx={{
-            textAlign: 'center',
-            marginLeft: effectiveMenuIcon === 'disable' ? '' : '-35px',
-          }}
-          primary={children}
-        />
+        {/* OrigamiVPN: labels start at one left edge instead of centring each under its icon. */}
+        <ListItemText primary={children} />
       </ListItemButton>
     </ListItem>
   )

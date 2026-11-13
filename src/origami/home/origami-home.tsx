@@ -1,4 +1,9 @@
-import { PowerSettingsNewRounded, RefreshRounded } from '@mui/icons-material'
+import {
+  PowerSettingsNewRounded,
+  PriorityHighRounded,
+  RefreshRounded,
+  WifiOffRounded,
+} from '@mui/icons-material'
 import { Button, IconButton } from '@mui/material'
 import dayjs from 'dayjs'
 import { useState } from 'react'
@@ -13,9 +18,9 @@ import { useVisibility } from '@/hooks/use-visibility'
 import { showNotice } from '@/services/notice-service'
 import { requestService } from '@/services/service-request'
 import { openExternalUrl } from '@/utils/open-external-url'
-import parseTraffic from '@/utils/parse-traffic'
 
 import { useExpertMode } from '../expert-mode'
+import { formatBytes, formatSpeed } from '../format-bytes'
 import { useLinkState } from '../link-state'
 import { ORIGAMI_LINKS } from '../links'
 import { daysLeft, expiryStage, needsRenew } from '../subscription-status'
@@ -27,9 +32,8 @@ import { AutostartOffer } from './autostart-offer'
 import { CheckPlate } from './check-plate'
 import { ServerPlate } from './server-plate'
 import { type ConnectMode, useConnection } from './use-connection'
+import { useOpenServers } from './use-open-servers'
 import { Welcome } from './welcome'
-
-const formatBytes = (value: number) => parseTraffic(value).join(' ')
 
 // Current speed sits at the foot of the subscription plate, next to the traffic used so far; the
 // connect plate keeps only the button.
@@ -44,13 +48,11 @@ const SpeedRow = () => {
     <div className="o-speed">
       <div>
         <div className="o-label">{t('origami.home.speed.down')}</div>
-        <div className="o-mono o-value">
-          {formatBytes(traffic?.down ?? 0)}/s
-        </div>
+        <div className="o-mono o-value">{formatSpeed(traffic?.down ?? 0)}</div>
       </div>
       <div>
         <div className="o-label">{t('origami.home.speed.up')}</div>
-        <div className="o-mono o-value">{formatBytes(traffic?.up ?? 0)}/s</div>
+        <div className="o-mono o-value">{formatSpeed(traffic?.up ?? 0)}</div>
       </div>
     </div>
   )
@@ -90,8 +92,31 @@ const ConnectPlate = () => {
   ]
 
   const link = useLinkState()
-  const trouble = connected && !busy && link !== 'ok' ? link : null
+  const { current } = useProfiles()
+  const openServers = useOpenServers()
+  const [now] = useState(() => Date.now())
+  // An ended subscription leaves only Telegram open, so the link check passes: say why the rest
+  // does not work before anything else.
+  const expired =
+    current?.type === 'remote' &&
+    expiryStage(current.extra?.expire, now) === 'expired'
+  const trouble =
+    connected && !busy
+      ? expired
+        ? 'expired'
+        : link !== 'ok'
+          ? link
+          : null
+      : null
   const state = busy ? 'busy' : trouble ? 'trouble' : connected ? 'on' : 'off'
+  const PowerIcon =
+    trouble === 'noInternet'
+      ? WifiOffRounded
+      : trouble
+        ? PriorityHighRounded
+        : PowerSettingsNewRounded
+  // Without the service the button opens its installation first, so say so.
+  const needsService = !expert && mode === 'tun' && tunNeedsService
 
   return (
     <section className="o-plate o-connect">
@@ -107,7 +132,7 @@ const ConnectPlate = () => {
         }
         onClick={toggle}
       >
-        <PowerSettingsNewRounded className="o-power__icon" />
+        <PowerIcon className="o-power__icon" />
       </button>
       <div className="o-power__caption" aria-live="polite">
         <div className={`o-power__state is-${state}`}>
@@ -126,8 +151,15 @@ const ConnectPlate = () => {
             ? t(`origami.home.state.${trouble}Hint`)
             : connected
               ? t('origami.home.state.onHint')
-              : t('origami.home.state.offHint')}
+              : needsService
+                ? t('origami.home.state.offHintService')
+                : t('origami.home.state.offHint')}
         </div>
+        {trouble === 'down' && (
+          <Button variant="contained" size="small" onClick={openServers}>
+            {t('origami.home.state.pickServer')}
+          </Button>
+        )}
       </div>
       {expert && (
         <div
@@ -158,8 +190,7 @@ const ConnectPlate = () => {
             : t('origami.home.mode.proxyHint')}
         </p>
       ) : (
-        mode === 'tun' &&
-        tunNeedsService &&
+        needsService &&
         !isLoading && (
           <div className="o-service-warn" role="alert">
             <p>{t('origami.home.service.missing')}</p>
@@ -290,6 +321,12 @@ const SubscriptionPlate = () => {
   )
 }
 
+// Asked after the first connection, not above the button on the very first start.
+const AutostartGate = () => {
+  const { connected } = useConnection()
+  return connected ? <AutostartOffer /> : null
+}
+
 const OrigamiHomePage = () => {
   const { t } = useTranslation()
   const expert = useExpertMode()
@@ -305,7 +342,7 @@ const OrigamiHomePage = () => {
       ) : (
         <div className="o-home">
           <AnnouncePlate />
-          <AutostartOffer />
+          <AutostartGate />
           <div className="o-home__grid">
             <ConnectPlate />
             <div className="o-home__side">

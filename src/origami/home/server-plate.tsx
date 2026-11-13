@@ -1,24 +1,15 @@
 import { ChevronRightRounded } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
 
-import { useProxiesData } from '@/providers/app-data-context'
-
-import { resolveCurrent } from '../current-server'
 import { PingBadge } from '../ping-badge'
 import { withoutEmoji } from '../servers/service-names'
-import type { FocusGroupState } from '../use-focus-group'
+
+import { useCurrentServer, useOpenServers } from './use-open-servers'
 
 export const ServerPlate = () => {
   const { t } = useTranslation()
-  const navigate = useNavigate()
-  const { proxyView } = useProxiesData()
-  const current = proxyView ? resolveCurrent(proxyView) : null
-
-  const open = () => {
-    const state: FocusGroupState = { origamiFocusGroup: current?.group.name }
-    navigate('/proxies', { state })
-  }
+  const current = useCurrentServer()
+  const open = useOpenServers()
 
   return (
     <button type="button" className="o-plate o-server" onClick={open}>
@@ -27,10 +18,10 @@ export const ServerPlate = () => {
         <div className="o-server__name">
           {current ? withoutEmoji(current.name) : t('origami.home.server.none')}
         </div>
+        {/* The auto group's own name comes from the panel template; people only need to know
+            the choice is automatic. */}
         {current?.via && (
-          <div className="o-hint">
-            {t('origami.home.server.via', { group: withoutEmoji(current.via) })}
-          </div>
+          <div className="o-hint">{t('origami.home.server.auto')}</div>
         )}
         <div className="o-hint">{t('origami.home.server.hint')}</div>
       </div>

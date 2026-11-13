@@ -21,7 +21,11 @@
       "noInternet": "No internet",
       "noInternetHint": "The VPN is on and will work by itself once the network is back",
       "down": "VPN not responding",
-      "downHint": "The internet works but the server is silent. Try another server"
+      "downHint": "The internet works but the server is silent. Try another server",
+      "offHintService": "Click to install the service and turn the VPN on",
+      "pickServer": "Pick another server",
+      "expired": "Subscription has ended",
+      "expiredHint": "Only Telegram works. Renew the subscription to get everything back"
     },
     "mode": {
       "label": "Connection mode",
@@ -61,10 +65,10 @@
     "server": {
       "title": "Server",
       "none": "Servers are not loaded yet",
-      "via": "Auto select: {{group}}",
       "ping": "{{ms}} ms",
       "timeout": "no response",
-      "hint": "For blocked sites. Services may have a country of their own"
+      "hint": "For blocked sites. Services may have a country of their own",
+      "auto": "Picked automatically, the fastest"
     },
     "announce": {
       "support": "Contact support",
@@ -126,7 +130,11 @@
     "tryOther": "Try another server. If that does not help, send the diagnostics to support.",
     "diagnostics": "Send diagnostics",
     "noInternet": "No internet",
-    "noInternetHint": "Check your Wi-Fi or cable. When the network is back, I will check again by myself."
+    "noInternetHint": "Check your Wi-Fi or cable. When the network is back, I will check again by myself.",
+    "link": {
+      "down": "The VPN is not answering. I will check again once it is back",
+      "noInternet": "No internet. I will check again once the network is back"
+    }
   },
   "settings": {
     "sections": {
@@ -205,7 +213,8 @@
         "title": "Files and maintenance",
         "hint": "Backups, config and log folders, lite mode"
       }
-    }
+    },
+    "exitHint": "The VPN will turn off"
   },
   "servers": {
     "title": "Servers",

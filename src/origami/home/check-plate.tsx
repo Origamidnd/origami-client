@@ -123,14 +123,15 @@ export const CheckPlate = () => {
     return () => window.clearTimeout(timer)
   }, [connected])
 
-  // A red result must not outlive the outage that caused it.
+  // A result taken before an outage says nothing about now: while the link is down the plate shows
+  // the outage instead, and checks again once the link is back.
   const link = useLinkState()
+  const linkDown = connected && link !== 'ok'
   const wasLinkRef = useRef(link)
-  const anyFailedRef = useRef(false)
   useEffect(() => {
     const cameBack = link === 'ok' && wasLinkRef.current !== 'ok'
     wasLinkRef.current = link
-    if (cameBack && connected && anyFailedRef.current) void runRef.current(true)
+    if (cameBack && connected) void runRef.current(true)
   }, [link, connected])
 
   useEffect(() => {
@@ -150,7 +151,6 @@ export const CheckPlate = () => {
     (target) =>
       delays[target.id] !== undefined && !isReachable(delays[target.id]),
   )
-  anyFailedRef.current = failed.length > 0
 
   return (
     <section className="o-plate o-check">
@@ -158,19 +158,21 @@ export const CheckPlate = () => {
         <div>
           <div className="o-label">{t('origami.check.title')}</div>
           <div className="o-check__summary">
-            {running
-              ? t('origami.check.running')
-              : !checked
-                ? connected
-                  ? t('origami.check.idle')
-                  : t('origami.check.connectFirst')
-                : noInternet
-                  ? t('origami.check.noInternet')
-                  : failed.length === 0
-                    ? t('origami.check.allGood')
-                    : t('origami.check.someFailed')}
+            {linkDown
+              ? t(`origami.check.link.${link}`)
+              : running
+                ? t('origami.check.running')
+                : !checked
+                  ? connected
+                    ? t('origami.check.idle')
+                    : t('origami.check.connectFirst')
+                  : noInternet
+                    ? t('origami.check.noInternet')
+                    : failed.length === 0
+                      ? t('origami.check.allGood')
+                      : t('origami.check.someFailed')}
           </div>
-          {exit?.country && !running && !noInternet && (
+          {exit?.country && !running && !noInternet && !linkDown && (
             <div className="o-hint">
               {t('origami.check.exit', { country: exit.country })}
             </div>
@@ -185,7 +187,7 @@ export const CheckPlate = () => {
           {checked ? t('origami.check.again') : t('origami.check.run')}
         </Button>
       </div>
-      {checked && (
+      {checked && !linkDown && (
         <ul className="o-check__list">
           {CHECK_TARGETS.map((target) => {
             const delay = delays[target.id]
@@ -219,7 +221,7 @@ export const CheckPlate = () => {
       )}
       {!running && (
         <div className="o-check__foot">
-          {failed.length > 0 && (
+          {failed.length > 0 && !linkDown && (
             <p className="o-hint">
               {noInternet
                 ? t('origami.check.noInternetHint')

@@ -3,7 +3,7 @@ import {
   HelpOutlineRounded,
   RefreshRounded,
 } from '@mui/icons-material'
-import { Button, Tooltip } from '@mui/material'
+import { Button, IconButton, Tooltip, useMediaQuery } from '@mui/material'
 import { useLockFn } from 'ahooks'
 import dayjs from 'dayjs'
 import {
@@ -136,6 +136,16 @@ export const OrigamiServers = () => {
   const [reportOpen, setReportOpen] = useState(false)
   const focus = (location.state as FocusGroupState | null)?.origamiFocusGroup
   const [selected, setSelected] = useState<string | undefined>(focus)
+  // In one column the countries sit under the services: after a pick, bring them into view.
+  const oneColumn = useMediaQuery('(max-width: 820px)')
+  const narrow = useMediaQuery('(max-width: 760px)')
+  const pickRef = useRef<HTMLElement>(null)
+  const scrollToPickRef = useRef(false)
+  useEffect(() => {
+    if (!scrollToPickRef.current) return
+    scrollToPickRef.current = false
+    pickRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [selected])
 
   useEffect(() => delayManager.addGroupListener(CHECK_KEY, rerender), [])
 
@@ -294,6 +304,16 @@ export const OrigamiServers = () => {
   const autoNode = service.auto?.now
     ? nodeByName(proxyView, service.auto.now)
     : undefined
+  // The auto group may still point at a variant that went quiet while its country answers through
+  // another one; the row then shows the country, like the country rows below do.
+  const autoDelay = (() => {
+    const own = nodeDelay(autoNode)
+    if (own !== null || !autoNode) return own
+    const country = countries.find((item) =>
+      item.variants.some((option) => option.name === autoNode.name),
+    )
+    return country ? fastestVariant(country).delay : own
+  })()
 
   const renderCountry = (country: CountryOption): ReactNode => {
     const chosen = country.variants.find((option) => option.name === now)
@@ -390,31 +410,60 @@ export const OrigamiServers = () => {
       title={t('origami.servers.title')}
       header={
         <div className="o-srv__check">
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<RefreshRounded fontSize="small" />}
-            disabled={checking}
-            onClick={() => void runCheck()}
-          >
-            {checking
-              ? t('origami.servers.checking')
-              : t('origami.servers.check')}
-          </Button>
-          {canRefresh && (
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<CloudSyncRounded fontSize="small" />}
-              disabled={updating || checking}
-              onClick={() => void refreshAndCheck()}
-            >
-              {updating
-                ? t('origami.servers.refreshingSub')
-                : t('origami.servers.refreshSub')}
-            </Button>
+          {/* A narrow window keeps the title readable: the actions turn into labelled icons. */}
+          {narrow ? (
+            <>
+              <IconButton
+                size="small"
+                className={checking ? 'o-spin' : undefined}
+                disabled={checking}
+                aria-label={t('origami.servers.check')}
+                title={t('origami.servers.check')}
+                onClick={() => void runCheck()}
+              >
+                <RefreshRounded fontSize="small" />
+              </IconButton>
+              {canRefresh && (
+                <IconButton
+                  size="small"
+                  disabled={updating || checking}
+                  aria-label={t('origami.servers.refreshSub')}
+                  title={t('origami.servers.refreshSub')}
+                  onClick={() => void refreshAndCheck()}
+                >
+                  <CloudSyncRounded fontSize="small" />
+                </IconButton>
+              )}
+            </>
+          ) : (
+            <>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<RefreshRounded fontSize="small" />}
+                disabled={checking}
+                onClick={() => void runCheck()}
+              >
+                {checking
+                  ? t('origami.servers.checking')
+                  : t('origami.servers.check')}
+              </Button>
+              {canRefresh && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<CloudSyncRounded fontSize="small" />}
+                  disabled={updating || checking}
+                  onClick={() => void refreshAndCheck()}
+                >
+                  {updating
+                    ? t('origami.servers.refreshingSub')
+                    : t('origami.servers.refreshSub')}
+                </Button>
+              )}
+            </>
           )}
-          {checkedAt && !checking && (
+          {checkedAt && !checking && !narrow && (
             <span className="o-hint">
               {t('origami.servers.checkedAt', {
                 time: dayjs(checkedAt).format('HH:mm'),
@@ -452,7 +501,10 @@ export const OrigamiServers = () => {
                     type="button"
                     className={`o-srv__service${item === service ? ' is-on' : ''}`}
                     aria-current={item === service}
-                    onClick={() => setSelected(item.group.name)}
+                    onClick={() => {
+                      scrollToPickRef.current = oneColumn
+                      setSelected(item.group.name)
+                    }}
                   >
                     <ServiceIcon groupName={item.group.name} />
                     <span className="o-srv__service-text">
@@ -484,7 +536,11 @@ export const OrigamiServers = () => {
             })}
           </nav>
 
-          <section className="o-plate o-srv__pick" aria-live="polite">
+          <section
+            ref={pickRef}
+            className="o-plate o-srv__pick"
+            aria-live="polite"
+          >
             <div className="o-srv__label">
               <ServiceIcon groupName={service.group.name} small />
               {title.title.toUpperCase()}
@@ -526,7 +582,7 @@ export const OrigamiServers = () => {
                   </small>
                 </span>
                 <Ping
-                  delay={nodeDelay(autoNode)}
+                  delay={autoDelay}
                   checking={checking}
                   name={autoNode?.name}
                 />
@@ -551,8 +607,12 @@ export const OrigamiServers = () => {
             )}
 
             <p className="o-srv__tip">
-              <b>{t('origami.servers.tipAuto')}</b>
-              <br />
+              {service.auto && (
+                <>
+                  <b>{t('origami.servers.tipAuto')}</b>
+                  <br />
+                </>
+              )}
               {t('origami.servers.tipVariant')}
             </p>
 

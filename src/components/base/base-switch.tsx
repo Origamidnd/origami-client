@@ -50,6 +50,9 @@ export const Switch = styled((props: SwitchProps) => (
   '& .MuiSwitch-track': {
     borderRadius: 26 / 2,
     backgroundColor: 'var(--o-crease)',
+    // OrigamiVPN: the grey track alone is about 2:1 against the page; the edge makes the off switch visible.
+    border: '1.5px solid var(--o-muted)',
+    boxSizing: 'border-box',
     opacity: 1,
     transition: theme.transitions.create(['background-color'], {
       duration: 500,

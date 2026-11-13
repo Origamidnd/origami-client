@@ -51,7 +51,10 @@ export const useProxySelection = (options: ProxySelectionOptions = {}) => {
   )
 
   const handleProxyGroupChange = useCallback(
-    (group: { name: string; fixed?: string | null }, proxy: { name: string }) => {
+    (
+      group: { name: string; fixed?: string | null },
+      proxy: { name: string },
+    ) => {
       void changeProxy(group.name, proxy.name, group.fixed)
     },
     [changeProxy],

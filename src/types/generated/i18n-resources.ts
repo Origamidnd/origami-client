@@ -271,6 +271,10 @@ export interface TranslationResources {
         diagnostics: string
         exit: string
         idle: string
+        link: {
+          down: string
+          noInternet: string
+        }
         noInternet: string
         noInternetHint: string
         run: string
@@ -325,12 +329,12 @@ export interface TranslationResources {
           tunServiceHint: string
         }
         server: {
+          auto: string
           hint: string
           none: string
           ping: string
           timeout: string
           title: string
-          via: string
         }
         service: {
           install: string
@@ -347,12 +351,16 @@ export interface TranslationResources {
           disconnecting: string
           down: string
           downHint: string
+          expired: string
+          expiredHint: string
           noInternet: string
           noInternetHint: string
           off: string
           offHint: string
+          offHintService: string
           on: string
           onHint: string
+          pickServer: string
         }
         subscription: {
           add: string
@@ -587,6 +595,7 @@ export interface TranslationResources {
           title: string
         }
         exit: string
+        exitHint: string
         expert: {
           hint: string
           title: string

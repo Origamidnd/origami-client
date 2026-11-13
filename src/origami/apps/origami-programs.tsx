@@ -6,8 +6,8 @@ import { useNavigate } from 'react-router'
 import { BasePage } from '@/components/base'
 import { useVerge } from '@/hooks/use-verge'
 import { showNotice } from '@/services/notice-service'
-import parseTraffic from '@/utils/parse-traffic'
 
+import { formatBytes } from '../format-bytes'
 import { useConnection } from '../home/use-connection'
 import {
   familyOf,
@@ -49,8 +49,6 @@ import {
 } from './program-traffic'
 import { reconnectProgram } from './reconnect'
 import { useProgramTraffic } from './use-program-traffic'
-
-const formatBytes = (value: number) => parseTraffic(value).join(' ')
 
 const MAX_ROWS = 50
 
