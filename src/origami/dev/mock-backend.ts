@@ -482,9 +482,8 @@ const handlers: Record<string, (args: any) => unknown> = {
     mixedPort: 7897,
   }),
   'plugin:mihomo|get_version': () => ({ meta: true, version: 'v1.19.0' }),
-  // `?nodns=1`: every other silent server has an address that does not resolve.
-  origami_get_link_state: () =>
-    new URLSearchParams(location.search).get('link') ?? 'ok',
+  // `?link=down|noInternet`; read from `params`, since preview.ts drops the query from the URL.
+  origami_get_link_state: () => params.get('link') ?? 'ok',
   origami_refresh_usage: () => null,
   origami_open_support_chat: () => null,
   origami_game_titles: ({ paths }) =>
@@ -503,6 +502,7 @@ const handlers: Record<string, (args: any) => unknown> = {
         .filter((path) => /My Game|Some Launcher/.test(path))
         .map((path) => [path, 'Some Studio']),
     ),
+  // `?nodns=1`: every other silent server has an address that does not resolve.
   origami_unresolved_servers: ({ names }) =>
     params.get('nodns') === '1'
       ? (names as string[]).filter((_, i) => i % 2 === 0)
@@ -526,7 +526,8 @@ const handlers: Record<string, (args: any) => unknown> = {
     setInterval(send, 1000)
     return 1
   },
-  'plugin:app|version': () => '0.1.0',
+  // Above the app's own 1.0.0, or the sidebar never offers the update in the preview.
+  'plugin:app|version': () => '1.0.0',
   // `?update=changed`: a newer release came out while the dialog was open, so the install
   // reports a changed offer and the next check returns it.
   install_update: () => {
@@ -538,22 +539,22 @@ const handlers: Record<string, (args: any) => unknown> = {
     params.get('update') === 'changed'
       ? {
           rid: 1,
-          currentVersion: '0.1.12',
-          version: updateChanged ? '0.1.14' : '0.1.13',
+          currentVersion: '1.0.0',
+          version: updateChanged ? '1.0.2' : '1.0.1',
           date: '2026-11-08',
           body: updateChanged
-            ? 'Что нового в 0.1.14:\n\n- Вторая версия, вышла пока окно было открыто.'
-            : 'Что нового в 0.1.13:\n\n- Первая версия.',
+            ? 'Что нового в 1.0.2:\n\n- Вторая версия, вышла пока окно было открыто.'
+            : 'Что нового в 1.0.1:\n\n- Первая версия.',
           rawJson: {},
         }
       : params.get('update') === '1'
         ? {
             rid: 1,
-            currentVersion: '0.1.7',
-            version: '0.1.8',
+            currentVersion: '1.0.0',
+            version: '1.0.1',
             date: '2026-11-05',
             // The real text arrives from latest.json (.github/release-notes/<tag>.md).
-            body: 'Что нового в 0.1.8:\n\n- Через полминуты после запуска программа сама проверяет, идёт ли трафик через VPN, и при необходимости переподключает его.\n- В окне обновления теперь виден список изменений.\n\nЕсли что-то не работает, нажмите "Скопировать диагностику для поддержки" на главном экране и пришлите мне.',
+            body: 'Что нового в 1.0.1:\n\n- Через полминуты после запуска программа сама проверяет, идёт ли трафик через VPN, и при необходимости переподключает его.\n- В окне обновления теперь виден список изменений.\n\nЕсли что-то не работает, нажмите "Скопировать диагностику для поддержки" на главном экране и пришлите мне.',
             rawJson: {},
           }
         : null,
