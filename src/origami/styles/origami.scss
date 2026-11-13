@@ -190,6 +190,16 @@ $mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
   }
 }
 
+// Folded icons are 64px a step; with the nine expert tabs the last two hid under the footer in a
+// 700px window (found in the VM on a half-screen window). A 44px step fits them all.
+.layout.layout--nav-collapsed
+  .layout-content__left
+  .the-menu:has(> :nth-child(8))
+  .MuiListItemButton-root {
+  --layout-nav-item-size: 40px;
+  margin: 2px auto !important;
+}
+
 // Own title bar (Windows/Linux): page colour, Windows-sized buttons, no stock divider.
 // Same weight as the base ".linux.layout .the_titlebar", whose 10px padding squeezed the buttons.
 :is(.linux, .windows, .unknown).layout .the_titlebar {
