@@ -344,7 +344,9 @@
     "retry": "Try again"
   },
   "notices": {
-    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later."
+    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later.",
+    "clockAhead": "Die Uhr des Computers geht vor. Deshalb kann das VPN keine Verbindung herstellen. Aktivieren Sie die automatische Zeiteinstellung in den Systemeinstellungen",
+    "clockBehind": "Die Uhr des Computers geht nach. Deshalb kann das VPN keine Verbindung herstellen. Aktivieren Sie die automatische Zeiteinstellung in den Systemeinstellungen"
   },
   "coreTrouble": {
     "title": "The VPN does not start",

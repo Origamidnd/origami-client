@@ -344,7 +344,9 @@
     "retry": "Try again"
   },
   "notices": {
-    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later."
+    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later.",
+    "clockAhead": "電腦時鐘偏快。這可能導致 VPN 無法連線。請在系統設定中開啟自動設定時間",
+    "clockBehind": "電腦時鐘偏慢。這可能導致 VPN 無法連線。請在系統設定中開啟自動設定時間"
   },
   "coreTrouble": {
     "title": "The VPN does not start",

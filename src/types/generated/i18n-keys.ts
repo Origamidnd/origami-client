@@ -421,6 +421,8 @@ export const translationKeys = [
   'origami.sendDiagnostics.openChat',
   'origami.sendDiagnostics.retry',
   'origami.notices.profileKept',
+  'origami.notices.clockAhead',
+  'origami.notices.clockBehind',
   'origami.coreTrouble.title',
   'origami.coreTrouble.serviceCoreStopped',
   'origami.coreTrouble.startFailed',

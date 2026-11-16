@@ -344,7 +344,9 @@
     "retry": "Try again"
   },
   "notices": {
-    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later."
+    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later.",
+    "clockAhead": "ساعت رایانه جلو است. به همین دلیل ممکن است VPN وصل نشود. تنظیم خودکار زمان را در تنظیمات سیستم روشن کنید",
+    "clockBehind": "ساعت رایانه عقب است. به همین دلیل ممکن است VPN وصل نشود. تنظیم خودکار زمان را در تنظیمات سیستم روشن کنید"
   },
   "coreTrouble": {
     "title": "The VPN does not start",

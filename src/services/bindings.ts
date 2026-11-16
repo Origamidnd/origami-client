@@ -707,6 +707,8 @@ export type NoticeStatus =
   | 'mixed_port::fallback_error'
   /**  OrigamiVPN: the core rejected a downloaded subscription, the previous file was put back. */
   | 'origami::profile_kept'
+  /**  OrigamiVPN: the computer's clock is minutes or hours off; the payload is "ahead" or "behind". */
+  | 'origami::clock_skew'
 
 export type PendingAction =
   | 'install'

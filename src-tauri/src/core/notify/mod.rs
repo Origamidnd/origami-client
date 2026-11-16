@@ -79,6 +79,9 @@ pub enum NoticeStatus {
     /// OrigamiVPN: the core rejected a downloaded subscription, the previous file was put back.
     #[serde(rename = "origami::profile_kept")]
     OrigamiProfileKept,
+    /// OrigamiVPN: the computer's clock is minutes or hours off; the payload is "ahead" or "behind".
+    #[serde(rename = "origami::clock_skew")]
+    OrigamiClockSkew,
 }
 
 impl NoticeStatus {
@@ -86,7 +89,7 @@ impl NoticeStatus {
     /// test both derive their variant list from here; expected strings stay
     /// hand-written in the test so renames cannot slip through.
     #[cfg(test)]
-    pub const ALL: [Self; 35] = [
+    pub const ALL: [Self; 36] = [
         Self::Info,
         Self::ImportSubUrlOk,
         Self::ImportSubUrlError,
@@ -122,6 +125,7 @@ impl NoticeStatus {
         Self::MixedPortFallback,
         Self::MixedPortFallbackError,
         Self::OrigamiProfileKept,
+        Self::OrigamiClockSkew,
     ];
 }
 
@@ -168,6 +172,7 @@ mod tests {
             "mixed_port::fallback",
             "mixed_port::fallback_error",
             "origami::profile_kept",
+            "origami::clock_skew",
         ];
         let actual: Vec<_> = statuses
             .into_iter()

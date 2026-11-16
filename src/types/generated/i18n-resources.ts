@@ -399,6 +399,8 @@ export interface TranslationResources {
         update: string
       }
       notices: {
+        clockAhead: string
+        clockBehind: string
         profileKept: string
       }
       programs: {

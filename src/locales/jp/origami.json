@@ -344,7 +344,9 @@
     "retry": "Try again"
   },
   "notices": {
-    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later."
+    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later.",
+    "clockAhead": "パソコンの時計が進んでいます。そのためVPNに接続できない場合があります。システム設定で時刻の自動設定をオンにしてください",
+    "clockBehind": "パソコンの時計が遅れています。そのためVPNに接続できない場合があります。システム設定で時刻の自動設定をオンにしてください"
   },
   "coreTrouble": {
     "title": "The VPN does not start",

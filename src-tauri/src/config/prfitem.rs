@@ -41,6 +41,54 @@ pub(crate) fn is_device_refusal(error: &anyhow::Error) -> bool {
         .any(|cause| matches!(cause.to_string().as_str(), DEVICE_LIMIT_ERROR | DEVICE_REJECTED_ERROR))
 }
 
+/// How far the computer's clock may drift from the subscription server before TLS, DoH and Reality
+/// start failing in ways that look like a dead VPN.
+const CLOCK_SKEW_LIMIT: Duration = Duration::from_secs(3 * 60);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ClockSkew {
+    Ahead,
+    Behind,
+}
+
+/// Compares the computer's clock with the `Date` header of the subscription answer. A wrong time
+/// zone with the right local time also shows here: the clock is then hours off in UTC.
+pub(crate) fn clock_skew(date: &str, now: std::time::SystemTime) -> Option<ClockSkew> {
+    let server = chrono::DateTime::parse_from_rfc2822(date.trim()).ok()?;
+    let server =
+        std::time::SystemTime::UNIX_EPOCH.checked_add(Duration::from_secs(u64::try_from(server.timestamp()).ok()?))?;
+    match now.duration_since(server) {
+        Ok(ahead) if ahead > CLOCK_SKEW_LIMIT => Some(ClockSkew::Ahead),
+        Err(behind) if behind.duration() > CLOCK_SKEW_LIMIT => Some(ClockSkew::Behind),
+        _ => None,
+    }
+}
+
+/// Once per run: the subscription updates often, and the advice does not change.
+fn warn_clock_skew(headers: &reqwest::header::HeaderMap) {
+    static WARNED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    let Some(skew) = headers
+        .get(reqwest::header::DATE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|date| clock_skew(date, std::time::SystemTime::now()))
+    else {
+        return;
+    };
+    if WARNED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+        return;
+    }
+    let side = match skew {
+        ClockSkew::Ahead => "ahead",
+        ClockSkew::Behind => "behind",
+    };
+    clash_verge_logging::logging!(
+        warn,
+        clash_verge_logging::Type::Config,
+        "computer clock is {side} of the subscription server"
+    );
+    crate::core::handle::Handle::notice(crate::core::notify::NoticeStatus::OrigamiClockSkew, side);
+}
+
 pub(crate) fn device_refusal(headers: &reqwest::header::HeaderMap) -> Option<&'static str> {
     let is_true = |name: &str| {
         headers
@@ -368,6 +416,7 @@ impl PrfItem {
         }
 
         let header = resp.headers();
+        warn_clock_skew(header);
 
         let extra;
         'extra: {
@@ -706,5 +755,38 @@ mod device_refusal_tests {
         let err = anyhow::anyhow!(DEVICE_LIMIT_ERROR).context("update");
         assert!(super::is_device_refusal(&err));
         assert!(!super::is_device_refusal(&anyhow::anyhow!("status 404")));
+    }
+}
+
+#[cfg(test)]
+mod clock_skew_tests {
+    use super::{ClockSkew, clock_skew};
+    use std::time::{Duration, SystemTime};
+
+    const SERVER: &str = "Mon, 16 Nov 2026 01:00:00 GMT";
+    const SERVER_SECS: u64 = 1_794_790_800;
+
+    fn at(secs: u64) -> SystemTime {
+        SystemTime::UNIX_EPOCH + Duration::from_secs(secs)
+    }
+
+    #[test]
+    fn a_minute_or_two_is_fine() {
+        assert_eq!(clock_skew(SERVER, at(SERVER_SECS)), None);
+        assert_eq!(clock_skew(SERVER, at(SERVER_SECS + 120)), None);
+        assert_eq!(clock_skew(SERVER, at(SERVER_SECS - 120)), None);
+    }
+
+    #[test]
+    fn a_wrong_time_zone_shows_as_hours() {
+        // The clock shows the right local time, but the zone is wrong: UTC is 3 hours behind.
+        assert_eq!(clock_skew(SERVER, at(SERVER_SECS - 3 * 3600)), Some(ClockSkew::Behind));
+        assert_eq!(clock_skew(SERVER, at(SERVER_SECS + 10 * 60)), Some(ClockSkew::Ahead));
+    }
+
+    #[test]
+    fn an_unreadable_date_says_nothing() {
+        assert_eq!(clock_skew("yesterday", at(SERVER_SECS - 3 * 3600)), None);
+        assert_eq!(clock_skew("", at(SERVER_SECS)), None);
     }
 }

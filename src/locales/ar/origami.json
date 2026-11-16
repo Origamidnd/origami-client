@@ -344,7 +344,9 @@
     "retry": "Try again"
   },
   "notices": {
-    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later."
+    "profileKept": "The subscription from the server came broken, so the previous one stays and the VPN keeps working. It will be updated later.",
+    "clockAhead": "ساعة الكمبيوتر متقدمة. لهذا قد لا تتصل شبكة VPN. فعّل ضبط الوقت تلقائيًا في إعدادات النظام",
+    "clockBehind": "ساعة الكمبيوتر متأخرة. لهذا قد لا تتصل شبكة VPN. فعّل ضبط الوقت تلقائيًا في إعدادات النظام"
   },
   "coreTrouble": {
     "title": "The VPN does not start",
