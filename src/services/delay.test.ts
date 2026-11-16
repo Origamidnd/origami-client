@@ -59,3 +59,58 @@ describe('group delay completion', () => {
     stop()
   })
 })
+
+const nodeWithHistory = (
+  name: string,
+  history: { time: string; delay: number }[],
+) =>
+  ({
+    kind: 'node',
+    ref: { kind: 'node', name, recordId: `r:${name}` },
+    node: {
+      recordId: `r:${name}`,
+      name,
+      history,
+      source: { kind: 'core', proxyName: name },
+    },
+  }) as unknown as ResolvedProxyMember
+
+describe('manual check versus newer core tests', () => {
+  test('a newer core result replaces an older manual one', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-16T10:00:00Z'))
+    delayManager.setDelay('fresh', 'g', 0)
+    vi.setSystemTime(new Date('2026-11-16T10:05:00Z'))
+    const member = nodeWithHistory('fresh', [
+      { time: '2026-11-16T10:01:00Z', delay: 213 },
+    ])
+
+    expect(delayManager.getDelayFix(member, 'g')).toBe(213)
+    expect(
+      delayManager.getFreshDelay('fresh', 'g', memberHistory(member)),
+    ).toBe(213)
+    vi.useRealTimers()
+  })
+
+  test('a manual result newer than the core history stays', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-16T10:02:00Z'))
+    delayManager.setDelay('manual', 'g', 512)
+    const member = nodeWithHistory('manual', [
+      { time: '2026-11-16T10:01:00Z', delay: 213 },
+    ])
+
+    expect(delayManager.getDelayFix(member, 'g')).toBe(512)
+    expect(
+      delayManager.getFreshDelay('manual', 'g', memberHistory(member)),
+    ).toBe(512)
+    vi.useRealTimers()
+  })
+})
+
+const memberHistory = (member: ResolvedProxyMember) =>
+  (
+    member as unknown as {
+      node: { history: { time: string; delay: number }[] }
+    }
+  ).node.history

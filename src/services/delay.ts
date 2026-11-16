@@ -245,13 +245,35 @@ class DelayManager {
     return update ? update.delay : -1
   }
 
+  /**
+   * OrigamiVPN: the core keeps testing on its own (url-test interval), so a manual result
+   * must not hide a newer core record for up to CACHE_TTL. A running check (-2) still wins.
+   */
+  getFreshDelay(
+    name: string,
+    group: string,
+    history: readonly { time: string; delay: number }[] | undefined,
+  ) {
+    const update = this.getDelayUpdate(name, group)
+    if (update?.delay === -2) return -2
+    const last = history?.at(-1)
+    const lastAt = last ? Date.parse(last.time) : Number.NaN
+    if (
+      last &&
+      Number.isFinite(lastAt) &&
+      (!update || lastAt > update.updatedAt)
+    )
+      return last.delay || 1e6
+    return update ? update.delay : -1
+  }
+
   getDelayFix(member: ResolvedProxyMember, group: string) {
     if (member.kind === 'unresolved') return -1
     const details = memberDetails(member)
     const name = member.ref.name
     const update = this.getDelayUpdate(name, group)
     if (update && (update.delay >= 0 || update.delay === -2)) {
-      return update.delay
+      return this.getFreshDelay(name, group, details?.history)
     }
 
     if (details?.history && details.history.length > 0) {

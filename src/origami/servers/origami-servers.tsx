@@ -93,7 +93,11 @@ const nodeByName = (view: ProxyViewV1, name: string) =>
 
 const nodeDelay = (node: ProxyNodeView | undefined) => {
   if (!node) return undefined
-  const fromCheck = delayManager.getDelay(node.name, CHECK_KEY)
+  const fromCheck = delayManager.getFreshDelay(
+    node.name,
+    CHECK_KEY,
+    node.history,
+  )
   if (fromCheck > 0 && fromCheck < DEFAULT_DELAY_TIMEOUT) return fromCheck
   if (fromCheck === 0 || fromCheck >= DEFAULT_DELAY_TIMEOUT) return null
   const last = node.history.at(-1)?.delay

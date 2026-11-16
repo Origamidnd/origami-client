@@ -63,6 +63,8 @@ pub mod files {
 pub mod tun {
     pub const DEFAULT_STACK: &str = "mips";
 
+    pub const DEFAULT_MTU: u16 = 1500;
+
     pub const DNS_HIJACK: &[&str] = &["any:53"];
 
     /// OrigamiVPN: on Windows the core blocks IPv6 and port-53 DNS that try to leave past the TUN
