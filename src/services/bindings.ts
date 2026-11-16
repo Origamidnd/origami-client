@@ -637,7 +637,12 @@ export type JsonValue =
  *  What the last checks found while the VPN is on: traffic goes, the internet itself is gone, or
  *  the internet is there but the VPN passes nothing.
  */
-export type LinkState = 'ok' | 'noInternet' | 'down'
+export type LinkState =
+  | 'ok'
+  | 'noInternet'
+  | 'down'
+  /**  Another VPN or virtual adapter takes the core's own traffic back into the TUN. */
+  | 'conflict'
 
 export type ListenerProbe = {
   address: string

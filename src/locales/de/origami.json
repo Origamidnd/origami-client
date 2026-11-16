@@ -22,6 +22,8 @@
       "noInternetHint": "The VPN is on and will work by itself once the network is back",
       "down": "VPN not responding",
       "downHint": "The internet works but the server is silent. Try another server",
+      "conflict": "Ein anderes VPN stört",
+      "conflictHint": "Ein anderes VPN oder ein virtueller Adapter scheint den Datenverkehr abzufangen. Schalten Sie es aus und danach OrigamiVPN aus und wieder ein",
       "offHintService": "Click to install the service and turn the VPN on",
       "pickServer": "Pick another server",
       "expired": "Subscription has ended",
@@ -133,7 +135,8 @@
     "noInternetHint": "Check your Wi-Fi or cable. When the network is back, I will check again by myself.",
     "link": {
       "down": "The VPN is not answering. I will check again once it is back",
-      "noInternet": "No internet. I will check again once the network is back"
+      "noInternet": "No internet. I will check again once the network is back",
+      "conflict": "Ein anderes VPN stört. Ich prüfe erneut, sobald die Verbindung zurück ist"
     }
   },
   "settings": {

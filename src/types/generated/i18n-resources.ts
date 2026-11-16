@@ -272,6 +272,7 @@ export interface TranslationResources {
         exit: string
         idle: string
         link: {
+          conflict: string
           down: string
           noInternet: string
         }
@@ -345,6 +346,8 @@ export interface TranslationResources {
           up: string
         }
         state: {
+          conflict: string
+          conflictHint: string
           connect: string
           connecting: string
           disconnect: string

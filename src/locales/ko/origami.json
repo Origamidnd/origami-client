@@ -22,6 +22,8 @@
       "noInternetHint": "The VPN is on and will work by itself once the network is back",
       "down": "VPN not responding",
       "downHint": "The internet works but the server is silent. Try another server",
+      "conflict": "다른 VPN이 방해하고 있습니다",
+      "conflictHint": "다른 VPN 또는 가상 어댑터가 트래픽을 가로채는 것 같습니다. 그것을 끈 다음 OrigamiVPN을 껐다가 다시 켜세요",
       "offHintService": "Click to install the service and turn the VPN on",
       "pickServer": "Pick another server",
       "expired": "Subscription has ended",
@@ -133,7 +135,8 @@
     "noInternetHint": "Check your Wi-Fi or cable. When the network is back, I will check again by myself.",
     "link": {
       "down": "The VPN is not answering. I will check again once it is back",
-      "noInternet": "No internet. I will check again once the network is back"
+      "noInternet": "No internet. I will check again once the network is back",
+      "conflict": "다른 VPN이 방해하고 있습니다. 연결이 돌아오면 다시 확인하겠습니다"
     }
   },
   "settings": {

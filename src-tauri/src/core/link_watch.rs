@@ -62,6 +62,8 @@ pub enum LinkState {
     Ok,
     NoInternet,
     Down,
+    /// Another VPN or virtual adapter takes the core's own traffic back into the TUN.
+    Conflict,
 }
 
 impl LinkState {
@@ -70,6 +72,7 @@ impl LinkState {
             Self::Ok => 0,
             Self::NoInternet => 1,
             Self::Down => 2,
+            Self::Conflict => 3,
         }
     }
 
@@ -77,6 +80,7 @@ impl LinkState {
         match value {
             1 => Self::NoInternet,
             2 => Self::Down,
+            3 => Self::Conflict,
             _ => Self::Ok,
         }
     }
@@ -95,6 +99,25 @@ pub(crate) enum Verdict {
     CoreSilent,
     NoInternet,
     VpnSilent,
+    /// The core refuses its own traffic as a loop: another VPN or virtual adapter is in the way.
+    Conflict,
+}
+
+// How far back the core log is read, and how many loop refusals there must be in it: one can be a
+// single program that points at the proxy port itself.
+const LOG_WINDOW: usize = 300;
+const LOOPBACK_LINES: usize = 3;
+
+/// Another VPN or virtual adapter (other Wintun drivers, phone link apps, VMware) can route the
+/// core's own connections back into the TUN; mihomo then refuses them as a loop and every server
+/// looks dead (CVR #8632, FlClash #3009).
+pub(crate) fn loopback_conflict(logs: &[String]) -> bool {
+    logs.iter()
+        .rev()
+        .take(LOG_WINDOW)
+        .filter(|line| line.contains("reject loopback"))
+        .count()
+        >= LOOPBACK_LINES
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -103,6 +126,7 @@ enum Outcome {
     Restarted,
     NoInternet,
     Failed,
+    Conflict,
 }
 
 impl Outcome {
@@ -111,6 +135,7 @@ impl Outcome {
             Self::Ok | Self::Restarted => LinkState::Ok,
             Self::NoInternet => LinkState::NoInternet,
             Self::Failed => LinkState::Down,
+            Self::Conflict => LinkState::Conflict,
         }
     }
 }
@@ -165,6 +190,10 @@ async fn recover<E: Env>(env: &E, force: bool, vpn_silent_retry: bool) -> Outcom
     if verdict == Verdict::NoInternet && !force {
         return Outcome::NoInternet;
     }
+    // A restart brings the same loop back and cuts what still works.
+    if verdict == Verdict::Conflict && !force {
+        return Outcome::Conflict;
+    }
     if verdict == Verdict::VpnSilent && !force && !vpn_silent_retry {
         return Outcome::Failed;
     }
@@ -180,10 +209,10 @@ async fn recover<E: Env>(env: &E, force: bool, vpn_silent_retry: bool) -> Outcom
     if env.probe().await {
         return Outcome::Restarted;
     }
-    if env.diagnose().await == Verdict::NoInternet {
-        Outcome::NoInternet
-    } else {
-        Outcome::Failed
+    match env.diagnose().await {
+        Verdict::NoInternet => Outcome::NoInternet,
+        Verdict::Conflict => Outcome::Conflict,
+        Verdict::CoreSilent | Verdict::VpnSilent => Outcome::Failed,
     }
 }
 
@@ -299,6 +328,11 @@ impl Planner {
             Verdict::CoreSilent => {
                 self.no_internet_since = None;
                 (LinkState::Down, self.try_hang_restart(false, now))
+            }
+            Verdict::Conflict => {
+                self.no_internet_since = None;
+                self.vpn_silent_since = None;
+                (LinkState::Conflict, None)
             }
             Verdict::VpnSilent => {
                 self.no_internet_since = None;
@@ -474,7 +508,7 @@ pub fn start() {
 mod real {
     use super::{
         API_DEADLINE, DIRECT_URLS, Env, FAILED_DELAY_MS, LinkState, Ordering, PROBE_DEADLINE, PROBE_TIMEOUT_MS, STATE,
-        VPN_URLS, Verdict, any_passes,
+        VPN_URLS, Verdict, any_passes, loopback_conflict,
     };
     use crate::{
         config::Config,
@@ -549,6 +583,12 @@ mod real {
                 Ok(Ok(_))
             ) {
                 return Verdict::CoreSilent;
+            }
+            // Before the direct check: in a loop the core's direct connections fail too, and that
+            // would read as "no internet".
+            let logs = CoreManager::global().get_clash_logs().await.unwrap_or_default();
+            if loopback_conflict(&logs) {
+                return Verdict::Conflict;
             }
             let direct = futures::future::join_all(DIRECT_URLS.iter().map(|url| passes("DIRECT", url))).await;
             if direct.contains(&true) {
@@ -635,6 +675,7 @@ mod tests {
         vpn: bool,
         internet: bool,
         core: bool,
+        conflict: bool,
         connected: bool,
         // A restart brings these back.
         restart_fixes_vpn: bool,
@@ -668,6 +709,7 @@ mod tests {
                     vpn: true,
                     internet: true,
                     core: true,
+                    conflict: false,
                     connected: true,
                     restart_fixes_vpn: false,
                     restart_fixes_core: false,
@@ -708,6 +750,8 @@ mod tests {
             let net = self.net.lock();
             if !net.core {
                 Verdict::CoreSilent
+            } else if net.conflict {
+                Verdict::Conflict
             } else if net.internet {
                 Verdict::VpnSilent
             } else {
@@ -999,5 +1043,52 @@ mod tests {
         assert_eq!(planner.report(LinkState::Ok), None);
         assert!(!planner.vpn_silent_restarted);
         assert_eq!(planner.fails, 0);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn says_another_vpn_interferes_and_does_not_restart_for_it() {
+        let fake = Fake::new();
+        let task = fake.spawn();
+        advance(Duration::from_secs(40)).await;
+        // Another VPN's adapter takes the core's own traffic: a restart cannot fix that.
+        {
+            let mut net = fake.net.lock();
+            net.vpn = false;
+            net.conflict = true;
+        }
+        advance(MIN * 30).await;
+        assert_eq!(fake.state(), LinkState::Conflict);
+        assert_eq!(fake.restarts(), 0);
+        {
+            let mut net = fake.net.lock();
+            net.vpn = true;
+            net.conflict = false;
+        }
+        advance(MIN * 2).await;
+        assert_eq!(fake.state(), LinkState::Ok);
+        task.abort();
+    }
+
+    #[test]
+    fn a_few_loopback_rejects_in_the_recent_log_mean_a_conflict() {
+        let line = |text: &str| text.to_owned();
+        let mut logs: Vec<String> = (0..50).map(|i| line(&format!("info [TCP] ok {i}"))).collect();
+        assert!(!loopback_conflict(&logs));
+        logs.push(line(
+            "warning [TCP] dial DIRECT 223.5.5.5:443 error: reject loopback connection to: 223.5.5.5:443",
+        ));
+        assert!(
+            !loopback_conflict(&logs),
+            "one line can be a stray loop of a single program"
+        );
+        for _ in 0..3 {
+            logs.push(line(
+                "warning [UDP] dial Proxy error: reject loopback connection to: 1.2.3.4:443",
+            ));
+        }
+        assert!(loopback_conflict(&logs));
+        // Old lines far behind the recent window do not count.
+        logs.extend((0..LOG_WINDOW).map(|i| line(&format!("info [TCP] ok again {i}"))));
+        assert!(!loopback_conflict(&logs));
     }
 }

@@ -336,7 +336,9 @@ impl Tray {
             crate::core::link_watch::LinkState::NoInternet if system_proxy || tun_mode => {
                 format!("{}\n", clash_verge_i18n::t!("tray.tooltip.origamiNoInternet"))
             }
-            crate::core::link_watch::LinkState::Down if system_proxy || tun_mode => {
+            crate::core::link_watch::LinkState::Down | crate::core::link_watch::LinkState::Conflict
+                if system_proxy || tun_mode =>
+            {
                 format!("{}\n", clash_verge_i18n::t!("tray.tooltip.origamiDown"))
             }
             _ => std::string::String::new(),
