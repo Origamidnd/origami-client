@@ -1934,3 +1934,34 @@ proxy-groups:
         assert_eq!(proxies[0].as_str(), Some("DIRECT"));
     }
 }
+
+#[cfg(test)]
+#[allow(clippy::expect_used, clippy::panic, reason = "tests assert by panicking")]
+mod tun_mtu_tests {
+    use super::{Mapping, Value, ensure_tun_default_mtu};
+
+    fn config(yaml: &str) -> Mapping {
+        serde_yaml_ng::from_str(yaml).expect("test yaml")
+    }
+
+    #[test]
+    fn the_shown_1500_is_what_the_core_gets() {
+        // Without it mihomo takes 9000 while the TUN window says 1500.
+        let out = ensure_tun_default_mtu(config("tun: {enable: true, stack: mips}"));
+        assert_eq!(out["tun"]["mtu"], Value::from(1500));
+        let out = ensure_tun_default_mtu(config("tun: {enable: true, mtu: null}"));
+        assert_eq!(out["tun"]["mtu"], Value::from(1500));
+    }
+
+    #[test]
+    fn a_chosen_mtu_stays() {
+        let out = ensure_tun_default_mtu(config("tun: {enable: true, mtu: 1400}"));
+        assert_eq!(out["tun"]["mtu"], Value::from(1400));
+    }
+
+    #[test]
+    fn no_tun_section_is_left_alone() {
+        let out = ensure_tun_default_mtu(config("mode: rule"));
+        assert!(out.get("tun").is_none());
+    }
+}
