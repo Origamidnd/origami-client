@@ -23,4 +23,17 @@ describe('clock skew state', () => {
     await vi.waitFor(() => expect(getClockSkew()).toBe('behind'))
     expect(origamiGetClockSkew).toHaveBeenCalledOnce()
   })
+
+  test('a read that started before a notice does not undo it', async () => {
+    setClockSkew(null)
+    let finish: (value: null) => void = () => {}
+    vi.mocked(origamiGetClockSkew).mockImplementationOnce(
+      () => new Promise((resolve) => (finish = resolve)) as never,
+    )
+    applyClockNotice('')
+    applyClockNotice('behind')
+    finish(null)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(getClockSkew()).toBe('behind')
+  })
 })

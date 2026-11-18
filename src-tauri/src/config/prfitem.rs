@@ -43,7 +43,9 @@ pub(crate) fn is_device_refusal(error: &anyhow::Error) -> bool {
 
 /// How far the computer's clock may drift from the subscription server before TLS, DoH and Reality
 /// start failing in ways that look like a dead VPN.
-const CLOCK_SKEW_LIMIT: Duration = Duration::from_secs(3 * 60);
+// Reality on our servers has no maxTimeDiff, and certificates are valid for days: a few minutes break
+// nothing, and a warning that stays on screen for them would only be noise (Fable review 18.11).
+const CLOCK_SKEW_LIMIT: Duration = Duration::from_secs(10 * 60);
 
 /// Which way the computer's clock is off, for the home screen.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, specta::Type)]
@@ -55,10 +57,11 @@ pub enum ClockSkew {
 
 /// Compares the computer's clock with the `Date` header of the subscription answer. A wrong time
 /// zone with the right local time also shows here: the clock is then hours off in UTC.
-pub(crate) fn clock_skew(date: &str, now: std::time::SystemTime) -> Option<ClockSkew> {
+pub(crate) fn clock_skew(date: &str, age_secs: u64, now: std::time::SystemTime) -> Option<ClockSkew> {
     let server = chrono::DateTime::parse_from_rfc2822(date.trim()).ok()?;
-    let server =
-        std::time::SystemTime::UNIX_EPOCH.checked_add(Duration::from_secs(u64::try_from(server.timestamp()).ok()?))?;
+    // A cached copy keeps the original Date; Age says how long ago that was.
+    let server = u64::try_from(server.timestamp()).ok()?.checked_add(age_secs)?;
+    let server = std::time::SystemTime::UNIX_EPOCH.checked_add(Duration::from_secs(server))?;
     match now.duration_since(server) {
         Ok(ahead) if ahead > CLOCK_SKEW_LIMIT => Some(ClockSkew::Ahead),
         Err(behind) if behind.duration() > CLOCK_SKEW_LIMIT => Some(ClockSkew::Behind),
@@ -91,14 +94,24 @@ fn store_clock_skew(skew: Option<ClockSkew>) -> bool {
 
 /// Remembers how the clock compares with the subscription server and tells an open window when
 /// that changes. An answer without a readable `Date` changes nothing.
+/// Only an https answer: a captive portal or a provider stub on plain http sends the router's clock.
+fn judges_clock(url: &str) -> bool {
+    url.starts_with("https://")
+}
+
 fn check_clock(headers: &reqwest::header::HeaderMap) {
     let Some(date) = headers.get(reqwest::header::DATE).and_then(|value| value.to_str().ok()) else {
         return;
     };
+    let age = headers
+        .get(reqwest::header::AGE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.trim().parse::<u64>().ok())
+        .unwrap_or(0);
     if chrono::DateTime::parse_from_rfc2822(date.trim()).is_err() {
         return;
     }
-    let skew = clock_skew(date, std::time::SystemTime::now());
+    let skew = clock_skew(date, age, std::time::SystemTime::now());
     if !store_clock_skew(skew) {
         return;
     }
@@ -432,6 +445,11 @@ impl PrfItem {
             }
         };
 
+        // Before any status check: a refusal or an error page carries the server's Date too.
+        if judges_clock(url.as_str()) {
+            check_clock(resp.headers());
+        }
+
         if let Some(refusal) = device_refusal(resp.headers()) {
             bail!(refusal)
         }
@@ -442,7 +460,6 @@ impl PrfItem {
         }
 
         let header = resp.headers();
-        check_clock(header);
 
         let extra;
         'extra: {
@@ -798,16 +815,19 @@ mod clock_skew_tests {
 
     #[test]
     fn a_minute_or_two_is_fine() {
-        assert_eq!(clock_skew(SERVER, at(SERVER_SECS)), None);
-        assert_eq!(clock_skew(SERVER, at(SERVER_SECS + 120)), None);
-        assert_eq!(clock_skew(SERVER, at(SERVER_SECS - 120)), None);
+        assert_eq!(clock_skew(SERVER, 0, at(SERVER_SECS)), None);
+        assert_eq!(clock_skew(SERVER, 0, at(SERVER_SECS + 300)), None);
+        assert_eq!(clock_skew(SERVER, 0, at(SERVER_SECS - 300)), None);
     }
 
     #[test]
     fn a_wrong_time_zone_shows_as_hours() {
         // The clock shows the right local time, but the zone is wrong: UTC is 3 hours behind.
-        assert_eq!(clock_skew(SERVER, at(SERVER_SECS - 3 * 3600)), Some(ClockSkew::Behind));
-        assert_eq!(clock_skew(SERVER, at(SERVER_SECS + 10 * 60)), Some(ClockSkew::Ahead));
+        assert_eq!(
+            clock_skew(SERVER, 0, at(SERVER_SECS - 3 * 3600)),
+            Some(ClockSkew::Behind)
+        );
+        assert_eq!(clock_skew(SERVER, 0, at(SERVER_SECS + 15 * 60)), Some(ClockSkew::Ahead));
     }
 
     #[test]
@@ -823,7 +843,22 @@ mod clock_skew_tests {
 
     #[test]
     fn an_unreadable_date_says_nothing() {
-        assert_eq!(clock_skew("yesterday", at(SERVER_SECS - 3 * 3600)), None);
-        assert_eq!(clock_skew("", at(SERVER_SECS)), None);
+        assert_eq!(clock_skew("yesterday", 0, at(SERVER_SECS - 3 * 3600)), None);
+        assert_eq!(clock_skew("", 0, at(SERVER_SECS)), None);
+    }
+
+    #[test]
+    fn a_cached_answer_counts_its_age() {
+        // A cache on the way keeps the original Date and adds Age: an hour-old copy is not a clock
+        // that runs an hour ahead.
+        assert_eq!(clock_skew(SERVER, 3600, at(SERVER_SECS + 3600)), None);
+        assert_eq!(clock_skew(SERVER, 0, at(SERVER_SECS + 3600)), Some(ClockSkew::Ahead));
+    }
+
+    #[test]
+    fn only_a_secure_answer_judges_the_clock() {
+        // A captive portal or a provider stub on plain http sends the router's clock.
+        assert!(super::judges_clock("https://sub.example.com/abc"));
+        assert!(!super::judges_clock("http://sub.example.com/abc"));
     }
 }

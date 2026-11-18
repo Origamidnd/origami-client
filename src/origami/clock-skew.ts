@@ -20,19 +20,30 @@ export const setClockSkew = (next: ClockSkew | null) => {
   listeners.forEach((listener) => listener())
 }
 
+// Bumped by every notice: a read that started earlier must not overwrite a newer notice.
+let version = 0
+
 /** For a window opened after the check: the app often starts in the tray. */
-const readClockSkew = () =>
-  origamiGetClockSkew()
-    .then(setClockSkew)
+const readClockSkew = () => {
+  const started = version
+  return origamiGetClockSkew()
+    .then((next) => {
+      if (version === started) setClockSkew(next)
+    })
     .catch(() => {
       // Keeps what it had; the next change arrives as a notice.
     })
+}
 
 /** The notice payload: "ahead", "behind" or "ok"; an empty one asks to read the state. */
 export const applyClockNotice = (payload: string) => {
-  if (payload === 'ahead' || payload === 'behind') setClockSkew(payload)
-  else if (payload === 'ok') setClockSkew(null)
-  else void readClockSkew()
+  if (payload === 'ahead' || payload === 'behind') {
+    version += 1
+    setClockSkew(payload)
+  } else if (payload === 'ok') {
+    version += 1
+    setClockSkew(null)
+  } else void readClockSkew()
 }
 
 const subscribe = (listener: () => void) => {
