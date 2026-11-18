@@ -197,8 +197,9 @@ async fn recover<E: Env>(env: &E, force: bool, vpn_silent_retry: bool) -> Outcom
     if verdict == Verdict::NoInternet && !force {
         return Outcome::NoInternet;
     }
-    // A restart brings the same loop back and cuts what still works.
-    if verdict == Verdict::Conflict && !force {
+    // A loop can be the core's own lost interface binding (a restart cures it) or another VPN's
+    // adapter (it comes back at once). One full try per stretch, as for a silent VPN.
+    if verdict == Verdict::Conflict && !force && !vpn_silent_retry {
         return Outcome::Conflict;
     }
     if verdict == Verdict::VpnSilent && !force && !vpn_silent_retry {
@@ -260,14 +261,19 @@ impl Planner {
     }
 
     /// Returns the new state when it changed.
+    /// The core reaches its servers: whatever failed before is over, even if names do not resolve.
+    const fn servers_reached(&mut self) {
+        self.fails = 0;
+        self.hang_retry = HANG_RETRY;
+        self.next_hang_run = None;
+        self.no_internet_since = None;
+        self.vpn_silent_since = None;
+        self.vpn_silent_restarted = false;
+    }
+
     fn report(&mut self, state: LinkState) -> Option<LinkState> {
         if state == LinkState::Ok {
-            self.fails = 0;
-            self.hang_retry = HANG_RETRY;
-            self.next_hang_run = None;
-            self.no_internet_since = None;
-            self.vpn_silent_since = None;
-            self.vpn_silent_restarted = false;
+            self.servers_reached();
         }
         if state == self.state {
             return None;
@@ -297,9 +303,9 @@ impl Planner {
         true
     }
 
-    fn after_run(&mut self, outcome: Outcome) -> LinkState {
+    const fn after_run(&mut self, outcome: Outcome) -> LinkState {
         // A full try that did not help: wake, network and start checks leave this stretch alone.
-        if outcome == Outcome::Failed {
+        if matches!(outcome, Outcome::Failed | Outcome::Conflict) {
             self.vpn_silent_restarted = true;
         }
         outcome.state()
@@ -339,7 +345,20 @@ impl Planner {
             Verdict::Conflict => {
                 self.no_internet_since = None;
                 self.vpn_silent_since = None;
-                (LinkState::Conflict, None)
+                let restart = if self.vpn_silent_restarted {
+                    None
+                } else {
+                    self.try_hang_restart(false, now)
+                };
+                self.vpn_silent_restarted |= restart.is_some();
+                // Until the restart had its say, it is an ordinary silent VPN: a loop it cures is
+                // never shown as another VPN.
+                let state = if restart.is_some() {
+                    LinkState::Down
+                } else {
+                    LinkState::Conflict
+                };
+                (state, restart)
             }
             Verdict::VpnSilent => {
                 self.no_internet_since = None;
@@ -407,24 +426,33 @@ impl<E: Env> Watch<E> {
         }
     }
 
+    /// The core reaches its servers, but programs may still be cut off: another VPN's TUN that took
+    /// the default route breaks name lookups for them (Happ on Windows, 18.11). None while a first
+    /// failed lookup waits for the next one: the state stays as it was.
+    async fn servers_reached(&mut self) -> Option<LinkState> {
+        self.planner.servers_reached();
+        if self.env.system_dns().await {
+            self.dns_fails = 0;
+            return Some(LinkState::Ok);
+        }
+        self.dns_fails += 1;
+        if self.dns_fails < DNS_FAILS {
+            return None;
+        }
+        logging!(warn, Type::Core, "link watch: the core works, system name lookups fail");
+        Some(LinkState::Conflict)
+    }
+
     async fn check_link(&mut self) {
         self.confirm = None;
         if !self.env.connected().await {
+            self.dns_fails = 0;
             self.report(LinkState::Ok).await;
             return;
         }
         if self.env.probe().await {
-            // The core reaches its servers, but programs may still be cut off: another VPN's TUN
-            // that took the default route breaks name lookups for them (Happ on Windows, 18.11).
-            if self.env.system_dns().await {
-                self.dns_fails = 0;
-                self.report(LinkState::Ok).await;
-            } else {
-                self.dns_fails += 1;
-                if self.dns_fails >= DNS_FAILS {
-                    logging!(warn, Type::Core, "link watch: the core works, system name lookups fail");
-                    self.report(LinkState::Conflict).await;
-                }
+            if let Some(state) = self.servers_reached().await {
+                self.report(state).await;
             }
             return;
         }
@@ -455,7 +483,15 @@ impl<E: Env> Watch<E> {
             pending.vpn_silent_retry
         );
         let state = self.planner.after_run(outcome);
-        self.report(state).await;
+        // A passed probe here is not the whole answer either: names may still fail for programs.
+        let state = if state == LinkState::Ok {
+            self.servers_reached().await
+        } else {
+            Some(state)
+        };
+        if let Some(state) = state {
+            self.report(state).await;
+        }
         if outcome == Outcome::Restarted {
             self.env.notice(pending.reason.restarted_notice());
         }
@@ -604,6 +640,23 @@ mod real {
             if !tun {
                 return true;
             }
+            // Only where the system's lookups must go through our TUN: Windows with strict-route
+            // blocks port 53 past it. Elsewhere (Linux resolved, strict-route off) the system may ask
+            // the router's DNS directly, and the answer would say nothing about another VPN.
+            if !cfg!(target_os = "windows") {
+                return true;
+            }
+            let strict = Config::clash()
+                .await
+                .latest_arc()
+                .0
+                .get("tun")
+                .and_then(|tun| tun.get("strict-route"))
+                .and_then(serde_yaml_ng::Value::as_bool)
+                .unwrap_or(false);
+            if !strict {
+                return true;
+            }
             // Through getaddrinfo, as any program: with our TUN in charge the answer comes from the
             // core at once (fake-ip). Two names, so one blocked or slow name does not decide.
             for host in SYSTEM_DNS_HOSTS {
@@ -715,6 +768,7 @@ mod tests {
         internet: bool,
         core: bool,
         conflict: bool,
+        restart_clears_conflict: bool,
         system_dns: bool,
         connected: bool,
         // A restart brings these back.
@@ -750,6 +804,7 @@ mod tests {
                     internet: true,
                     core: true,
                     conflict: false,
+                    restart_clears_conflict: false,
                     system_dns: true,
                     connected: true,
                     restart_fixes_vpn: false,
@@ -820,6 +875,9 @@ mod tests {
             }
             if net.restart_fixes_core {
                 net.core = true;
+            }
+            if net.restart_clears_conflict {
+                net.conflict = false;
             }
         }
 
@@ -1091,11 +1149,12 @@ mod tests {
     }
 
     #[tokio::test(start_paused = true)]
-    async fn says_another_vpn_interferes_and_does_not_restart_for_it() {
+    async fn tries_one_restart_for_a_loop_then_says_another_vpn_interferes() {
         let fake = Fake::new();
         let task = fake.spawn();
         advance(Duration::from_secs(40)).await;
-        // Another VPN's adapter takes the core's own traffic: a restart cannot fix that.
+        // The core refuses its own traffic as a loop. Its own lost interface binding (after a
+        // network change) is cured by a restart; another VPN's adapter is not, and then it says so.
         {
             let mut net = fake.net.lock();
             net.vpn = false;
@@ -1103,7 +1162,7 @@ mod tests {
         }
         advance(MIN * 30).await;
         assert_eq!(fake.state(), LinkState::Conflict);
-        assert_eq!(fake.restarts(), 0);
+        assert_eq!(fake.restarts(), 1);
         {
             let mut net = fake.net.lock();
             net.vpn = true;
@@ -1111,6 +1170,59 @@ mod tests {
         }
         advance(MIN * 2).await;
         assert_eq!(fake.state(), LinkState::Ok);
+        task.abort();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_loop_cured_by_the_restart_is_never_shown() {
+        let fake = Fake::new();
+        let task = fake.spawn();
+        advance(Duration::from_secs(40)).await;
+        {
+            let mut net = fake.net.lock();
+            net.vpn = false;
+            net.conflict = true;
+            net.restart_fixes_vpn = true;
+            net.restart_clears_conflict = true;
+        }
+        advance(MIN * 5).await;
+        assert_eq!(fake.restarts(), 1);
+        assert!(!fake.calls.lock().published.contains(&LinkState::Conflict));
+        assert_eq!(fake.state(), LinkState::Ok);
+        task.abort();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_wake_check_does_not_flash_ok_while_names_still_fail() {
+        let fake = Fake::new();
+        let task = fake.spawn();
+        advance(Duration::from_secs(40)).await;
+        fake.net.lock().system_dns = false;
+        advance(MIN * 3).await;
+        assert_eq!(fake.state(), LinkState::Conflict);
+        let before = fake.calls.lock().published.len();
+        // Another adapter appearing is a network change: the recovery check runs and its probe passes.
+        fake.net.lock().network.push(Ipv4Addr::new(172, 19, 0, 1));
+        advance(MIN * 2).await;
+        let published = fake.calls.lock().published[before..].to_vec();
+        assert!(!published.contains(&LinkState::Ok), "flashed {published:?}");
+        assert_eq!(fake.state(), LinkState::Conflict);
+        task.abort();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn turning_the_vpn_off_and_on_starts_the_name_count_again() {
+        let fake = Fake::new();
+        let task = fake.spawn();
+        advance(Duration::from_secs(40)).await;
+        fake.net.lock().system_dns = false;
+        advance(LINK_PROBE).await;
+        fake.net.lock().connected = false;
+        advance(LINK_PROBE).await;
+        fake.net.lock().connected = true;
+        advance(LINK_PROBE).await;
+        // One failed lookup after reconnecting is not two in a row.
+        assert!(!fake.calls.lock().published.contains(&LinkState::Conflict));
         task.abort();
     }
 
