@@ -7,6 +7,7 @@ pub mod link_watch;
 pub mod listener;
 pub mod logger;
 pub mod manager;
+pub mod net_journal;
 #[cfg(target_os = "macos")]
 pub mod network_watch;
 pub mod notify;

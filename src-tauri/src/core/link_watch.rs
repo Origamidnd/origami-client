@@ -511,10 +511,23 @@ impl<E: Env> Watch<E> {
         }
         self.dns_fails = 0;
         if !self.planner.failed_probe() {
+            logging!(
+                info,
+                Type::Core,
+                "link watch: a check through the VPN failed, again in 10 s"
+            );
             self.confirm = Some(Instant::now() + LINK_CONFIRM);
             return;
         }
         let verdict = self.env.diagnose().await;
+        // Once per stretch: in a long outage this would come every 30 s.
+        if self.planner.fails == LINK_FAILS {
+            logging!(
+                info,
+                Type::Core,
+                "link watch: two checks through the VPN failed: {verdict:?}"
+            );
+        }
         let (state, restart) = self.planner.after_verdict(verdict, Instant::now());
         self.report(state).await;
         if restart.is_some() {
@@ -613,6 +626,7 @@ pub(crate) async fn watch<E: Env>(env: E) {
 /// Started once the core is up.
 pub fn start() {
     crate::process::AsyncHandler::spawn(|| watch(real::CoreEnv));
+    crate::core::net_journal::start();
 }
 
 mod real {
