@@ -23,7 +23,7 @@
       "down": "VPN not responding",
       "downHint": "The internet works but the server is silent. Try another server",
       "conflict": "Başka bir VPN engelliyor",
-      "conflictHint": "Başka bir VPN veya sanal bağdaştırıcı trafiği ele geçiriyor gibi görünüyor. Onu kapatın, ardından OrigamiVPN'i kapatıp yeniden açın",
+      "conflictHint": "Başka bir VPN veya sanal bağdaştırıcı trafiği ele geçiriyor gibi görünüyor. Onu kapatın, bağlantı kendiliğinden geri gelir",
       "offHintService": "Click to install the service and turn the VPN on",
       "pickServer": "Pick another server",
       "expired": "Subscription has ended",

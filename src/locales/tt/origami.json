@@ -23,7 +23,7 @@
       "down": "VPN not responding",
       "downHint": "The internet works but the server is silent. Try another server",
       "conflict": "Башка VPN комачаулый",
-      "conflictHint": "Башка VPN яки виртуаль адаптер трафикны тотып ала кебек. Аны сүндерегез, аннары OrigamiVPN'ны сүндереп яңадан кабызыгыз",
+      "conflictHint": "Башка VPN яки виртуаль адаптер трафикны тотып ала кебек. Аны сүндерегез, элемтә үзе кайтачак",
       "offHintService": "Click to install the service and turn the VPN on",
       "pickServer": "Pick another server",
       "expired": "Subscription has ended",

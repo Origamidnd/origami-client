@@ -23,7 +23,7 @@
       "down": "VPN not responding",
       "downHint": "The internet works but the server is silent. Try another server",
       "conflict": "Another VPN is in the way",
-      "conflictHint": "Another VPN or virtual adapter seems to take over the traffic. Turn it off, then turn OrigamiVPN off and on again",
+      "conflictHint": "Another VPN or virtual adapter seems to take over the traffic. Turn it off and the connection comes back by itself",
       "offHintService": "Click to install the service and turn the VPN on",
       "pickServer": "Pick another server",
       "expired": "Subscription has ended",

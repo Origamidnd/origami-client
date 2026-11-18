@@ -23,7 +23,7 @@
       "down": "VPN not responding",
       "downHint": "The internet works but the server is silent. Try another server",
       "conflict": "別のVPNが干渉しています",
-      "conflictHint": "別のVPNまたは仮想アダプターが通信を横取りしているようです。それをオフにしてから、OrigamiVPNをオフにして再度オンにしてください",
+      "conflictHint": "別のVPNまたは仮想アダプターが通信を横取りしているようです。それをオフにすると、接続は自動的に戻ります",
       "offHintService": "Click to install the service and turn the VPN on",
       "pickServer": "Pick another server",
       "expired": "Subscription has ended",

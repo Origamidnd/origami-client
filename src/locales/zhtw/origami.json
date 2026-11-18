@@ -23,7 +23,7 @@
       "down": "VPN not responding",
       "downHint": "The internet works but the server is silent. Try another server",
       "conflict": "另一個 VPN 正在干擾",
-      "conflictHint": "似乎有其他 VPN 或虛擬網卡接管了流量。請將其關閉，然後關閉並重新開啟 OrigamiVPN",
+      "conflictHint": "似乎有其他 VPN 或虛擬網卡接管了流量。將其關閉後，連線會自動恢復",
       "offHintService": "Click to install the service and turn the VPN on",
       "pickServer": "Pick another server",
       "expired": "Subscription has ended",

@@ -23,7 +23,7 @@
       "down": "VPN not responding",
       "downHint": "The internet works but the server is silent. Try another server",
       "conflict": "Outra VPN está atrapalhando",
-      "conflictHint": "Parece que outra VPN ou um adaptador virtual está interceptando o tráfego. Desligue-o e depois desligue e ligue o OrigamiVPN de novo",
+      "conflictHint": "Parece que outra VPN ou um adaptador virtual está interceptando o tráfego. Desligue-o e a conexão volta sozinha",
       "offHintService": "Click to install the service and turn the VPN on",
       "pickServer": "Pick another server",
       "expired": "Subscription has ended",

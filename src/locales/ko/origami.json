@@ -23,7 +23,7 @@
       "down": "VPN not responding",
       "downHint": "The internet works but the server is silent. Try another server",
       "conflict": "다른 VPN이 방해하고 있습니다",
-      "conflictHint": "다른 VPN 또는 가상 어댑터가 트래픽을 가로채는 것 같습니다. 그것을 끈 다음 OrigamiVPN을 껐다가 다시 켜세요",
+      "conflictHint": "다른 VPN 또는 가상 어댑터가 트래픽을 가로채는 것 같습니다. 그것을 끄면 연결이 저절로 돌아옵니다",
       "offHintService": "Click to install the service and turn the VPN on",
       "pickServer": "Pick another server",
       "expired": "Subscription has ended",

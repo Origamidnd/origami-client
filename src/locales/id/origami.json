@@ -23,7 +23,7 @@
       "down": "VPN not responding",
       "downHint": "The internet works but the server is silent. Try another server",
       "conflict": "VPN lain mengganggu",
-      "conflictHint": "Sepertinya VPN lain atau adaptor virtual mengambil alih lalu lintas. Matikan, lalu matikan dan nyalakan lagi OrigamiVPN",
+      "conflictHint": "Sepertinya VPN lain atau adaptor virtual mengambil alih lalu lintas. Matikan, dan koneksi akan kembali dengan sendirinya",
       "offHintService": "Click to install the service and turn the VPN on",
       "pickServer": "Pick another server",
       "expired": "Subscription has ended",
