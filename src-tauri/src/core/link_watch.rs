@@ -124,6 +124,16 @@ pub(crate) fn loopback_conflict(logs: &[String]) -> bool {
         >= LOOPBACK_LINES
 }
 
+// The core's own outbounds that do not leave through a server.
+const PAST_THE_VPN: [&str; 4] = ["DIRECT", "REJECT", "REJECT-DROP", "PASS"];
+
+/// The chain starts at the outbound the connection leaves through, then the groups that chose it.
+pub(crate) fn through_vpn(chains: &[String]) -> bool {
+    chains
+        .first()
+        .is_some_and(|outbound| !PAST_THE_VPN.contains(&outbound.as_str()))
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Outcome {
     Ok,
@@ -171,6 +181,7 @@ pub(crate) trait Env: Send + Sync + 'static {
     fn system_dns(&self) -> impl Future<Output = bool> + Send;
     fn diagnose(&self) -> impl Future<Output = Verdict> + Send;
     fn flush_dns(&self) -> impl Future<Output = ()> + Send;
+    /// Only the connections through the VPN: the ones past it work on, games among them.
     fn close_connections(&self) -> impl Future<Output = ()> + Send;
     fn restart_core(&self) -> impl Future<Output = ()> + Send;
     fn publish(&self, state: LinkState) -> impl Future<Output = ()> + Send;
@@ -178,11 +189,16 @@ pub(crate) trait Env: Send + Sync + 'static {
     fn wall(&self) -> SystemTime;
     /// The computer's own IPv4 addresses, without the VPN adapter, sorted.
     fn network(&self) -> Vec<Ipv4Addr>;
+    /// The names of the adapters that hold these addresses, for the log.
+    fn adapters(&self, _addresses: &[Ipv4Addr]) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 /// After a wake from sleep or a network change, DNS answers and old connections may point at the
-/// previous network. This drops the DNS cache, and if the link through the core does not work and
-/// the internet is there, closes the stale connections, checks again and restarts the core once.
+/// previous network. This drops the DNS cache, and if the link through the core fails two checks
+/// and the internet is there, closes the connections through the VPN (the ones past it go on),
+/// checks again and restarts the core once.
 /// Without internet it leaves everything alone: when the internet is back a running game goes on
 /// by itself. `force` restarts the core anyway. With `vpn_silent_retry` off a silent VPN (internet
 /// and core fine) is left alone: the full try was already made for this stretch.
@@ -206,6 +222,25 @@ async fn recover<E: Env>(env: &E, force: bool, vpn_silent_retry: bool) -> Outcom
         return Outcome::Failed;
     }
     if verdict != Verdict::CoreSilent {
+        // A lossy line or a network still settling fails a single probe now and then, and cutting
+        // every connection for it is what breaks the games (NECSTEL, 18.11). Checked once more first,
+        // as the regular check does.
+        if !force {
+            time::sleep(LINK_CONFIRM).await;
+            if env.probe().await {
+                logging!(
+                    info,
+                    Type::Core,
+                    "link watch: the VPN passed the second check, nothing cut"
+                );
+                return Outcome::Ok;
+            }
+        }
+        logging!(
+            info,
+            Type::Core,
+            "link watch: the VPN failed twice ({verdict:?}), closing its connections"
+        );
         env.close_connections().await;
         time::sleep(SETTLE).await;
         if env.probe().await {
@@ -417,11 +452,29 @@ impl<E: Env> Watch<E> {
         let wall = self.env.wall();
         let slept = wall.duration_since(self.last_wall).is_ok_and(|gap| gap > SLEEP_GAP);
         self.last_wall = wall;
-        // Like the browser's "online": a network that appeared or changed, not one that went away.
+        // Like the browser's "online": an address that appeared, not one that went away. An adapter
+        // that blinks (a virtual one, a second link) would otherwise send a check each time.
         let network = self.env.network();
-        let changed = !network.is_empty() && network != self.network;
+        let added: Vec<Ipv4Addr> = network
+            .iter()
+            .copied()
+            .filter(|address| !self.network.contains(address))
+            .collect();
         self.network = network;
-        if slept || changed {
+        if slept {
+            logging!(info, Type::Core, "link watch: the computer woke from sleep");
+        }
+        if !added.is_empty() {
+            let adapters = self.env.adapters(&added);
+            logging!(
+                info,
+                Type::Core,
+                "link watch: {} new address(es) on {:?}",
+                added.len(),
+                adapters
+            );
+        }
+        if slept || !added.is_empty() {
             self.pending = Some(self.planner.schedule(Reason::Network, false, Instant::now()));
         }
     }
@@ -565,7 +618,7 @@ pub fn start() {
 mod real {
     use super::{
         API_DEADLINE, DIRECT_URLS, Env, FAILED_DELAY_MS, LinkState, Ordering, PROBE_DEADLINE, PROBE_TIMEOUT_MS, STATE,
-        SYSTEM_DNS_DEADLINE, SYSTEM_DNS_HOSTS, VPN_URLS, Verdict, any_passes, loopback_conflict,
+        SYSTEM_DNS_DEADLINE, SYSTEM_DNS_HOSTS, VPN_URLS, Verdict, any_passes, loopback_conflict, through_vpn,
     };
     use crate::{
         config::Config,
@@ -695,7 +748,35 @@ mod real {
         }
 
         async fn close_connections(&self) {
-            let _ = time::timeout(API_DEADLINE, Handle::mihomo().close_all_connections()).await;
+            let mihomo = Handle::mihomo();
+            let connections = match time::timeout(API_DEADLINE, mihomo.get_connections()).await {
+                Ok(Ok(connections)) => connections.connections.unwrap_or_default(),
+                _ => {
+                    logging!(
+                        warn,
+                        Type::Core,
+                        "link watch: could not read the connections, none closed"
+                    );
+                    return;
+                }
+            };
+            let through: Vec<&str> = connections
+                .iter()
+                .filter(|connection| through_vpn(&connection.chains))
+                .map(|connection| connection.id.as_str())
+                .collect();
+            let _ = time::timeout(
+                API_DEADLINE,
+                futures::future::join_all(through.iter().map(|id| mihomo.close_connection(id))),
+            )
+            .await;
+            logging!(
+                info,
+                Type::Core,
+                "link watch: closed {} connections through the VPN, kept {} past it",
+                through.len(),
+                connections.len() - through.len()
+            );
         }
 
         async fn restart_core(&self) {
@@ -735,6 +816,22 @@ mod real {
             addresses.sort_unstable();
             addresses.dedup();
             addresses
+        }
+
+        fn adapters(&self, addresses: &[Ipv4Addr]) -> Vec<String> {
+            let mut names: Vec<String> = NetworkInterface::show()
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|interface| {
+                    interface
+                        .addr
+                        .iter()
+                        .any(|addr| matches!(addr, Addr::V4(v4) if addresses.contains(&v4.ip)))
+                })
+                .map(|interface| interface.name)
+                .collect();
+            names.dedup();
+            names
         }
     }
 
@@ -776,6 +873,8 @@ mod tests {
         restart_fixes_core: bool,
         wall_offset: Duration,
         network: Vec<Ipv4Addr>,
+        // The next probes that fail anyway, as on a lossy line.
+        failing_probes: u32,
     }
 
     #[derive(Debug, Default)]
@@ -811,6 +910,7 @@ mod tests {
                     restart_fixes_core: false,
                     wall_offset: Duration::ZERO,
                     network: vec![Ipv4Addr::new(192, 168, 1, 5)],
+                    failing_probes: 0,
                 })),
                 calls: Arc::new(Mutex::new(Calls::default())),
                 base: SystemTime::UNIX_EPOCH + Duration::from_secs(1_800_000_000),
@@ -838,7 +938,11 @@ mod tests {
 
         async fn probe(&self) -> bool {
             self.calls.lock().probes += 1;
-            let net = self.net.lock();
+            let mut net = self.net.lock();
+            if net.failing_probes > 0 {
+                net.failing_probes -= 1;
+                return false;
+            }
             net.core && net.vpn && net.internet
         }
 
@@ -915,7 +1019,8 @@ mod tests {
         let task = fake.spawn();
         advance(Duration::from_secs(10)).await;
         assert_eq!(fake.calls.lock().probes, 0);
-        advance(Duration::from_secs(25)).await;
+        // Start check at 20 s, a second probe 10 s later, then the cut and the restart.
+        advance(Duration::from_secs(35)).await;
         assert_eq!(fake.restarts(), 1);
         assert_eq!(fake.calls.lock().notices, vec!["origami.recovery.restartedStartup"]);
         task.abort();
@@ -1067,7 +1172,7 @@ mod tests {
             net.vpn = false;
             net.restart_fixes_vpn = true;
         }
-        advance(Duration::from_secs(25)).await;
+        advance(Duration::from_secs(35)).await;
         assert_eq!(fake.calls.lock().closes, 1);
         assert_eq!(fake.restarts(), 1);
         assert_eq!(fake.calls.lock().notices, vec!["origami.recovery.restarted"]);
@@ -1087,6 +1192,55 @@ mod tests {
         assert_eq!(fake.calls.lock().closes, 0);
         assert_eq!(fake.restarts(), 0);
         task.abort();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn one_failed_check_after_a_network_change_cuts_nothing() {
+        // A lossy line (NECSTEL, 18.11): a new address and a probe that happens to fail. Closing the
+        // connections and restarting the core for it cut games that went past the VPN.
+        let fake = Fake::new();
+        let task = fake.spawn();
+        // Between the regular probes (every 30 s): the change is seen at 75 s, checked at 80 s.
+        advance(Duration::from_secs(70)).await;
+        let probes = fake.calls.lock().probes;
+        {
+            let mut net = fake.net.lock();
+            net.network = vec![Ipv4Addr::new(192, 168, 1, 5), Ipv4Addr::new(10, 0, 0, 7)];
+            net.failing_probes = 1;
+        }
+        advance(Duration::from_secs(12)).await;
+        // The recovery's own probe failed (the regular one waits until 90 s).
+        assert_eq!(fake.calls.lock().probes, probes + 1);
+        assert_eq!(fake.net.lock().failing_probes, 0);
+        advance(MIN).await;
+        assert_eq!(fake.calls.lock().closes, 0);
+        assert_eq!(fake.restarts(), 0);
+        assert_eq!(fake.state(), LinkState::Ok);
+        task.abort();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn an_address_that_goes_away_is_not_a_network_change() {
+        // A blinking second adapter: only its coming back is checked, not every blink twice.
+        let fake = Fake::new();
+        fake.net.lock().network = vec![Ipv4Addr::new(192, 168, 1, 5), Ipv4Addr::new(26, 1, 2, 3)];
+        let task = fake.spawn();
+        advance(MIN).await;
+        let flushes = fake.calls.lock().flushes;
+        fake.net.lock().network = vec![Ipv4Addr::new(192, 168, 1, 5)];
+        advance(MIN).await;
+        assert_eq!(fake.calls.lock().flushes, flushes);
+        task.abort();
+    }
+
+    #[test]
+    fn only_connections_through_a_server_are_closed() {
+        let chain = |names: &[&str]| names.iter().map(|name| (*name).to_owned()).collect::<Vec<_>>();
+        assert!(through_vpn(&chain(&["Sweden", "Auto", "Proxy"])));
+        assert!(!through_vpn(&chain(&["DIRECT", "Games"])));
+        assert!(!through_vpn(&chain(&["DIRECT"])));
+        assert!(!through_vpn(&chain(&["REJECT", "Ads"])));
+        assert!(!through_vpn(&[]));
     }
 
     #[tokio::test(start_paused = true)]
