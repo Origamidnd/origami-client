@@ -273,7 +273,7 @@ class DelayManager {
     const name = member.ref.name
     const update = this.getDelayUpdate(name, group)
     if (update && (update.delay >= 0 || update.delay === -2)) {
-      return this.getFreshDelay(name, group, details?.history)
+      return update.delay
     }
 
     if (details?.history && details.history.length > 0) {

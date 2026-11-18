@@ -587,10 +587,15 @@ async fn process_profile_items(
 }
 
 fn ensure_tun_default_mtu(mut config: Mapping) -> Mapping {
-    if let Some(Value::Mapping(tun)) = config.get_mut("tun")
-        && matches!(tun.get("mtu"), None | Some(Value::Null))
-    {
-        tun.insert(Value::from("mtu"), Value::from(constants::tun::DEFAULT_MTU));
+    if let Some(Value::Mapping(tun)) = config.get_mut("tun") {
+        // 0 means "the core's default" to mihomo, which is 9000.
+        let unset = match tun.get("mtu") {
+            None | Some(Value::Null) => true,
+            Some(value) => value.as_u64() == Some(0),
+        };
+        if unset {
+            tun.insert(Value::from("mtu"), Value::from(constants::tun::DEFAULT_MTU));
+        }
     }
 
     config
@@ -1950,6 +1955,13 @@ mod tun_mtu_tests {
         let out = ensure_tun_default_mtu(config("tun: {enable: true, stack: mips}"));
         assert_eq!(out["tun"]["mtu"], Value::from(1500));
         let out = ensure_tun_default_mtu(config("tun: {enable: true, mtu: null}"));
+        assert_eq!(out["tun"]["mtu"], Value::from(1500));
+    }
+
+    #[test]
+    fn mtu_zero_counts_as_not_set() {
+        // The core reads 0 as "use the default", which is 9000.
+        let out = ensure_tun_default_mtu(config("tun: {enable: true, mtu: 0}"));
         assert_eq!(out["tun"]["mtu"], Value::from(1500));
     }
 

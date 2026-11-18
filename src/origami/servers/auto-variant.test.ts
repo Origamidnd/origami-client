@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 
 vi.mock('@/services/delay', () => ({
-  default: { getDelayFix: () => -1 },
+  default: { getDelayFix: () => -1, getFreshDelay: () => -1 },
 }))
 vi.mock('@/hooks/use-proxy-selection', () => ({ useProxySelection: vi.fn() }))
 vi.mock('@/hooks/use-verge', () => ({ useVerge: vi.fn() }))

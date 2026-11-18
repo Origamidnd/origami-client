@@ -85,7 +85,8 @@ describe('manual check versus newer core tests', () => {
       { time: '2026-11-16T10:01:00Z', delay: 213 },
     ])
 
-    expect(delayManager.getDelayFix(member, 'g')).toBe(213)
+    // Upstream pages keep their own rule (the group's check wins); only our screens take the newer.
+    expect(delayManager.getDelayFix(member, 'g')).toBe(0)
     expect(
       delayManager.getFreshDelay('fresh', 'g', memberHistory(member)),
     ).toBe(213)
@@ -114,3 +115,24 @@ const memberHistory = (member: ResolvedProxyMember) =>
       node: { history: { time: string; delay: number }[] }
     }
   ).node.history
+
+describe('fresh delay edge cases', () => {
+  test('an unreadable core time falls back to the manual result', () => {
+    delayManager.setDelay('nan', 'g', 300)
+    expect(
+      delayManager.getFreshDelay('nan', 'g', [
+        { time: 'not a time', delay: 99 },
+      ]),
+    ).toBe(300)
+  })
+
+  test('a running check wins and an empty history changes nothing', () => {
+    delayManager.setDelay('busy', 'g', -2)
+    expect(
+      delayManager.getFreshDelay('busy', 'g', [
+        { time: new Date(Date.now() + 60000).toISOString(), delay: 50 },
+      ]),
+    ).toBe(-2)
+    expect(delayManager.getFreshDelay('nothing', 'g', [])).toBe(-1)
+  })
+})

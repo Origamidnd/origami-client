@@ -1,5 +1,6 @@
 import delayManager from '@/services/delay'
 import {
+  memberDetails,
   resolveMember,
   type InteractableProxyMember,
   type ProxyGroupView,
@@ -91,7 +92,14 @@ export const shortList = (items: string[]) => ({
 export const readDelay = (
   member: InteractableProxyMember,
 ): number | null | undefined => {
-  const delay = delayManager.getDelayFix(member, CHECK_KEY)
+  // Our screens show the newer of the manual check and the core's own tests; upstream pages
+  // keep getDelayFix as it was.
+  const details = memberDetails(member)
+  const delay = delayManager.getFreshDelay(
+    member.ref.name,
+    CHECK_KEY,
+    details?.history,
+  )
   if (delay === -2) return undefined
   if (delay < 0) return undefined
   if (delay === 0 || delay >= DEFAULT_DELAY_TIMEOUT) return null
