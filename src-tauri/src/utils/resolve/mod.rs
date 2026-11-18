@@ -84,6 +84,13 @@ async fn resolve_setup() {
         init_core_manager().await;
     });
 
+    // OrigamiVPN: on its own. The startup install waits for the person to answer its window and
+    // for a working link; inside the join it held back the link watch below, so a core that came
+    // up dead stayed dead until the answer (VM 18.11).
+    AsyncHandler::spawn(|| async {
+        init_silent_updater().await;
+    });
+
     let _ = futures::join!(
         core_init,
         init_tray(),
@@ -91,7 +98,6 @@ async fn resolve_setup() {
         init_hotkey(),
         init_auto_lightweight_boot(),
         init_auto_backup(),
-        init_silent_updater(),
         init_autostart(),
     );
 

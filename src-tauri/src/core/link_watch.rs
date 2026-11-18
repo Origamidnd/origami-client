@@ -21,9 +21,9 @@ const SLEEP_GAP: Duration = Duration::from_secs(60);
 // Let Wi-Fi and the adapter settle before checking.
 const SETTLE: Duration = Duration::from_secs(5);
 const MIN_INTERVAL: Duration = Duration::from_secs(30);
-// One check a little after start: a core left over from an install over a running app can be up
-// but pass no traffic until it is restarted.
-const STARTUP_CHECK: Duration = Duration::from_secs(30);
+// One check soon after start: a core left over from an install over a running app, or one that
+// came up dead (VM 18.11, 1-2 minutes without internet), passes no traffic until it is restarted.
+const STARTUP_CHECK: Duration = Duration::from_secs(15);
 // While the VPN is on the link is probed all the time; a failed probe is repeated soon, and only
 // the second failure in a row changes what the app says.
 const LINK_PROBE: Duration = Duration::from_secs(30);
@@ -903,7 +903,9 @@ mod tests {
     }
 
     #[tokio::test(start_paused = true)]
-    async fn checks_once_about_half_a_minute_after_start_and_restarts_a_silent_vpn() {
+    async fn checks_soon_after_start_and_restarts_a_core_that_came_up_dead() {
+        // The core sometimes starts without passing traffic (VM 18.11); every second of that is a
+        // dead internet for the person, so the first check comes early.
         let fake = Fake::new();
         {
             let mut net = fake.net.lock();
@@ -911,9 +913,9 @@ mod tests {
             net.restart_fixes_vpn = true;
         }
         let task = fake.spawn();
-        advance(Duration::from_secs(20)).await;
+        advance(Duration::from_secs(10)).await;
         assert_eq!(fake.calls.lock().probes, 0);
-        advance(Duration::from_secs(40)).await;
+        advance(Duration::from_secs(25)).await;
         assert_eq!(fake.restarts(), 1);
         assert_eq!(fake.calls.lock().notices, vec!["origami.recovery.restartedStartup"]);
         task.abort();
