@@ -80,6 +80,9 @@ export const commands = {
   /**  OrigamiVPN: what the link watch found last, for a window that opens after the change. */
   origamiGetLinkState: () =>
     __TAURI_INVOKE<LinkState>('origami_get_link_state'),
+  /**  OrigamiVPN: which way the computer's clock is off, by the last subscription answer. */
+  origamiGetClockSkew: () =>
+    __TAURI_INVOKE<'ahead' | 'behind' | null>('origami_get_clock_skew'),
   /**
    *  OrigamiVPN: fetches the subscription only for its usage numbers. Nothing else of the profile
    *  changes and the core is not reloaded, so this can run while someone plays or watches.
@@ -285,6 +288,9 @@ export type ClashInfo = {
   /**  clash secret */
   secret: string | null
 }
+
+/**  Which way the computer's clock is off, for the home screen. */
+export type ClockSkew = 'ahead' | 'behind'
 
 /**  Structured command failure returned to the frontend. */
 export type CommandFailure =
@@ -707,7 +713,7 @@ export type NoticeStatus =
   | 'mixed_port::fallback_error'
   /**  OrigamiVPN: the core rejected a downloaded subscription, the previous file was put back. */
   | 'origami::profile_kept'
-  /**  OrigamiVPN: the computer's clock is minutes or hours off; the payload is "ahead" or "behind". */
+  /**  OrigamiVPN: the computer's clock state changed; the payload is "ahead", "behind" or "ok". */
   | 'origami::clock_skew'
 
 export type PendingAction =

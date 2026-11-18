@@ -101,6 +101,7 @@ export const createEventBus = (deps: BusHandlerDeps) => {
     deps.revalidateKeys(['getVergeConfig'])
     deps.readPendingFailures()
     deps.readLinkState()
+    deps.handleNotice(['origami::clock_skew', ''])
     deps.handleNotice(['dns_override::auto_disabled', ''])
     deps.handleNotice(['enhance::discarded_keys', ''])
     deps.handleNotice(['service_core::sidecar_fallback', ''])

@@ -171,6 +171,13 @@ async fn core_resolves(host: &str) -> bool {
     !matches!(body.get("Status").and_then(serde_json::Value::as_u64), Some(2 | 3))
 }
 
+/// OrigamiVPN: which way the computer's clock is off, by the last subscription answer.
+#[tauri::command]
+#[specta::specta]
+pub fn origami_get_clock_skew() -> Option<crate::config::ClockSkew> {
+    crate::config::current_clock_skew()
+}
+
 /// OrigamiVPN: what the link watch found last, for a window that opens after the change.
 #[tauri::command]
 #[specta::specta]

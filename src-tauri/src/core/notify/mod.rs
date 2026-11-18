@@ -79,7 +79,7 @@ pub enum NoticeStatus {
     /// OrigamiVPN: the core rejected a downloaded subscription, the previous file was put back.
     #[serde(rename = "origami::profile_kept")]
     OrigamiProfileKept,
-    /// OrigamiVPN: the computer's clock is minutes or hours off; the payload is "ahead" or "behind".
+    /// OrigamiVPN: the computer's clock state changed; the payload is "ahead", "behind" or "ok".
     #[serde(rename = "origami::clock_skew")]
     OrigamiClockSkew,
 }

@@ -28,6 +28,7 @@ vi.mock('@/services/cmds', () => ({
   takeServiceFallbackNotice: vi.fn().mockResolvedValue(null),
   takeServiceRepairNotice: vi.fn().mockResolvedValue(false),
   takeServiceOwnerNotice: vi.fn().mockResolvedValue(null),
+  origamiGetClockSkew: vi.fn().mockResolvedValue(null),
 }))
 vi.mock('@/services/service-request', () => ({ requestService: vi.fn() }))
 vi.mock('@/origami/core-trouble/store', () => ({

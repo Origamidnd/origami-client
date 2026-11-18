@@ -484,6 +484,8 @@ const handlers: Record<string, (args: any) => unknown> = {
   'plugin:mihomo|get_version': () => ({ meta: true, version: 'v1.19.0' }),
   // `?link=down|noInternet`; read from `params`, since preview.ts drops the query from the URL.
   origami_get_link_state: () => params.get('link') ?? 'ok',
+  // clock=ahead / clock=behind opens with the wrong-clock warning on the home screen.
+  origami_get_clock_skew: () => params.get('clock'),
   origami_refresh_usage: () => null,
   origami_open_support_chat: () => null,
   origami_game_titles: ({ paths }) =>

@@ -332,6 +332,11 @@ export async function origamiUnresolvedServers(names: string[]) {
   return commands.origamiUnresolvedServers(names)
 }
 
+/** OrigamiVPN: which way the computer's clock is off, by the last subscription answer. */
+export async function origamiGetClockSkew() {
+  return commands.origamiGetClockSkew()
+}
+
 /** OrigamiVPN: what the background link watch found last. */
 export async function origamiGetLinkState() {
   return commands.origamiGetLinkState()

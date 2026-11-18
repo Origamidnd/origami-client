@@ -45,8 +45,10 @@ pub(crate) fn is_device_refusal(error: &anyhow::Error) -> bool {
 /// start failing in ways that look like a dead VPN.
 const CLOCK_SKEW_LIMIT: Duration = Duration::from_secs(3 * 60);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum ClockSkew {
+/// Which way the computer's clock is off, for the home screen.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub enum ClockSkew {
     Ahead,
     Behind,
 }
@@ -64,27 +66,51 @@ pub(crate) fn clock_skew(date: &str, now: std::time::SystemTime) -> Option<Clock
     }
 }
 
-/// Once per run: the subscription updates often, and the advice does not change.
-fn warn_clock_skew(headers: &reqwest::header::HeaderMap) {
-    static WARNED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-    let Some(skew) = headers
-        .get(reqwest::header::DATE)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|date| clock_skew(date, std::time::SystemTime::now()))
-    else {
+// 0 = right, 1 = ahead, 2 = behind. Kept for the run: the app often starts in the tray, and a
+// message sent while there is no window goes nowhere, so the window reads this when it opens.
+static CLOCK_SKEW: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+/// What the last subscription answer said about the computer's clock.
+pub fn current_clock_skew() -> Option<ClockSkew> {
+    match CLOCK_SKEW.load(std::sync::atomic::Ordering::Relaxed) {
+        1 => Some(ClockSkew::Ahead),
+        2 => Some(ClockSkew::Behind),
+        _ => None,
+    }
+}
+
+/// True when the state changed.
+fn store_clock_skew(skew: Option<ClockSkew>) -> bool {
+    let value = match skew {
+        None => 0,
+        Some(ClockSkew::Ahead) => 1,
+        Some(ClockSkew::Behind) => 2,
+    };
+    CLOCK_SKEW.swap(value, std::sync::atomic::Ordering::Relaxed) != value
+}
+
+/// Remembers how the clock compares with the subscription server and tells an open window when
+/// that changes. An answer without a readable `Date` changes nothing.
+fn check_clock(headers: &reqwest::header::HeaderMap) {
+    let Some(date) = headers.get(reqwest::header::DATE).and_then(|value| value.to_str().ok()) else {
         return;
     };
-    if WARNED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+    if chrono::DateTime::parse_from_rfc2822(date.trim()).is_err() {
+        return;
+    }
+    let skew = clock_skew(date, std::time::SystemTime::now());
+    if !store_clock_skew(skew) {
         return;
     }
     let side = match skew {
-        ClockSkew::Ahead => "ahead",
-        ClockSkew::Behind => "behind",
+        Some(ClockSkew::Ahead) => "ahead",
+        Some(ClockSkew::Behind) => "behind",
+        None => "ok",
     };
     clash_verge_logging::logging!(
         warn,
         clash_verge_logging::Type::Config,
-        "computer clock is {side} of the subscription server"
+        "computer clock vs the subscription server: {side}"
     );
     crate::core::handle::Handle::notice(crate::core::notify::NoticeStatus::OrigamiClockSkew, side);
 }
@@ -416,7 +442,7 @@ impl PrfItem {
         }
 
         let header = resp.headers();
-        warn_clock_skew(header);
+        check_clock(header);
 
         let extra;
         'extra: {
@@ -782,6 +808,17 @@ mod clock_skew_tests {
         // The clock shows the right local time, but the zone is wrong: UTC is 3 hours behind.
         assert_eq!(clock_skew(SERVER, at(SERVER_SECS - 3 * 3600)), Some(ClockSkew::Behind));
         assert_eq!(clock_skew(SERVER, at(SERVER_SECS + 10 * 60)), Some(ClockSkew::Ahead));
+    }
+
+    #[test]
+    fn the_state_stays_until_the_clock_is_right_again() {
+        // A window that opens later reads the state; only a change is announced.
+        assert!(super::store_clock_skew(Some(ClockSkew::Behind)));
+        assert_eq!(super::current_clock_skew(), Some(ClockSkew::Behind));
+        assert!(!super::store_clock_skew(Some(ClockSkew::Behind)));
+        assert_eq!(super::current_clock_skew(), Some(ClockSkew::Behind));
+        assert!(super::store_clock_skew(None));
+        assert_eq!(super::current_clock_skew(), None);
     }
 
     #[test]

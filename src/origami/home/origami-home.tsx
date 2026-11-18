@@ -30,6 +30,7 @@ import { useUsageRefresh } from '../use-usage-refresh'
 import { AnnouncePlate } from './announce-plate'
 import { AutostartOffer } from './autostart-offer'
 import { CheckPlate } from './check-plate'
+import { ClockPlate } from './clock-plate'
 import { ServerPlate } from './server-plate'
 import { type ConnectMode, useConnection } from './use-connection'
 import { useOpenServers } from './use-open-servers'
@@ -341,6 +342,7 @@ const OrigamiHomePage = () => {
         </div>
       ) : (
         <div className="o-home">
+          <ClockPlate />
           <AnnouncePlate />
           <AutostartGate />
           <div className="o-home__grid">

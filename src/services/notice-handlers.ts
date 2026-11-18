@@ -1,5 +1,6 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 
+import { applyClockNotice } from '@/origami/clock-skew'
 import { reportCoreTrouble } from '@/origami/core-trouble/store'
 import { explainSubscriptionError } from '@/origami/errors'
 import {
@@ -231,14 +232,7 @@ const handlers: Record<
   },
   'origami::profile_kept': () =>
     showNotice.warning('origami.notices.profileKept', undefined, 10000),
-  'origami::clock_skew': (msg) =>
-    showNotice.warning(
-      msg === 'ahead'
-        ? 'origami.notices.clockAhead'
-        : 'origami.notices.clockBehind',
-      undefined,
-      20000,
-    ),
+  'origami::clock_skew': (msg) => applyClockNotice(msg),
   'mixed_port::fallback_error': (msg) =>
     showNotice.error(
       'settings.modals.clashPort.messages.automaticFallbackFailed',
