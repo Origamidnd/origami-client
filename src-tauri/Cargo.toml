@@ -1,6 +1,6 @@
 [package]
 name = "clash-verge"
-version = "1.0.2"
+version = "1.0.3"
 description = "OrigamiVPN"
 authors = ["OrigamiVPN"]
 license = "GPL-3.0-only"
