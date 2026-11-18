@@ -29,6 +29,10 @@ const STARTUP_CHECK: Duration = Duration::from_secs(30);
 const LINK_PROBE: Duration = Duration::from_secs(30);
 const LINK_CONFIRM: Duration = Duration::from_secs(10);
 const LINK_FAILS: u32 = 2;
+// Failed system name lookups in a row, with the core fine, before saying another VPN is in the way.
+const DNS_FAILS: u32 = 2;
+const SYSTEM_DNS_HOSTS: [&str; 2] = ["www.gstatic.com", "cp.cloudflare.com"];
+const SYSTEM_DNS_DEADLINE: Duration = Duration::from_secs(4);
 // Restarting the core recreates the network adapter, which cuts the UDP of a running game until
 // the game is restarted, so it is the last resort. A silent core gets it at once. With the internet
 // there and the VPN silent it waits a while and tries once: the server is most likely down, and
@@ -162,6 +166,9 @@ pub(crate) trait Env: Send + Sync + 'static {
     fn connected(&self) -> impl Future<Output = bool> + Send;
     /// Through the group most traffic takes: the rules may send the probe's own site past the VPN.
     fn probe(&self) -> impl Future<Output = bool> + Send;
+    /// Names resolve the way programs resolve them, through the system. True outside "whole
+    /// computer" mode: there programs do not depend on our TUN for names.
+    fn system_dns(&self) -> impl Future<Output = bool> + Send;
     fn diagnose(&self) -> impl Future<Output = Verdict> + Send;
     fn flush_dns(&self) -> impl Future<Output = ()> + Send;
     fn close_connections(&self) -> impl Future<Output = ()> + Send;
@@ -373,6 +380,7 @@ async fn until(at: Option<Instant>) {
 struct Watch<E> {
     env: E,
     planner: Planner,
+    dns_fails: u32,
     pending: Option<Pending>,
     confirm: Option<Instant>,
     last_wall: SystemTime,
@@ -406,9 +414,21 @@ impl<E: Env> Watch<E> {
             return;
         }
         if self.env.probe().await {
-            self.report(LinkState::Ok).await;
+            // The core reaches its servers, but programs may still be cut off: another VPN's TUN
+            // that took the default route breaks name lookups for them (Happ on Windows, 18.11).
+            if self.env.system_dns().await {
+                self.dns_fails = 0;
+                self.report(LinkState::Ok).await;
+            } else {
+                self.dns_fails += 1;
+                if self.dns_fails >= DNS_FAILS {
+                    logging!(warn, Type::Core, "link watch: the core works, system name lookups fail");
+                    self.report(LinkState::Conflict).await;
+                }
+            }
             return;
         }
+        self.dns_fails = 0;
         if !self.planner.failed_probe() {
             self.confirm = Some(Instant::now() + LINK_CONFIRM);
             return;
@@ -491,6 +511,7 @@ pub(crate) async fn watch<E: Env>(env: E) {
     Watch {
         env,
         planner: Planner::new(),
+        dns_fails: 0,
         pending: None,
         confirm: None,
         last_wall,
@@ -508,7 +529,7 @@ pub fn start() {
 mod real {
     use super::{
         API_DEADLINE, DIRECT_URLS, Env, FAILED_DELAY_MS, LinkState, Ordering, PROBE_DEADLINE, PROBE_TIMEOUT_MS, STATE,
-        VPN_URLS, Verdict, any_passes, loopback_conflict,
+        SYSTEM_DNS_DEADLINE, SYSTEM_DNS_HOSTS, VPN_URLS, Verdict, any_passes, loopback_conflict,
     };
     use crate::{
         config::Config,
@@ -575,6 +596,24 @@ mod real {
                     .await
                 }
             }
+        }
+
+        async fn system_dns(&self) -> bool {
+            let verge = Config::verge().await.latest_arc();
+            let tun = verge.enable_tun_mode.unwrap_or(false) && crate::core::runstate::RUN_STATE.state().tun_capable();
+            if !tun {
+                return true;
+            }
+            // Through getaddrinfo, as any program: with our TUN in charge the answer comes from the
+            // core at once (fake-ip). Two names, so one blocked or slow name does not decide.
+            for host in SYSTEM_DNS_HOSTS {
+                if let Ok(Ok(addrs)) = time::timeout(SYSTEM_DNS_DEADLINE, tokio::net::lookup_host((host, 443u16))).await
+                    && addrs.count() > 0
+                {
+                    return true;
+                }
+            }
+            false
         }
 
         async fn diagnose(&self) -> Verdict {
@@ -676,6 +715,7 @@ mod tests {
         internet: bool,
         core: bool,
         conflict: bool,
+        system_dns: bool,
         connected: bool,
         // A restart brings these back.
         restart_fixes_vpn: bool,
@@ -710,6 +750,7 @@ mod tests {
                     internet: true,
                     core: true,
                     conflict: false,
+                    system_dns: true,
                     connected: true,
                     restart_fixes_vpn: false,
                     restart_fixes_core: false,
@@ -744,6 +785,10 @@ mod tests {
             self.calls.lock().probes += 1;
             let net = self.net.lock();
             net.core && net.vpn && net.internet
+        }
+
+        async fn system_dns(&self) -> bool {
+            self.net.lock().system_dns
         }
 
         async fn diagnose(&self) -> Verdict {
@@ -1090,5 +1135,35 @@ mod tests {
         // Old lines far behind the recent window do not count.
         logs.extend((0..LOG_WINDOW).map(|i| line(&format!("info [TCP] ok again {i}"))));
         assert!(!loopback_conflict(&logs));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn says_another_vpn_interferes_when_programs_cannot_resolve_names() {
+        let fake = Fake::new();
+        let task = fake.spawn();
+        advance(Duration::from_secs(40)).await;
+        // Happ's own TUN took the default route: the core still reaches its servers, but names
+        // do not resolve for programs, so "Protected" would be a lie.
+        fake.net.lock().system_dns = false;
+        advance(MIN * 3).await;
+        assert_eq!(fake.state(), LinkState::Conflict);
+        assert_eq!(fake.restarts(), 0);
+        fake.net.lock().system_dns = true;
+        advance(MIN * 2).await;
+        assert_eq!(fake.state(), LinkState::Ok);
+        task.abort();
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn one_slow_name_lookup_is_not_a_conflict() {
+        let fake = Fake::new();
+        let task = fake.spawn();
+        advance(Duration::from_secs(40)).await;
+        fake.net.lock().system_dns = false;
+        advance(LINK_PROBE).await;
+        fake.net.lock().system_dns = true;
+        advance(MIN * 3).await;
+        assert!(!fake.calls.lock().published.contains(&LinkState::Conflict));
+        task.abort();
     }
 }
