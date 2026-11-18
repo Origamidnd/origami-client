@@ -295,6 +295,36 @@ const CHECK_TIMEOUT: Duration = Duration::from_secs(30);
 /// applies its builder timeout to each check request only; the download it returns has none.
 const ENDPOINT_TIMEOUT: Duration = Duration::from_secs(12);
 
+/// OrigamiVPN: right after launch the core can come up dead until the link watch restarts it
+/// (seen in the VM 18.11: 1-2 minutes). The check before a startup install waits that out.
+const STARTUP_CHECK_ATTEMPTS: u32 = 4;
+const STARTUP_CHECK_PAUSE: Duration = Duration::from_secs(20);
+
+/// Runs `attempt` until it succeeds, at most `attempts` times, pausing between tries.
+async fn with_retries<T, F, Fut>(attempts: u32, pause: Duration, mut attempt: F) -> Result<T>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T>>,
+{
+    let mut tried = 1;
+    loop {
+        match attempt().await {
+            Ok(value) => return Ok(value),
+            Err(e) if tried >= attempts => return Err(e),
+            Err(e) => {
+                logging!(
+                    info,
+                    Type::System,
+                    "Update check {tried}/{attempts} failed: {e:#}, retrying in {}s",
+                    pause.as_secs()
+                );
+                tried += 1;
+                tokio::time::sleep(pause).await;
+            }
+        }
+    }
+}
+
 async fn within_check_timeout<T, E>(check: impl std::future::Future<Output = std::result::Result<T, E>>) -> Result<T>
 where
     E: std::error::Error + Send + Sync + 'static,
@@ -389,7 +419,7 @@ impl SilentUpdater {
         // like nothing happened.
         Self::show_update_splash(app_handle, cached_version);
 
-        let update = match Self::check(app_handle).await {
+        let update = match with_retries(STARTUP_CHECK_ATTEMPTS, STARTUP_CHECK_PAUSE, || Self::check(app_handle)).await {
             Ok(Some(u)) => u,
             Ok(None) => {
                 logging!(
@@ -875,5 +905,43 @@ mod endpoint_timeout_tests {
             !code.contains("app_handle.updater()?"),
             "the default updater has no limit"
         );
+    }
+}
+
+#[cfg(test)]
+mod startup_retry_tests {
+    use super::{STARTUP_CHECK_ATTEMPTS, STARTUP_CHECK_PAUSE, with_retries};
+    use std::sync::atomic::{AtomicU32, Ordering};
+    use tokio::time::Instant;
+
+    #[tokio::test(start_paused = true)]
+    async fn a_core_that_wakes_up_late_still_gets_the_update_installed() {
+        // Right after launch the core can be dead until the link watch restarts it: the first
+        // checks time out, a later one passes.
+        let calls = AtomicU32::new(0);
+        let start = Instant::now();
+        let result: anyhow::Result<u32> = with_retries(STARTUP_CHECK_ATTEMPTS, STARTUP_CHECK_PAUSE, || async {
+            let n = calls.fetch_add(1, Ordering::SeqCst) + 1;
+            if n < STARTUP_CHECK_ATTEMPTS {
+                Err(anyhow::anyhow!("timed out"))
+            } else {
+                Ok(n)
+            }
+        })
+        .await;
+        assert_eq!(result.ok(), Some(STARTUP_CHECK_ATTEMPTS));
+        assert_eq!(start.elapsed(), STARTUP_CHECK_PAUSE * (STARTUP_CHECK_ATTEMPTS - 1));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn gives_up_after_the_last_attempt() {
+        let calls = AtomicU32::new(0);
+        let result: anyhow::Result<()> = with_retries(STARTUP_CHECK_ATTEMPTS, STARTUP_CHECK_PAUSE, || async {
+            calls.fetch_add(1, Ordering::SeqCst);
+            Err(anyhow::anyhow!("timed out"))
+        })
+        .await;
+        assert!(result.is_err());
+        assert_eq!(calls.load(Ordering::SeqCst), STARTUP_CHECK_ATTEMPTS);
     }
 }
