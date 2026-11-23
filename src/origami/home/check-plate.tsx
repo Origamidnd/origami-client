@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { getIpInfo } from '@/services/api'
 import { cmdTestDelay } from '@/services/cmds'
 
+import { probeUntilSettled } from '../check/auto-check'
 import { exitCountryName } from '../check/exit-country'
 import { openSendDiagnostics } from '../check/send-diagnostics-store'
 import { CHECK_TARGETS, isReachable } from '../check/targets'
@@ -28,10 +29,6 @@ interface ExitInfo {
 }
 
 const AUTO_CHECK_DELAY_MS = 2000
-// Right after the app starts the core is still warming up and every request fails, so the
-// automatic check tries again before calling anything broken. A real block fails every time.
-const AUTO_CHECK_ATTEMPTS = 3
-const AUTO_CHECK_RETRY_MS = 3000
 // While the result says there is no internet, how often to look whether it is back.
 const NO_INTERNET_RECHECK_MS = 15 * 1000
 
@@ -62,17 +59,10 @@ export const CheckPlate = () => {
             return delay
           }),
         )
-      let results = await probe()
-      for (
-        let attempt = 1;
-        auto &&
-        attempt < AUTO_CHECK_ATTEMPTS &&
-        !results.every((delay) => isReachable(delay));
-        attempt++
-      ) {
-        await sleep(AUTO_CHECK_RETRY_MS)
-        results = await probe()
-      }
+      const results = await probeUntilSettled(probe, auto, {
+        now: () => Date.now(),
+        sleep,
+      })
       if (auto) {
         setDelays(
           Object.fromEntries(
