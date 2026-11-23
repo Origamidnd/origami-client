@@ -762,6 +762,9 @@ impl CoreManager {
     }
 
     async fn stop_core_unprepared_inner(&self) -> Result<()> {
+        if !matches!(*self.get_running_mode(), RunningMode::NotRunning) {
+            crate::core::tun_release::close_before_stop().await;
+        }
         CLASH_LOGGER.clear_logs();
         let result = match *self.get_running_mode() {
             RunningMode::Service => self.stop_core_by_service().await,
