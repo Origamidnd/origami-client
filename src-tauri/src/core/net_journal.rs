@@ -18,6 +18,8 @@ const LONG: Duration = Duration::from_secs(60);
 // At least this many long connections, and at least half of them, closing between two looks.
 const MASS_CLOSE_MIN: usize = 5;
 const CORE_LINES_PER_TICK: usize = 20;
+// The core keeps this many last lines (LOGS_QUEUE_LEN in the service and in clash-verge-logging).
+const CORE_RING_LEN: usize = 100;
 const LINE_MAX: usize = 300;
 // A line of how many connections are open, now and then, to compare against.
 const SUMMARY_EVERY: u32 = 30;
@@ -66,9 +68,11 @@ fn one_connection(line: &str) -> bool {
 impl Journal {
     /// The core keeps its last lines in a ring; only the ones not seen at the previous look count.
     pub(crate) fn core_lines(&mut self, lines: &[String]) -> CoreSummary {
+        // A ring with no line in common with the previous look turned over only when it is full: after
+        // a core restart it starts empty and is short.
         let mut summary = CoreSummary {
             overflow: !self.seen_lines.is_empty()
-                && !lines.is_empty()
+                && lines.len() >= CORE_RING_LEN
                 && !lines.iter().any(|line| self.seen_lines.contains(line)),
             ..CoreSummary::default()
         };
@@ -245,12 +249,34 @@ mod tests {
         assert_eq!(summary.connection_errors, 0);
     }
 
+    fn full_ring(from: usize) -> Vec<String> {
+        (from..from + CORE_RING_LEN)
+            .map(|i| format!(r#"time="{i}" level=warning msg="line {i}""#))
+            .collect()
+    }
+
     #[test]
     fn says_when_the_ring_turned_over_between_two_looks() {
         let mut journal = Journal::default();
-        journal.core_lines(&lines(&[r#"time="1" level=warning msg="a""#]));
-        let summary = journal.core_lines(&lines(&[r#"time="9" level=warning msg="b""#]));
+        journal.core_lines(&full_ring(0));
+        let summary = journal.core_lines(&full_ring(500));
         assert!(summary.overflow);
+    }
+
+    #[test]
+    fn a_core_restart_is_not_an_overflow() {
+        // Windows VM, 18.11: after the core restarted its ring started empty, shared no line with
+        // the previous look, and the log said "wrote more than it keeps" for a few lines.
+        let mut journal = Journal::default();
+        journal.core_lines(&lines(&[
+            r#"time="1" level=warning msg="a""#,
+            r#"time="2" level=warning msg="b""#,
+        ]));
+        let summary = journal.core_lines(&lines(&[
+            r#"time="9" level=warning msg="[TUN] default interface changed""#,
+        ]));
+        assert!(!summary.overflow);
+        assert_eq!(summary.lines.len(), 1);
     }
 
     fn open(range: std::ops::Range<u32>, vpn: bool) -> Vec<(String, bool)> {
