@@ -58,15 +58,7 @@ pub enum ClockSkew {
 /// Compares the computer's clock with the `Date` header of the subscription answer. A wrong time
 /// zone with the right local time also shows here: the clock is then hours off in UTC.
 pub(crate) fn clock_skew(date: &str, age_secs: u64, now: std::time::SystemTime) -> Option<ClockSkew> {
-    let server = chrono::DateTime::parse_from_rfc2822(date.trim()).ok()?;
-    // A cached copy keeps the original Date; Age says how long ago that was.
-    let server = u64::try_from(server.timestamp()).ok()?.checked_add(age_secs)?;
-    let server = std::time::SystemTime::UNIX_EPOCH.checked_add(Duration::from_secs(server))?;
-    match now.duration_since(server) {
-        Ok(ahead) if ahead > CLOCK_SKEW_LIMIT => Some(ClockSkew::Ahead),
-        Err(behind) if behind.duration() > CLOCK_SKEW_LIMIT => Some(ClockSkew::Behind),
-        _ => None,
-    }
+    skew_between(server_time(date, age_secs)?, now)
 }
 
 // 0 = right, 1 = ahead, 2 = behind. Kept for the run: the app often starts in the tray, and a
@@ -99,6 +91,63 @@ fn judges_clock(url: &str) -> bool {
     url.starts_with("https://")
 }
 
+/// When the subscription server last told the time: its time then, and the moment by the
+/// computer's steady clock, which a person setting the time does not move.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ServerTime {
+    pub server: std::time::SystemTime,
+    pub at: std::time::Instant,
+}
+
+static LAST_SERVER_TIME: std::sync::Mutex<Option<ServerTime>> = std::sync::Mutex::new(None);
+
+/// Whether the computer's clock is still off: the server's time then plus what has passed since,
+/// against the clock now. Without it a warning stayed until the next subscription refresh, hours
+/// after the person fixed the time (Windows 10 VM, 23.11).
+pub(crate) fn still_off(measure: ServerTime, wall: std::time::SystemTime, steady: std::time::Instant) -> bool {
+    let server_now = measure.server + steady.saturating_duration_since(measure.at);
+    skew_between(server_now, wall).is_some()
+}
+
+fn skew_between(server: std::time::SystemTime, now: std::time::SystemTime) -> Option<ClockSkew> {
+    match now.duration_since(server) {
+        Ok(ahead) if ahead > CLOCK_SKEW_LIMIT => Some(ClockSkew::Ahead),
+        Err(behind) if behind.duration() > CLOCK_SKEW_LIMIT => Some(ClockSkew::Behind),
+        _ => None,
+    }
+}
+
+/// Clears a clock warning once the clock is right again. It never raises one: the steady clock may
+/// stop while the computer sleeps, and only the server's own answer says the clock is wrong.
+pub fn recheck_clock_skew() {
+    if current_clock_skew().is_none() {
+        return;
+    }
+    let Some(measure) = *LAST_SERVER_TIME
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+    else {
+        return;
+    };
+    if still_off(measure, std::time::SystemTime::now(), std::time::Instant::now()) || !store_clock_skew(None) {
+        return;
+    }
+    clash_verge_logging::logging!(
+        info,
+        clash_verge_logging::Type::Config,
+        "computer clock vs the subscription server: ok again"
+    );
+    crate::core::handle::Handle::notice(crate::core::notify::NoticeStatus::OrigamiClockSkew, "ok");
+}
+
+/// The server's time from a `Date` header and its `Age`.
+fn server_time(date: &str, age_secs: u64) -> Option<std::time::SystemTime> {
+    let server = chrono::DateTime::parse_from_rfc2822(date.trim()).ok()?;
+    // A cached copy keeps the original Date; Age says how long ago that was.
+    let server = u64::try_from(server.timestamp()).ok()?.checked_add(age_secs)?;
+    std::time::SystemTime::UNIX_EPOCH.checked_add(Duration::from_secs(server))
+}
+
 fn check_clock(headers: &reqwest::header::HeaderMap) {
     let Some(date) = headers.get(reqwest::header::DATE).and_then(|value| value.to_str().ok()) else {
         return;
@@ -108,9 +157,15 @@ fn check_clock(headers: &reqwest::header::HeaderMap) {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.trim().parse::<u64>().ok())
         .unwrap_or(0);
-    if chrono::DateTime::parse_from_rfc2822(date.trim()).is_err() {
+    let Some(server) = server_time(date, age) else {
         return;
-    }
+    };
+    *LAST_SERVER_TIME
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(ServerTime {
+        server,
+        at: std::time::Instant::now(),
+    });
     let skew = clock_skew(date, age, std::time::SystemTime::now());
     if !store_clock_skew(skew) {
         return;
@@ -853,6 +908,26 @@ mod clock_skew_tests {
         // that runs an hour ahead.
         assert_eq!(clock_skew(SERVER, 3600, at(SERVER_SECS + 3600)), None);
         assert_eq!(clock_skew(SERVER, 0, at(SERVER_SECS + 3600)), Some(ClockSkew::Ahead));
+    }
+
+    #[test]
+    fn a_clock_set_right_after_the_warning_is_seen_without_a_new_answer() {
+        // Windows 10 VM, 23.11: the clock was 2 hours behind, the person fixed it, and the warning
+        // stayed until the subscription was refreshed by hand.
+        let steady = std::time::Instant::now();
+        let measure = super::ServerTime {
+            server: at(SERVER_SECS),
+            at: steady,
+        };
+        let later = steady + Duration::from_secs(90);
+        // Still 2 hours behind a minute and a half later.
+        assert!(super::still_off(measure, at(SERVER_SECS + 90 - 2 * 3600), later));
+        // Set right: the server's time then plus the 90 s since.
+        assert!(!super::still_off(measure, at(SERVER_SECS + 90), later));
+        // A few minutes off is fine, as for an answer.
+        assert!(!super::still_off(measure, at(SERVER_SECS + 90 + 300), later));
+        // Set the wrong way round counts as off too.
+        assert!(super::still_off(measure, at(SERVER_SECS + 90 + 3600), later));
     }
 
     #[test]

@@ -624,9 +624,20 @@ pub(crate) async fn watch<E: Env>(env: E) {
 }
 
 /// Started once the core is up.
+// How often a clock warning looks whether the person has set the time right.
+const CLOCK_RECHECK: Duration = Duration::from_secs(30);
+
 pub fn start() {
     crate::process::AsyncHandler::spawn(|| watch(real::CoreEnv));
     crate::core::net_journal::start();
+    crate::process::AsyncHandler::spawn(|| async {
+        let mut every = time::interval(CLOCK_RECHECK);
+        every.set_missed_tick_behavior(MissedTickBehavior::Delay);
+        loop {
+            every.tick().await;
+            crate::config::recheck_clock_skew();
+        }
+    });
 }
 
 mod real {
