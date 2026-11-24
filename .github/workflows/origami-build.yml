@@ -2,6 +2,15 @@ name: OrigamiVPN build
 
 on:
   workflow_dispatch:
+    inputs:
+      test_release:
+        description: 'Опубликовать как тестовую версию (pre-release "test", обычная версия и обновления не меняются)'
+        type: boolean
+        default: false
+      test_notes:
+        description: 'Что проверяем в тестовой версии (попадёт в описание)'
+        type: string
+        default: ''
   push:
     tags:
       - 'v*'
@@ -171,3 +180,53 @@ jobs:
           if [[ -n $notes ]]; then
             gh release edit "$GITHUB_REF_NAME" --notes-file "$notes" -R "$GITHUB_REPOSITORY"
           fi
+
+  # OrigamiVPN: a test build goes to one rolling pre-release "test", like the Clash Verge Rev
+  # autobuild. It is never "latest", so releases/latest/download/latest.json (the updater) and the
+  # mirror keep the stable version; people install the test version by hand from the release page.
+  test-release:
+    name: Publish the test version
+    needs: [build, arch]
+    if: github.event_name == 'workflow_dispatch' && inputs.test_release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download the builds
+        uses: actions/download-artifact@v7
+        with:
+          path: dist
+
+      - name: Replace the test pre-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TEST_NOTES: ${{ inputs.test_notes }}
+        run: |
+          VERSION=$(sed -n 's/^  "version": "\(.*\)",$/\1/p' src-tauri/tauri.conf.json)
+          MIHOMO=$(sed -n "s/^const PINNED_META_VERSION = '\(.*\)'/\1/p" scripts/prebuild.mjs)
+          SHORT=${GITHUB_SHA::8}
+          NAME="${VERSION}-test-${SHORT}"
+          mkdir out
+          cp dist/origamivpn-x86_64-pc-windows-msvc/nsis/*.exe "out/OrigamiVPN_${NAME}_x64-setup.exe"
+          cp dist/origamivpn-x86_64-unknown-linux-gnu/deb/*.deb "out/OrigamiVPN_${NAME}_amd64.deb"
+          cp dist/origamivpn-x86_64-unknown-linux-gnu/rpm/*.rpm "out/OrigamiVPN-${NAME}.x86_64.rpm"
+          cp dist/origamivpn-arch/*.pkg.tar.zst "out/origamivpn-${NAME}-x86_64.pkg.tar.zst"
+          ls -la out
+          {
+            echo "Тестовая версия OrigamiVPN. Ставьте её, только если вас попросили проверить: в ней может что-то не работать."
+            echo
+            if [[ -n $TEST_NOTES ]]; then
+              echo "Что проверяем: $TEST_NOTES"
+              echo
+            fi
+            echo "- Основа: версия $VERSION, коммит ${SHORT} (ветка ${GITHUB_REF_NAME})"
+            echo "- Ядро Mihomo: $MIHOMO"
+            echo "- Собрано: $(date -u '+%d.%m.%Y %H:%M') UTC"
+            echo
+            echo "Встроенное обновление тестовую версию не предлагает. Когда выйдет следующая обычная версия, программа обновится на неё сама. Вернуться на обычную версию сейчас: скачать и установить ту, что отмечена как Latest."
+          } > notes.md
+          gh release delete test --cleanup-tag --yes -R "$GITHUB_REPOSITORY" || true
+          gh release create test out/* --prerelease --latest=false --target "$GITHUB_SHA" \
+            --title "Тестовая версия ($NAME)" --notes-file notes.md -R "$GITHUB_REPOSITORY"
+
