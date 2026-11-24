@@ -234,7 +234,7 @@ async function getLatestAlphaVersion() {
 // OrigamiVPN: the stable core is pinned. A new mihomo can change the uTLS fingerprints Reality
 // depends on, so it ships only after a night test, by changing this line in its own commit.
 // MIHOMO_VERSION overrides it for a test build.
-const PINNED_META_VERSION = 'v1.19.33'
+const PINNED_META_VERSION = 'v1.19.34'
 
 async function getLatestReleaseVersion() {
   META_VERSION = process.env.MIHOMO_VERSION?.trim() || PINNED_META_VERSION
