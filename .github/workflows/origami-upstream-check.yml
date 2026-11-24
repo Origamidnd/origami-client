@@ -2,8 +2,10 @@ name: OrigamiVPN upstream check
 
 # Раз в неделю сверяет последние версии Mihomo и Clash Verge Rev с .github/origami-upstream.json.
 # Если вышло новое, запуск завершается с ошибкой: GitHub присылает письмо «Run failed»,
-# а в сводке запуска написано, что вышло и что делать. После выпуска нашей версии
-# с этими обновлениями версии в .github/origami-upstream.json поднимаем вручную.
+# а в сводке запуска написано, что вышло и что делать. В .github/origami-upstream.json
+# записаны последние версии, которые мы уже посмотрели: после выпуска с обновлением или после
+# решения отложить переход версию там поднимаем вручную, и проверка снова зелёная до следующей.
+# Ядро в сборке закреплено отдельно (PINNED_META_VERSION в scripts/prebuild.mjs).
 
 on:
   schedule:
@@ -48,7 +50,7 @@ jobs:
             if [ "$MIHOMO" != "$OUR_MIHOMO" ]; then
               echo "**Mihomo: $OUR_MIHOMO -> $MIHOMO** ([что нового](https://github.com/MetaCubeX/mihomo/releases/tag/$MIHOMO))"
               echo
-              echo "Каждая сборка берёт последнее ядро сама: достаточно выпустить новую версию OrigamiVPN (тег v*)."
+              echo "Ядро в сборке закреплено (PINNED_META_VERSION в scripts/prebuild.mjs). Решить, переходить ли: проверить тестовой сборкой (MIHOMO_VERSION), поднять закрепление и выпустить версию."
               echo
             fi
             if [ "$CV" != "$OUR_CV" ]; then
@@ -57,7 +59,7 @@ jobs:
               echo "Перенести исправления по разделу «Обновление с апстрима» в ORIGAMI.md, проверить наши изменения, выпустить версию."
               echo
             fi
-            echo "После выпуска поднять версии в \`.github/origami-upstream.json\`, тогда проверка снова станет зелёной."
+            echo "После выпуска или решения отложить переход поднять версии в \`.github/origami-upstream.json\`, тогда проверка снова станет зелёной."
           } >> "$GITHUB_STEP_SUMMARY"
           [ "$MIHOMO" != "$OUR_MIHOMO" ] && echo "::warning::Новый Mihomo $MIHOMO (у нас $OUR_MIHOMO)"
           [ "$CV" != "$OUR_CV" ] && echo "::warning::Новый Clash Verge Rev $CV (у нас $OUR_CV)"
