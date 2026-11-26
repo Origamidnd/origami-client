@@ -215,9 +215,22 @@
       "service": {
         "title": "Files and maintenance",
         "hint": "Backups, config and log folders, lite mode"
+      },
+      "gameLink": {
+        "title": "Game mode (test)",
+        "hint": "Game packets go over several paths at once; for testing with a code"
       }
     },
-    "exitHint": "The VPN will turn off"
+    "exitHint": "The VPN will turn off",
+    "gameLink": {
+      "enable": "Game mode",
+      "enableHint": "World of Warcraft goes through our game server over several paths at once. Needs \"Whole computer\" mode",
+      "code": "Access code",
+      "codeHint": "Support gives out the code for testing",
+      "codeSaved": "Code saved. Paste a new one to replace it",
+      "codePlaceholder": "Paste the code",
+      "save": "Save"
+    }
   },
   "servers": {
     "title": "Servers",

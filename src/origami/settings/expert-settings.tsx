@@ -7,9 +7,11 @@ import SettingSystem from '@/components/setting/setting-system'
 import SettingVergeAdvanced from '@/components/setting/setting-verge-advanced'
 import SettingVergeBasic from '@/components/setting/setting-verge-basic'
 
+import { GameLinkSettings } from './game-link-settings'
+
 const OPEN_KEY = 'origami.expertSettingsOpen'
 
-type SectionId = 'connection' | 'core' | 'interface' | 'service'
+type SectionId = 'connection' | 'core' | 'interface' | 'service' | 'gameLink'
 
 const readOpen = (): SectionId[] => {
   try {
@@ -94,6 +96,7 @@ export const ExpertSettings = ({
       'service',
       <SettingVergeAdvanced key="service" onError={onError} embedded />,
     ],
+    ['gameLink', <GameLinkSettings key="gameLink" />],
   ]
 
   return (

@@ -360,6 +360,15 @@ export type FailedOperation =
   | 'systemProxyGuard'
 
 /**
+ *  OrigamiVPN: game mode settings. The code holds the anchor's password and certificate pin: it is
+ *  given to a tester privately and is never part of the repository.
+ */
+export type IGameLink = {
+  enabled?: boolean
+  code?: string
+}
+
+/**
  *  OrigamiVPN: one route of the user's own: an app (process name) or a site (domain), sent direct or
  *  through the VPN.
  */
@@ -501,6 +510,8 @@ export type IVerge_Deserialize = {
   origami_system_titlebar?: boolean | null
   /**  OrigamiVPN: apps and sites the user sent direct or through the VPN, ahead of the subscription's rules. */
   origami_routes?: IOrigamiRoute[] | null
+  /**  OrigamiVPN: game mode (test): the game's packets go over several paths at once. */
+  origami_game_link?: IGameLink | null
   enable_auto_light_weight_mode?: boolean | null
   /**  自动进入轻量模式的延迟（分钟） */
   auto_light_weight_minutes?: number | null
@@ -599,6 +610,8 @@ export type IVerge_Serialize = {
   origami_system_titlebar?: boolean | null
   /**  OrigamiVPN: apps and sites the user sent direct or through the VPN, ahead of the subscription's rules. */
   origami_routes?: IOrigamiRoute[] | null
+  /**  OrigamiVPN: game mode (test): the game's packets go over several paths at once. */
+  origami_game_link?: IGameLink | null
   enable_auto_light_weight_mode: boolean | null
   /**  自动进入轻量模式的延迟（分钟） */
   auto_light_weight_minutes: number | null
