@@ -229,6 +229,10 @@ pub struct IVerge {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub origami_routes: Option<Vec<IOrigamiRoute>>,
 
+    /// OrigamiVPN: game mode (test): the game's packets go over several paths at once.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub origami_game_link: Option<IGameLink>,
+
     pub enable_auto_light_weight_mode: Option<bool>,
 
     /// 自动进入轻量模式的延迟（分钟）
@@ -240,6 +244,15 @@ pub struct IVerge {
     pub hover_jump_navigator_delay: Option<u64>,
 
     pub enable_external_controller: Option<bool>,
+}
+
+/// OrigamiVPN: game mode settings. The code holds the anchor's password and certificate pin: it is
+/// given to a tester privately and is never part of the repository.
+#[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize, Serialize, specta::Type)]
+#[serde(default)]
+pub struct IGameLink {
+    pub enabled: bool,
+    pub code: std::string::String,
 }
 
 /// OrigamiVPN: one route of the user's own: an app (process name) or a site (domain), sent direct or
@@ -561,6 +574,7 @@ impl IVerge {
         patch!(origami_connect_mode);
         patch!(origami_system_titlebar);
         patch!(origami_routes);
+        patch!(origami_game_link);
         patch!(enable_auto_light_weight_mode);
         patch!(auto_light_weight_minutes);
         patch!(enable_dns_settings);

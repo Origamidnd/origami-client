@@ -1,6 +1,7 @@
 use crate::core::notify::NoticeStatus;
 mod chain;
 pub mod field;
+pub(crate) mod game_link;
 mod merge;
 pub(crate) mod origami_routes;
 mod script;
@@ -990,6 +991,19 @@ pub async fn enhance(
         .clone()
         .unwrap_or_default();
     let config = use_origami_routes(config, &routes);
+    // OrigamiVPN: game mode goes in front of everything, the user's own routes included.
+    let game = Config::verge()
+        .await
+        .latest_arc()
+        .origami_game_link
+        .clone()
+        .unwrap_or_default();
+    let game = crate::core::game_link::from_settings(game.enabled, &game.code);
+    let config = match &game {
+        Some(game) => game_link::use_game_link(config, game),
+        None => config,
+    };
+    crate::core::game_link::ensure(game).await;
     let config = use_sort(config);
 
     let mut exists_keys_set = HashSet::new();

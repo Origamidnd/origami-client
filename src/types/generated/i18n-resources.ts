@@ -614,6 +614,10 @@ export interface TranslationResources {
             hint: string
             title: string
           }
+          gameLink: {
+            hint: string
+            title: string
+          }
           interface: {
             hint: string
             title: string
@@ -624,6 +628,15 @@ export interface TranslationResources {
           }
         }
         footer: string
+        gameLink: {
+          code: string
+          codeHint: string
+          codePlaceholder: string
+          codeSaved: string
+          enable: string
+          enableHint: string
+          save: string
+        }
         help: {
           channel: string
           diagnostics: string

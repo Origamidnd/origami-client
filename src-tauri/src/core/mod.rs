@@ -1,6 +1,7 @@
 pub mod auto_backup;
 pub mod autostart;
 pub mod backup;
+pub mod game_link;
 pub mod hotkey;
 pub mod lightweight;
 pub mod link_watch;
