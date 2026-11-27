@@ -1,8 +1,8 @@
 import { Channel } from '@tauri-apps/api/core'
-import dayjs from 'dayjs'
 
 import { showNotice } from '@/services/notice-service'
 import { debugLog } from '@/utils/debug'
+import { parseCoreLogLine } from '@/utils/parse-core-log'
 
 import { commands } from './bindings'
 import type {
@@ -175,26 +175,8 @@ export async function getProxyView(): Promise<ProxyViewV1> {
 }
 
 export async function getClashLogs() {
-  const regex = /time="(.+?)"\s+level=(.+?)\s+msg="(.+?)"/
-  const newRegex = /(.+?)\s+(.+?)\s+(.+)/
   const logs = await commands.getClashLogs()
-
-  return logs.reduce<ILogItem[]>((acc, log) => {
-    const result = log.match(regex)
-    if (result) {
-      const [_, _time, type, payload] = result
-      const time = dayjs(_time).format('MM-DD HH:mm:ss')
-      acc.push({ time, type, payload })
-      return acc
-    }
-
-    const result2 = log.match(newRegex)
-    if (result2) {
-      const [_, time, type, payload] = result2
-      acc.push({ time, type, payload })
-    }
-    return acc
-  }, [])
+  return logs.flatMap((log) => parseCoreLogLine(log) ?? [])
 }
 
 export async function getVergeConfig(): Promise<IVergeConfig> {
