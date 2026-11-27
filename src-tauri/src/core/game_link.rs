@@ -167,16 +167,80 @@ struct PathStats {
     first: u64,
     dup: u64,
     err: u64,
+    rx_err: u64,
+}
+
+/// Counters for the periodic log line. They only grow, so once anything happened every tick reports.
+#[derive(Debug, Default)]
+struct Stats {
+    from_game: u64,
+    to_game: u64,
+    local_err: u64,
+    paths: Vec<PathStats>,
+}
+
+impl Stats {
+    fn new(paths: usize) -> Self {
+        Self {
+            paths: vec![PathStats::default(); paths],
+            ..Self::default()
+        }
+    }
+
+    /// The log line, or None while nothing at all happened (no packet and no error).
+    fn report(&self, names: &[&str]) -> Option<String> {
+        let idle = self.from_game == 0
+            && self.to_game == 0
+            && self.local_err == 0
+            && self
+                .paths
+                .iter()
+                .all(|p| p.up == 0 && p.first == 0 && p.dup == 0 && p.err == 0 && p.rx_err == 0);
+        if idle {
+            return None;
+        }
+        let paths = names
+            .iter()
+            .zip(&self.paths)
+            .map(|(name, s)| {
+                format!(
+                    "{name} up={} first={} dup={} err={} rx_err={}",
+                    s.up, s.first, s.dup, s.err, s.rx_err
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("; ");
+        Some(format!(
+            "game mode: from game {}, to game {}, local errors {}; {paths}",
+            self.from_game, self.to_game, self.local_err
+        ))
+    }
+}
+
+/// What a path's reader hands to the main loop.
+enum FromPath {
+    Packet(Vec<u8>),
+    Error(std::io::Error),
 }
 
 /// Runs until aborted: forwards the game tunnel between `local` and every path.
 pub async fn run(config: GameLinkConfig, local: UdpSocket) -> Result<()> {
+    run_with(config, local, STATS_EVERY, |line| logging!(info, Type::Core, "{line}")).await
+}
+
+async fn run_with(
+    config: GameLinkConfig,
+    local: UdpSocket,
+    stats_every: Duration,
+    mut log: impl FnMut(String),
+) -> Result<()> {
     let mut session = [0u8; 8];
     getrandom::fill(&mut session).context("failed to make a game mode session id")?;
     let local = Arc::new(local);
+    let names: Vec<&str> = config.paths.iter().map(|path| path.name.as_str()).collect();
 
     let mut sockets = Vec::with_capacity(config.paths.len());
-    let (tx, mut rx) = mpsc::channel::<(usize, Vec<u8>)>(1024);
+    let (tx, mut rx) = mpsc::channel::<(usize, FromPath)>(1024);
     let mut readers = Vec::new();
     for (index, path) in config.paths.iter().enumerate() {
         let bind: SocketAddr = if path.addr.is_ipv4() {
@@ -191,11 +255,19 @@ pub async fn run(config: GameLinkConfig, local: UdpSocket) -> Result<()> {
         readers.push(tokio::spawn(async move {
             let mut buf = vec![0u8; 65535];
             loop {
-                // An error (a refused send shows up here on some systems) only means a missed packet.
-                if let Ok(n) = reader.recv(&mut buf).await
-                    && tx.send((index, buf[..n].to_vec())).await.is_err()
-                {
+                // An error (a refused send shows up here on some systems) only means a missed packet,
+                // but it is counted so a dead path shows in the log.
+                let item = match reader.recv(&mut buf).await {
+                    Ok(n) => FromPath::Packet(buf[..n].to_vec()),
+                    Err(err) => FromPath::Error(err),
+                };
+                let failed = matches!(item, FromPath::Error(_));
+                if tx.send((index, item)).await.is_err() {
                     break;
+                }
+                if failed {
+                    // Do not spin if the system keeps reporting the same error.
+                    tokio::time::sleep(Duration::from_millis(10)).await;
                 }
             }
         }));
@@ -204,69 +276,84 @@ pub async fn run(config: GameLinkConfig, local: UdpSocket) -> Result<()> {
     drop(tx);
     let _readers = AbortOnDrop(readers);
 
-    logging!(
-        info,
-        Type::Core,
+    log(format!(
         "game mode: listening on {} with {} path(s): {}",
         local
             .local_addr()
             .map_or_else(|_| "?".to_owned(), |addr| addr.to_string()),
-        config.paths.len(),
-        config
-            .paths
-            .iter()
-            .map(|path| path.name.as_str())
-            .collect::<Vec<_>>()
-            .join(", ")
-    );
+        names.len(),
+        names.join(", ")
+    ));
 
-    let mut stats: Vec<PathStats> = vec![PathStats::default(); config.paths.len()];
+    let mut stats = Stats::new(names.len());
     let mut window = Window::default();
     let mut seq: u32 = 0;
     let mut app: Option<SocketAddr> = None;
-    let mut delivered: u64 = 0;
     let mut buf = vec![0u8; 65535];
-    let mut tick = tokio::time::interval(STATS_EVERY);
+    let mut tick = tokio::time::interval(stats_every);
     tick.tick().await;
 
     loop {
         tokio::select! {
             received = local.recv_from(&mut buf) => {
-                let Ok((n, from)) = received else { continue };
+                let (n, from) = match received {
+                    Ok(received) => received,
+                    Err(err) => {
+                        stats.local_err += 1;
+                        if stats.local_err == 1 {
+                            log(format!("game mode: local receive failed: {err}"));
+                        }
+                        continue;
+                    }
+                };
+                if app != Some(from) {
+                    log(format!("game mode: packets from the game at {from}, sending over {} path(s)", names.len()));
+                }
                 app = Some(from);
+                stats.from_game += 1;
                 seq = seq.wrapping_add(1);
                 let packet = pack(&session, seq, &buf[..n]);
                 for (index, socket) in sockets.iter().enumerate() {
+                    let path = &mut stats.paths[index];
                     match socket.send(&packet).await {
-                        Ok(_) => stats[index].up += 1,
-                        Err(_) => stats[index].err += 1,
+                        Ok(_) => path.up += 1,
+                        Err(err) => {
+                            path.err += 1;
+                            if path.err == 1 {
+                                log(format!("game mode: path {} send failed: {err}", names[index]));
+                            }
+                        }
                     }
                 }
             }
-            Some((index, packet)) = rx.recv() => {
+            Some((index, item)) = rx.recv() => {
+                let packet = match item {
+                    FromPath::Packet(packet) => packet,
+                    FromPath::Error(err) => {
+                        let path = &mut stats.paths[index];
+                        path.rx_err += 1;
+                        if path.rx_err == 1 {
+                            log(format!("game mode: path {} receive failed: {err}", names[index]));
+                        }
+                        continue;
+                    }
+                };
                 let (Some(app), Some((seq, payload))) = (app, unpack(&session, &packet)) else { continue };
+                let path = &mut stats.paths[index];
+                if path.first == 0 && path.dup == 0 {
+                    log(format!("game mode: path {} answers", names[index]));
+                }
                 if window.add(seq) {
-                    stats[index].first += 1;
-                    delivered += 1;
+                    path.first += 1;
+                    stats.to_game += 1;
                     let _ = local.send_to(payload, app).await;
                 } else {
-                    stats[index].dup += 1;
+                    path.dup += 1;
                 }
             }
             _ = tick.tick() => {
-                if stats.iter().any(|path| path.up > 0) {
-                    logging!(
-                        info,
-                        Type::Core,
-                        "game mode: to game {delivered}; {}",
-                        config
-                            .paths
-                            .iter()
-                            .zip(&stats)
-                            .map(|(path, s)| format!("{} up={} first={} dup={} err={}", path.name, s.up, s.first, s.dup, s.err))
-                            .collect::<Vec<_>>()
-                            .join("; ")
-                    );
+                if let Some(line) = stats.report(&names) {
+                    log(line);
                 }
             }
         }
@@ -301,6 +388,9 @@ pub async fn ensure(config: Option<GameLinkConfig>) {
     }
     let old = RUNNING.lock().take();
     if let Some(old) = old {
+        if old.task.inner().is_finished() {
+            logging!(warn, Type::Core, "game mode: the previous run ended, starting again");
+        }
         old.task.abort();
         logging!(info, Type::Core, "game mode: stopped");
     }
@@ -439,5 +529,58 @@ mod tests {
         let second = tokio::time::timeout(Duration::from_millis(300), game.recv_from(&mut buf)).await;
         assert!(second.is_err(), "the second copy of the reply is dropped");
         task.abort();
+    }
+
+    #[test]
+    fn the_report_shows_up_when_sends_only_fail() {
+        let names = ["msk2", "direct"];
+        let mut stats = Stats::new(2);
+        assert_eq!(stats.report(&names), None, "nothing happened yet");
+        stats.paths[1].err = 3;
+        let line = stats.report(&names).expect("errors alone are worth a line");
+        assert!(line.contains("direct up=0 first=0 dup=0 err=3"), "{line}");
+        let mut stats = Stats::new(2);
+        stats.paths[0].rx_err = 1;
+        assert!(stats.report(&names).is_some(), "receive errors alone are worth a line");
+    }
+
+    /// The periodic line comes out while no path answers, and the first packet is logged at once.
+    #[tokio::test]
+    async fn the_stats_line_comes_on_the_tick_while_no_path_answers() {
+        let silent = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let config = GameLinkConfig {
+            password: "p".into(),
+            fingerprint: "ab".into(),
+            sni: DEFAULT_SNI.into(),
+            port: 0,
+            paths: vec![GamePath {
+                name: "a".into(),
+                addr: silent.local_addr().unwrap(),
+            }],
+            apps: default_apps(),
+        };
+        let local = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let mux_addr = local.local_addr().unwrap();
+        let (lines_tx, mut lines) = mpsc::unbounded_channel::<String>();
+        let task = tokio::spawn(run_with(config, local, Duration::from_millis(100), move |line| {
+            let _ = lines_tx.send(line);
+        }));
+
+        let game = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        game.send_to(b"hello", mux_addr).await.unwrap();
+
+        let mut seen = Vec::new();
+        let found = tokio::time::timeout(Duration::from_secs(3), async {
+            while let Some(line) = lines.recv().await {
+                seen.push(line.clone());
+                if line.contains("from game 1,") && line.contains("a up=1") {
+                    return;
+                }
+            }
+        })
+        .await;
+        task.abort();
+        assert!(found.is_ok(), "no stats line, got {seen:?}");
+        assert!(seen.iter().any(|l| l.contains("packets from the game at")), "{seen:?}");
     }
 }
