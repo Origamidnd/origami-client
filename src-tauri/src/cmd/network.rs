@@ -184,3 +184,10 @@ pub fn origami_get_clock_skew() -> Option<crate::config::ClockSkew> {
 pub fn origami_get_link_state() -> crate::core::link_watch::LinkState {
     crate::core::link_watch::current()
 }
+
+/// OrigamiVPN: game mode state and counters, for the support report.
+#[tauri::command]
+#[specta::specta]
+pub fn origami_game_link_status() -> crate::core::game_link::GameLinkStatus {
+    crate::core::game_link::status()
+}

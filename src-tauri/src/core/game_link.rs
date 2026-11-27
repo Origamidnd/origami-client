@@ -12,7 +12,7 @@
 use std::collections::{HashSet, VecDeque};
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use anyhow::{Context as _, Result, bail};
 use base64::Engine as _;
@@ -239,7 +239,58 @@ async fn open_path(addr: SocketAddr) -> Result<UdpSocket> {
 
 /// Runs until aborted: forwards the game tunnel between `local` and every path.
 pub async fn run(config: GameLinkConfig, local: UdpSocket) -> Result<()> {
-    run_with(config, local, STATS_EVERY, |line| logging!(info, Type::Core, "{line}")).await
+    run_with(config, local, STATS_EVERY, |line| {
+        remember(&line);
+        logging!(info, Type::Core, "{line}");
+    })
+    .await
+}
+
+const STATS_PREFIX: &str = "game mode: ";
+
+/// The latest stats line of the current run and when it came, for the support report.
+static LAST_STATS: Mutex<Option<(SystemTime, String)>> = Mutex::new(None);
+
+fn remember(line: &str) {
+    remember_in(&LAST_STATS, line, SystemTime::now());
+}
+
+fn remember_in(slot: &Mutex<Option<(SystemTime, String)>>, line: &str, now: SystemTime) {
+    if line.starts_with("game mode: from game") {
+        *slot.lock() = Some((now, line.to_owned()));
+    }
+}
+
+/// What the support report says about game mode.
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct GameLinkStatus {
+    /// The multiplexer is running now.
+    pub running: bool,
+    /// The run's counters so far ("from game N, to game N, ..."), once anything happened.
+    pub stats: Option<String>,
+    /// How long ago the counters were written.
+    pub seconds_ago: Option<u32>,
+}
+
+fn describe(running: bool, last: Option<(SystemTime, String)>, now: SystemTime) -> GameLinkStatus {
+    let (stats, seconds_ago) = match last {
+        Some((at, line)) => (
+            Some(line.strip_prefix(STATS_PREFIX).unwrap_or(&line).to_owned()),
+            Some(u32::try_from(now.duration_since(at).unwrap_or_default().as_secs()).unwrap_or(u32::MAX)),
+        ),
+        None => (None, None),
+    };
+    GameLinkStatus {
+        running,
+        stats,
+        seconds_ago,
+    }
+}
+
+pub fn status() -> GameLinkStatus {
+    let running = RUNNING.lock().as_ref().is_some_and(|r| !r.task.inner().is_finished());
+    describe(running, LAST_STATS.lock().clone(), SystemTime::now())
 }
 
 async fn run_with(
@@ -407,6 +458,8 @@ pub async fn ensure(config: Option<GameLinkConfig>) {
         let _ = old.task.await;
         logging!(info, Type::Core, "game mode: stopped");
     }
+    // The counters belong to one run.
+    *LAST_STATS.lock() = None;
     let Some(config) = config else { return };
     let addr = SocketAddr::from(([127, 0, 0, 1], config.port));
     let mut attempt = 0;
@@ -679,5 +732,34 @@ mod tests {
             .unwrap();
         assert_eq!(&buf[..n], b"world");
         task.abort();
+    }
+
+    #[test]
+    fn the_report_gets_the_counters_without_the_prefix_and_their_age() {
+        let slot = Mutex::new(None);
+        let at = SystemTime::UNIX_EPOCH + Duration::from_secs(1000);
+        remember_in(&slot, "game mode: from game 5, to game 4, local errors 0; a up=5", at);
+        let status = describe(true, slot.lock().clone(), at + Duration::from_secs(90));
+        assert_eq!(
+            status,
+            GameLinkStatus {
+                running: true,
+                stats: Some("from game 5, to game 4, local errors 0; a up=5".into()),
+                seconds_ago: Some(90),
+            }
+        );
+    }
+
+    #[test]
+    fn only_the_counters_line_is_kept_for_the_report() {
+        let slot = Mutex::new(None);
+        let at = SystemTime::UNIX_EPOCH;
+        remember_in(&slot, "game mode: path a answers", at);
+        remember_in(
+            &slot,
+            "game mode: packets from the game at 127.0.0.1:5, sending over 1 path(s)",
+            at,
+        );
+        assert_eq!(describe(false, slot.lock().clone(), at), GameLinkStatus::default());
     }
 }

@@ -385,6 +385,11 @@ export async function getSystemInfo() {
   return commands.getSystemInfo()
 }
 
+/** OrigamiVPN: game mode state and counters, for the support report. */
+export async function getGameLinkStatus() {
+  return commands.origamiGameLinkStatus()
+}
+
 /** OrigamiVPN: package manager that updates this install (Arch), or null for built-in updates. */
 export async function getPackageManager() {
   return commands.getPackageManager()

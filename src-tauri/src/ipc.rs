@@ -42,6 +42,7 @@ pub fn builder() -> tauri_specta::Builder<tauri::Wry> {
             cmd::origami_unresolved_servers,
             cmd::origami_get_link_state,
             cmd::origami_get_clock_skew,
+            cmd::origami_game_link_status,
             cmd::origami_refresh_usage,
             cmd::origami_program_publishers,
             cmd::origami_game_titles,

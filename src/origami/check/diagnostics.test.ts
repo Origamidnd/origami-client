@@ -66,4 +66,45 @@ describe('buildDiagnostics', () => {
       text.split('\n').filter((line) => line.startsWith('  error')),
     ).toHaveLength(20)
   })
+
+  it('says nothing about game mode for someone who never set it up', () => {
+    expect(buildDiagnostics(base)).not.toContain('Игровой режим')
+    expect(
+      buildDiagnostics({
+        ...base,
+        gameMode: { enabled: false, hasCode: false, running: false },
+      }),
+    ).not.toContain('Игровой режим')
+  })
+
+  it('shows whether game mode is on and what it carried', () => {
+    const off = buildDiagnostics({
+      ...base,
+      gameMode: { enabled: false, hasCode: true, running: false },
+    })
+    expect(off).toContain('Игровой режим: выключен')
+    const broken = buildDiagnostics({
+      ...base,
+      gameMode: { enabled: true, hasCode: true, running: false },
+    })
+    expect(broken).toContain('Игровой режим: включён, но не работает')
+    const idle = buildDiagnostics({
+      ...base,
+      gameMode: { enabled: true, hasCode: true, running: true },
+    })
+    expect(idle).toContain('Игровой режим: работает, пакетов от игры не было')
+    const busy = buildDiagnostics({
+      ...base,
+      gameMode: {
+        enabled: true,
+        hasCode: true,
+        running: true,
+        stats: 'from game 42, to game 42, local errors 0; direct up=42',
+        secondsAgo: 130,
+      },
+    })
+    expect(busy).toContain(
+      'Игровой режим: работает, from game 42, to game 42, local errors 0; direct up=42 (2 мин назад)',
+    )
+  })
 })

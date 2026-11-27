@@ -3,8 +3,9 @@ import { useCallback } from 'react'
 
 import { useProfiles } from '@/hooks/use-profiles'
 import { useSystemState } from '@/hooks/use-system-state'
+import { useVerge } from '@/hooks/use-verge'
 import { useProxiesData } from '@/providers/app-data-context'
-import { getSystemInfo } from '@/services/cmds'
+import { getGameLinkStatus, getSystemInfo } from '@/services/cmds'
 import { version } from '@root/package.json'
 
 import { resolveCurrent } from '../current-server'
@@ -40,10 +41,15 @@ export const useDiagnosticsText = () => {
   const { current } = useProfiles()
   const { proxyView } = useProxiesData()
   const { runState } = useSystemState()
+  const { verge } = useVerge()
+  const gameLink = verge?.origami_game_link
 
   return useCallback(
     async ({ results, coreErrors, connections }: DiagnosticsParts) => {
-      const system = await getSystemInfo().catch(() => undefined)
+      const [system, game] = await Promise.all([
+        getSystemInfo().catch(() => undefined),
+        getGameLinkStatus().catch(() => undefined),
+      ])
       const server = proxyView ? resolveCurrent(proxyView) : null
       const expire = current?.extra?.expire
       return buildDiagnostics({
@@ -80,8 +86,15 @@ export const useDiagnosticsText = () => {
         exit: results.exit,
         coreErrors,
         connections,
+        gameMode: {
+          enabled: gameLink?.enabled ?? false,
+          hasCode: Boolean(gameLink?.code?.trim()),
+          running: game?.running ?? false,
+          stats: game?.stats,
+          secondsAgo: game?.secondsAgo,
+        },
       })
     },
-    [connected, current, mode, proxyView, runState],
+    [connected, current, gameLink, mode, proxyView, runState],
   )
 }
