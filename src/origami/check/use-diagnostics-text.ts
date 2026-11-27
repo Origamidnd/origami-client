@@ -5,10 +5,15 @@ import { useProfiles } from '@/hooks/use-profiles'
 import { useSystemState } from '@/hooks/use-system-state'
 import { useVerge } from '@/hooks/use-verge'
 import { useProxiesData } from '@/providers/app-data-context'
-import { getGameLinkStatus, getSystemInfo } from '@/services/cmds'
+import {
+  getGameLinkStatus,
+  getSystemInfo,
+  origamiGetClockSkew,
+} from '@/services/cmds'
 import { version } from '@root/package.json'
 
 import { resolveCurrent } from '../current-server'
+import { formatBytes } from '../format-bytes'
 import { useConnection } from '../home/use-connection'
 import { daysLeft } from '../subscription-status'
 
@@ -46,12 +51,19 @@ export const useDiagnosticsText = () => {
 
   return useCallback(
     async ({ results, coreErrors, connections }: DiagnosticsParts) => {
-      const [system, game] = await Promise.all([
+      const [system, game, clock] = await Promise.all([
         getSystemInfo().catch(() => undefined),
         getGameLinkStatus().catch(() => undefined),
+        origamiGetClockSkew().catch(() => null),
       ])
       const server = proxyView ? resolveCurrent(proxyView) : null
-      const expire = current?.extra?.expire
+      const extra = current?.extra
+      const expire = extra?.expire
+      const used = (extra?.upload ?? 0) + (extra?.download ?? 0)
+      // The group the Default template sends games to; a player's choice there decides the route.
+      const games = proxyView?.groups.find(
+        (group) => group.name.includes('Игры') && group.now,
+      )
       return buildDiagnostics({
         time: dayjs().format('DD.MM.YYYY HH:mm Z'),
         appVersion: version,
@@ -80,7 +92,14 @@ export const useDiagnosticsText = () => {
               updated: current.updated
                 ? dayjs(current.updated * 1000).format('DD.MM HH:mm')
                 : undefined,
+              traffic: extra?.total
+                ? `${formatBytes(used)} из ${formatBytes(extra.total)}`
+                : undefined,
             }
+          : undefined,
+        clock,
+        gameGroup: games
+          ? { name: games.name, now: games.now as string }
           : undefined,
         delays: results.delays,
         exit: results.exit,
