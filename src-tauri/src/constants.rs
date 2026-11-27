@@ -73,6 +73,9 @@ pub mod tun {
     pub const DEFAULT_STRICT_ROUTE: bool = cfg!(target_os = "windows");
 
     /// Saved dialog fields; `enable` belongs to the verge switch.
+    /// OrigamiVPN: the TUN adapter's name on Windows and Linux.
+    pub const DEVICE_NAME: &str = "OrigamiVPN";
+
     pub const GUI_KEYS: &[&str] = &[
         "stack",
         "device",

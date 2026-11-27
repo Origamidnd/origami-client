@@ -48,7 +48,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
   const [loadedRouteExclude, setLoadedRouteExclude] = useState<string[]>([])
   const [values, setValues] = useState({
     stack: 'mips',
-    device: OS === 'macos' ? 'utun1024' : 'Mihomo',
+    device: OS === 'macos' ? 'utun1024' : 'OrigamiVPN',
     autoRoute: true,
     routeExcludeAddress: '',
     autoRedirect: false,
@@ -80,7 +80,8 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
         OS === 'linux' ? (nextAutoRoute ? rawAutoRedirect : false) : false
       setValues({
         stack: clash?.tun.stack ?? 'mips',
-        device: clash?.tun.device ?? (OS === 'macos' ? 'utun1024' : 'Mihomo'),
+        device:
+          clash?.tun.device ?? (OS === 'macos' ? 'utun1024' : 'OrigamiVPN'),
         autoRoute: nextAutoRoute,
         routeExcludeAddress: (clash?.tun['route-exclude-address'] ?? []).join(
           ',',
@@ -113,7 +114,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
           values.device === ''
             ? OS === 'macos'
               ? 'utun1024'
-              : 'Mihomo'
+              : 'OrigamiVPN'
             : values.device,
         'auto-route': values.autoRoute,
         ...routeExcludeForSave(loadedRouteExclude, routeExcludeAddress),
@@ -161,7 +162,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
             onClick={async () => {
               const tun: IConfigData['tun'] = {
                 stack: 'mips',
-                device: OS === 'macos' ? 'utun1024' : 'Mihomo',
+                device: OS === 'macos' ? 'utun1024' : 'OrigamiVPN',
                 'auto-route': true,
                 ...(OS === 'linux'
                   ? {
@@ -188,7 +189,7 @@ export function TunViewer({ ref }: { ref?: Ref<DialogRef> }) {
               setLoadedRouteExclude(routeExclude)
               setValues({
                 stack: 'mips',
-                device: OS === 'macos' ? 'utun1024' : 'Mihomo',
+                device: OS === 'macos' ? 'utun1024' : 'OrigamiVPN',
                 autoRoute: true,
                 routeExcludeAddress: routeExclude.join(','),
                 autoRedirect: false,
