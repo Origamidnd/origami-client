@@ -107,4 +107,58 @@ describe('buildDiagnostics', () => {
       'Игровой режим: работает, from game 42, to game 42, local errors 0; direct up=42 (2 мин назад)',
     )
   })
+
+  it('says once that the rule lists did not update, with the reason', () => {
+    const names = ['youtube', 'google', 'telegram-ips']
+    const text = buildDiagnostics({
+      ...base,
+      coreErrors: [
+        '11-27 15:00:01 [TCP] dial failed',
+        ...names.map(
+          (name) =>
+            `11-27 15:11:13 [Provider] ${name} pull error: Get "https://sub.example.com/geo/${name}.list": context deadline exceeded`,
+        ),
+      ],
+    })
+    expect(text).toContain('  11-27 15:00:01 [TCP] dial failed')
+    expect(text).toContain(
+      '  11-27 15:11:13 [Provider] списки правил не обновились (3: youtube, google, telegram-ips): Get sub.example.com: context deadline exceeded',
+    )
+    expect(text).not.toContain('youtube pull error')
+  })
+
+  it('says the service check did not run in one line', () => {
+    const text = buildDiagnostics({ ...base, delays: {} })
+    expect(text).toContain('Проверка сервисов: не запускалась')
+    expect(text).not.toContain('не проверялся')
+  })
+
+  it('names a wrong clock, the traffic left and where games go', () => {
+    const text = buildDiagnostics({
+      ...base,
+      clock: 'behind',
+      subscription: { daysLeft: 5, traffic: '9.71 МБ из 15.0 МБ' },
+      gameGroup: { name: '🎮 Игры', now: 'Швеция' },
+    })
+    expect(text).toContain('Часы: отстают, VPN может не подключаться')
+    expect(text).toContain(
+      'Подписка: осталось дней 5, трафик 9.71 МБ из 15.0 МБ',
+    )
+    expect(text).toContain('🎮 Игры: Швеция')
+    expect(buildDiagnostics(base)).not.toContain('Часы')
+  })
+
+  it('points out when the game sent packets and none came back', () => {
+    const text = buildDiagnostics({
+      ...base,
+      gameMode: {
+        enabled: true,
+        hasCode: true,
+        running: true,
+        stats: 'from game 20, to game 0, local errors 0; direct up=20',
+        secondsAgo: 10,
+      },
+    })
+    expect(text).toContain('(0 мин назад), ответов от сервера не было')
+  })
 })
