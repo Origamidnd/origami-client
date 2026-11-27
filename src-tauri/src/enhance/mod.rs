@@ -602,6 +602,24 @@ fn ensure_tun_default_mtu(mut config: Mapping) -> Mapping {
     config
 }
 
+/// OrigamiVPN: the TUN adapter carries the app's name instead of the core's "Meta" or the "Mihomo"
+/// that the TUN window used to save as its default. macOS only accepts utunN names, so it keeps the
+/// core's choice there.
+fn ensure_tun_device_name(mut config: Mapping) -> Mapping {
+    #[cfg(not(target_os = "macos"))]
+    if let Some(Value::Mapping(tun)) = config.get_mut("tun") {
+        let unset = tun.get("device").is_none_or(|value| {
+            value
+                .as_str()
+                .is_none_or(|name| matches!(name.trim(), "" | "Meta" | "Mihomo"))
+        });
+        if unset {
+            tun.insert(Value::from("device"), Value::from(constants::tun::DEVICE_NAME));
+        }
+    }
+    config
+}
+
 /// Merges the app's clash config over the profile; switches are parameters to keep it pure.
 fn merge_default_config(
     mut config: Mapping,
@@ -980,6 +998,7 @@ pub async fn enhance(
     notify_discarded_keys(authoritative.overridden(&authoritative, &authoritative.current(&config)));
     let config = authoritative.enforce(config);
     let config = ensure_tun_default_mtu(config);
+    let config = ensure_tun_device_name(config);
     let config = ensure_lan_bind_address(config);
 
     let config = cleanup_proxy_groups(config);
@@ -1951,6 +1970,43 @@ proxy-groups:
             .expect("proxies should be a sequence");
         assert_eq!(proxies.len(), 1);
         assert_eq!(proxies[0].as_str(), Some("DIRECT"));
+    }
+}
+
+#[cfg(test)]
+#[allow(clippy::expect_used, clippy::panic, reason = "tests assert by panicking")]
+mod tun_device_tests {
+    use super::{Mapping, Value, ensure_tun_device_name};
+
+    fn config(yaml: &str) -> Mapping {
+        serde_yaml_ng::from_str(yaml).expect("test yaml")
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    #[test]
+    fn the_adapter_is_named_after_the_app() {
+        // Without a name the core calls it "Meta", and people take it for a stranger's VPN.
+        let out = ensure_tun_device_name(config("tun: {enable: true}"));
+        assert_eq!(out["tun"]["device"], Value::from("OrigamiVPN"));
+        let out = ensure_tun_device_name(config("tun: {enable: true, device: ''}"));
+        assert_eq!(out["tun"]["device"], Value::from("OrigamiVPN"));
+        // The old defaults of the core and of the TUN window.
+        for old in ["Meta", "Mihomo"] {
+            let out = ensure_tun_device_name(config(&format!("tun: {{enable: true, device: {old}}}")));
+            assert_eq!(out["tun"]["device"], Value::from("OrigamiVPN"));
+        }
+    }
+
+    #[test]
+    fn a_chosen_name_stays() {
+        let out = ensure_tun_device_name(config("tun: {enable: true, device: utun9}"));
+        assert_eq!(out["tun"]["device"], Value::from("utun9"));
+    }
+
+    #[test]
+    fn no_tun_section_is_left_alone() {
+        let out = ensure_tun_device_name(config("mode: rule"));
+        assert!(out.get("tun").is_none());
     }
 }
 
