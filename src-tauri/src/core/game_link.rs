@@ -223,6 +223,20 @@ enum FromPath {
     Error(std::io::Error),
 }
 
+/// A socket for one path. It is not connected on purpose: Windows fixes the source address of a
+/// connected UDP socket at connect time, and the multiplexer starts while the core still sends
+/// everything into the TUN, before the paths' bypass routes exist. Such a socket kept the TUN's
+/// address and Windows silently dropped every packet. An unconnected socket gets its route for
+/// each packet.
+async fn open_path(addr: SocketAddr) -> Result<UdpSocket> {
+    let bind: SocketAddr = if addr.is_ipv4() {
+        "0.0.0.0:0".parse()?
+    } else {
+        "[::]:0".parse()?
+    };
+    Ok(UdpSocket::bind(bind).await?)
+}
+
 /// Runs until aborted: forwards the game tunnel between `local` and every path.
 pub async fn run(config: GameLinkConfig, local: UdpSocket) -> Result<()> {
     run_with(config, local, STATS_EVERY, |line| logging!(info, Type::Core, "{line}")).await
@@ -243,22 +257,19 @@ async fn run_with(
     let (tx, mut rx) = mpsc::channel::<(usize, FromPath)>(1024);
     let mut readers = Vec::new();
     for (index, path) in config.paths.iter().enumerate() {
-        let bind: SocketAddr = if path.addr.is_ipv4() {
-            "0.0.0.0:0".parse()?
-        } else {
-            "[::]:0".parse()?
-        };
-        let socket = Arc::new(UdpSocket::bind(bind).await?);
-        socket.connect(path.addr).await?;
+        let socket = Arc::new(open_path(path.addr).await?);
         let reader = Arc::clone(&socket);
+        let peer = path.addr;
         let tx = tx.clone();
         readers.push(tokio::spawn(async move {
             let mut buf = vec![0u8; 65535];
             loop {
                 // An error (a refused send shows up here on some systems) only means a missed packet,
                 // but it is counted so a dead path shows in the log.
-                let item = match reader.recv(&mut buf).await {
-                    Ok(n) => FromPath::Packet(buf[..n].to_vec()),
+                let item = match reader.recv_from(&mut buf).await {
+                    Ok((n, from)) if from == peer => FromPath::Packet(buf[..n].to_vec()),
+                    // Only the path itself may answer on its socket.
+                    Ok(_) => continue,
                     Err(err) => FromPath::Error(err),
                 };
                 let failed = matches!(item, FromPath::Error(_));
@@ -315,7 +326,7 @@ async fn run_with(
                 let packet = pack(&session, seq, &buf[..n]);
                 for (index, socket) in sockets.iter().enumerate() {
                     let path = &mut stats.paths[index];
-                    match socket.send(&packet).await {
+                    match socket.send_to(&packet, config.paths[index].addr).await {
                         Ok(_) => path.up += 1,
                         Err(err) => {
                             path.err += 1;
@@ -621,5 +632,52 @@ mod tests {
         let running = RUNNING.lock().as_ref().map(|r| r.config.clone());
         ensure(None).await;
         assert_eq!(running, Some(config(2)), "the new code runs");
+    }
+
+    /// The path socket must stay unconnected, see `open_path`.
+    #[tokio::test]
+    async fn a_path_socket_is_not_tied_to_one_route() {
+        let socket = open_path("192.0.2.1:24443".parse().unwrap()).await.unwrap();
+        assert!(socket.peer_addr().is_err(), "the path socket is connected");
+    }
+
+    /// On an unconnected socket a stranger can send too: its packets must not reach the game.
+    #[tokio::test]
+    async fn packets_from_a_stranger_are_ignored() {
+        let path = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let config = GameLinkConfig {
+            password: "p".into(),
+            fingerprint: "ab".into(),
+            sni: DEFAULT_SNI.into(),
+            port: 0,
+            paths: vec![GamePath {
+                name: "a".into(),
+                addr: path.local_addr().unwrap(),
+            }],
+            apps: default_apps(),
+        };
+        let local = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let mux_addr = local.local_addr().unwrap();
+        let task = tokio::spawn(run(config, local));
+        let game = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        game.send_to(b"hello", mux_addr).await.unwrap();
+        let mut buf = vec![0u8; 2048];
+        let (n, from) = path.recv_from(&mut buf).await.unwrap();
+        let mut session = [0u8; 8];
+        session.copy_from_slice(&buf[1..9]);
+        assert_eq!(&buf[HEADER..n], b"hello");
+
+        let stranger = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        stranger.send_to(&pack(&session, 7, b"evil"), from).await.unwrap();
+        let got = tokio::time::timeout(Duration::from_millis(300), game.recv_from(&mut buf)).await;
+        assert!(got.is_err(), "a stranger's packet reached the game");
+
+        path.send_to(&pack(&session, 8, b"world"), from).await.unwrap();
+        let (n, _) = tokio::time::timeout(Duration::from_secs(2), game.recv_from(&mut buf))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(&buf[..n], b"world");
+        task.abort();
     }
 }
