@@ -392,14 +392,25 @@ pub async fn ensure(config: Option<GameLinkConfig>) {
             logging!(warn, Type::Core, "game mode: the previous run ended, starting again");
         }
         old.task.abort();
+        // Wait until the old run is dropped: only then its socket lets go of the port.
+        let _ = old.task.await;
         logging!(info, Type::Core, "game mode: stopped");
     }
     let Some(config) = config else { return };
-    let local = match UdpSocket::bind(SocketAddr::from(([127, 0, 0, 1], config.port))).await {
-        Ok(socket) => socket,
-        Err(err) => {
-            logging!(warn, Type::Core, "game mode: port {} is busy: {err}", config.port);
-            return;
+    let addr = SocketAddr::from(([127, 0, 0, 1], config.port));
+    let mut attempt = 0;
+    let local = loop {
+        match UdpSocket::bind(addr).await {
+            Ok(socket) => break socket,
+            // The system can hold a just closed port for a moment.
+            Err(_) if attempt < 10 => {
+                attempt += 1;
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+            Err(err) => {
+                logging!(warn, Type::Core, "game mode: port {} is busy: {err}", config.port);
+                return;
+            }
         }
     };
     let for_task = config.clone();
@@ -582,5 +593,33 @@ mod tests {
         task.abort();
         assert!(found.is_ok(), "no stats line, got {seen:?}");
         assert!(seen.iter().any(|l| l.contains("packets from the game at")), "{seen:?}");
+    }
+
+    /// A new code while game mode runs: the old multiplexer lets go of the port and the new one
+    /// listens on it.
+    #[tokio::test]
+    async fn a_new_code_restarts_on_the_same_port() {
+        let port = UdpSocket::bind("127.0.0.1:0")
+            .await
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        let config = |last: u8| GameLinkConfig {
+            password: "p".into(),
+            fingerprint: "ab".into(),
+            sni: DEFAULT_SNI.into(),
+            port,
+            paths: vec![GamePath {
+                name: "direct".into(),
+                addr: SocketAddr::from(([192, 0, 2, last], 24443)),
+            }],
+            apps: default_apps(),
+        };
+        ensure(Some(config(1))).await;
+        ensure(Some(config(2))).await;
+        let running = RUNNING.lock().as_ref().map(|r| r.config.clone());
+        ensure(None).await;
+        assert_eq!(running, Some(config(2)), "the new code runs");
     }
 }
