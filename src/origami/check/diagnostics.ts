@@ -17,6 +17,30 @@ export interface DiagnosticsInput {
   coreErrors: string[]
   /** Ready lines about recent connections, for a report that is pasted by hand. */
   connections?: string[]
+  /** Game mode (test): left out for everyone who never turned it on or saved a code. */
+  gameMode?: GameModeState
+}
+
+export interface GameModeState {
+  enabled: boolean
+  hasCode: boolean
+  /** The multiplexer runs now. */
+  running: boolean
+  /** Its counters, once the game sent anything. */
+  stats?: string | null
+  secondsAgo?: number | null
+}
+
+const gameModeLine = (game: GameModeState): string | null => {
+  if (!game.enabled) return game.hasCode ? 'Игровой режим: выключен' : null
+  if (!game.running)
+    return 'Игровой режим: включён, но не работает (код не читается или порт занят)'
+  if (!game.stats) return 'Игровой режим: работает, пакетов от игры не было'
+  const age =
+    game.secondsAgo == null
+      ? ''
+      : ` (${Math.round(game.secondsAgo / 60)} мин назад)`
+  return `Игровой режим: работает, ${game.stats}${age}`
 }
 
 const MAX_CORE_ERRORS = 20
@@ -64,6 +88,8 @@ export const buildDiagnostics = (input: DiagnosticsInput): string => {
       `Выход: ${input.exit.country || 'страна неизвестна'}${input.exit.asn ? `, ${input.exit.asn}` : ''}`,
     )
   }
+  const game = input.gameMode && gameModeLine(input.gameMode)
+  if (game) lines.push(game)
   lines.push('Проверка сервисов:')
   for (const target of CHECK_TARGETS) {
     const delay = input.delays[target.id]

@@ -83,6 +83,9 @@ export const commands = {
   /**  OrigamiVPN: which way the computer's clock is off, by the last subscription answer. */
   origamiGetClockSkew: () =>
     __TAURI_INVOKE<'ahead' | 'behind' | null>('origami_get_clock_skew'),
+  /**  OrigamiVPN: game mode state and counters, for the support report. */
+  origamiGameLinkStatus: () =>
+    __TAURI_INVOKE<GameLinkStatus>('origami_game_link_status'),
   /**
    *  OrigamiVPN: fetches the subscription only for its usage numbers. Nothing else of the profile
    *  changes and the core is not reloaded, so this can run while someone plays or watches.
@@ -358,6 +361,16 @@ export type FailedOperation =
   | 'systemProxyDisable'
   | 'systemProxyRestore'
   | 'systemProxyGuard'
+
+/**  What the support report says about game mode. */
+export type GameLinkStatus = {
+  /**  The multiplexer is running now. */
+  running: boolean
+  /**  The run's counters so far ("from game N, to game N, ..."), once anything happened. */
+  stats: string | null
+  /**  How long ago the counters were written. */
+  secondsAgo: number | null
+}
 
 /**
  *  OrigamiVPN: game mode settings. The code holds the anchor's password and certificate pin: it is
